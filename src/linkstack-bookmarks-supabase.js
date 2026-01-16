@@ -19,6 +19,10 @@ export class LinkStackBookmarks extends HTMLElement {
 
   #bookmarksService = new BookmarksService(supabase);
   #renderPromise = null;
+  #boundHandlers = {
+    onBookmarkCreated: null,
+    onBookmarkUpdated: null,
+  };
 
   constructor() {
     super();
@@ -26,6 +30,22 @@ export class LinkStackBookmarks extends HTMLElement {
 
   connectedCallback() {
     this.#init();
+  }
+
+  disconnectedCallback() {
+    // Clean up event listeners to prevent memory leaks
+    if (this.#boundHandlers.onBookmarkCreated) {
+      window.removeEventListener(
+        "bookmark-created",
+        this.#boundHandlers.onBookmarkCreated,
+      );
+    }
+    if (this.#boundHandlers.onBookmarkUpdated) {
+      window.removeEventListener(
+        "bookmark-updated",
+        this.#boundHandlers.onBookmarkUpdated,
+      );
+    }
   }
 
   async #init() {
@@ -43,15 +63,26 @@ export class LinkStackBookmarks extends HTMLElement {
   #addEventListeners() {
     const { bookmarksContainer } = this.#elements;
 
-    // Listen for bookmark-created custom event
-    window.addEventListener("bookmark-created", async () => {
+    // Store bound handlers for cleanup
+    this.#boundHandlers.onBookmarkCreated = async () => {
       await this.#renderBookmarks();
-    });
+    };
+
+    this.#boundHandlers.onBookmarkUpdated = async () => {
+      await this.#renderBookmarks();
+    };
+
+    // Listen for bookmark-created custom event
+    window.addEventListener(
+      "bookmark-created",
+      this.#boundHandlers.onBookmarkCreated,
+    );
 
     // Listen for bookmark-updated custom event
-    window.addEventListener("bookmark-updated", async () => {
-      await this.#renderBookmarks();
-    });
+    window.addEventListener(
+      "bookmark-updated",
+      this.#boundHandlers.onBookmarkUpdated,
+    );
 
     bookmarksContainer.addEventListener("click", async (event) => {
       if (event.target.id === "delete-bookmark") {

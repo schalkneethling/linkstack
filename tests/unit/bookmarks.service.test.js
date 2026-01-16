@@ -166,6 +166,17 @@ describe("BookmarksService", () => {
         "Update failed",
       );
     });
+
+    it("should throw error if bookmark not found", async () => {
+      mockSupabase.select.mockResolvedValue({
+        data: [],
+        error: null,
+      });
+
+      await expect(bookmarksService.update("999", {})).rejects.toThrow(
+        "Bookmark with id 999 not found",
+      );
+    });
   });
 
   describe("delete", () => {
