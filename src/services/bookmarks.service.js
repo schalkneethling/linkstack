@@ -70,7 +70,7 @@ export class BookmarksService {
    * @param {string} id - Bookmark ID
    * @param {Object} updates - Fields to update
    * @returns {Promise<Object>} Updated bookmark object
-   * @throws {Error} If update fails
+   * @throws {Error} If update fails or bookmark not found
    */
   async update(id, updates) {
     const { data, error } = await this.#supabase
@@ -81,6 +81,10 @@ export class BookmarksService {
 
     if (error) {
       throw error;
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error(`Bookmark with id ${id} not found`);
     }
 
     return data[0];
