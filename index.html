@@ -9,6 +9,7 @@
   <link rel="stylesheet" type="text/css" href="css/linkstack.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-form.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-bookmarks.css" media="screen" />
+  <link rel="stylesheet" type="text/css" href="css/components/linkstack-threads.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-dialog.css" media="screen" />
   <style>
     .hidden {
@@ -78,6 +79,12 @@
           <label class="visually-hidden" for="url">Enter bookmark URL</label>
           <input type="url" name="url" id="url" required />
         </div>
+        <div class="form-field">
+          <label for="parent-bookmark">Add as child of (optional)</label>
+          <select name="parent_id" id="parent-bookmark">
+            <option value="">-- Top-level bookmark --</option>
+          </select>
+        </div>
         <button class="button solid" type="submit">Add Bookmark</button>
       </form>
     </linkstack-form>
@@ -110,6 +117,32 @@
               </button>
               <button id="delete-bookmark" type="button" class="button solid critical">
                 Remove Bookmark
+              </button>
+            </div>
+          </div>
+          <button class="thread-toggle hidden" type="button" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
+              <path d="M6 9L12 15L18 9" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="thread-label visually-hidden">Show thread</span>
+          </button>
+          <ul class="thread-children reset-list hidden"></ul>
+        </li>
+      </template>
+
+      <template id="bookmark-child-tmpl">
+        <li class="bookmark-child">
+          <div class="bookmark-child-info">
+            <a class="bookmark-link" target="_blank" rel="noopener noreferrer" href="">
+              <h4 class="bookmark-title"></h4>
+            </a>
+            <p class="bookmark-description"></p>
+            <div class="bookmark-actions">
+              <button id="edit-bookmark" type="button" class="button solid">
+                Edit
+              </button>
+              <button id="delete-bookmark" type="button" class="button solid critical">
+                Remove
               </button>
             </div>
           </div>
