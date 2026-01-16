@@ -64,7 +64,7 @@ export class LinkStackForm extends HTMLElement {
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
-                alert("Failed to add bookmark. Please try again.");
+                alert(error.message || "Failed to add bookmark. Please try again.");
               }
             };
 
@@ -79,7 +79,7 @@ export class LinkStackForm extends HTMLElement {
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
-                alert("Failed to add bookmark. Please try again.");
+                alert(error.message || "Failed to add bookmark. Please try again.");
               }
             };
           } else {
@@ -87,7 +87,7 @@ export class LinkStackForm extends HTMLElement {
           }
         } catch (error) {
           console.error("Error submitting bookmark:", error);
-          alert("Failed to add bookmark. Please try again.");
+          alert(error.message || "Failed to add bookmark. Please try again.");
         }
       });
     }
