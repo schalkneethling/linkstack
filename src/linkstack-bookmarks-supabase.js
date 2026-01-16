@@ -106,15 +106,18 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   async #renderBookmarks() {
-    // Wait for any in-flight render to complete to prevent race conditions
-    if (this.#renderPromise) {
-      await this.#renderPromise;
-    }
+    // Serialize render calls to prevent race conditions
+    // If a render is in-flight, chain the next one after it completes
+    const previousRender = this.#renderPromise;
 
-    // Store this render promise so subsequent calls can wait
-    this.#renderPromise = this.#doRender();
+    this.#renderPromise = (async () => {
+      if (previousRender) {
+        await previousRender;
+      }
+      await this.#doRender();
+    })();
+
     await this.#renderPromise;
-    this.#renderPromise = null;
   }
 
   async #doRender() {
