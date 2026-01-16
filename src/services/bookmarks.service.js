@@ -54,7 +54,11 @@ export class BookmarksService {
    */
   async create(bookmark) {
     // Get current user
-    const { data: { user } } = await this.#supabase.auth.getUser();
+    const { data: { user }, error: authError } = await this.#supabase.auth.getUser();
+
+    if (authError) {
+      throw authError;
+    }
 
     if (!user) {
       throw new Error("User must be authenticated to create bookmarks");
