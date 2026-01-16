@@ -38,8 +38,9 @@
 /* Thread children container */
 .thread-children {
   margin-top: 1rem;
-  padding-left: 2rem;
-  border-left: 2px solid var(--border-color, #e0e0e0);
+  padding: 0 1rem;
+  border-left: 3px solid var(--border-color, #e0e0e0);
+  margin-left: 1rem;
 }
 
 /* Child bookmark styling - compact, no thumbnail */
