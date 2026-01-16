@@ -51,7 +51,6 @@ export class LinkStackForm extends HTMLElement {
 
             // Test if preview image loads
             const img = new Image();
-            img.src = metadata.previewImg;
 
             img.onload = async () => {
               try {
@@ -82,6 +81,8 @@ export class LinkStackForm extends HTMLElement {
                 alert(error.message || "Failed to add bookmark. Please try again.");
               }
             };
+
+            img.src = metadata.previewImg;
           } else {
             throw new Error("Failed to fetch bookmark metadata");
           }
