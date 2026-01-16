@@ -13,6 +13,9 @@ export class LinkStackForm extends HTMLElement {
 
   constructor() {
     super();
+  }
+
+  connectedCallback() {
     this.#addEventListeners();
   }
 
