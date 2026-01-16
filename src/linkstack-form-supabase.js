@@ -20,15 +20,10 @@ export class LinkStackForm extends HTMLElement {
   }
 
   async #addBookmark(bookmarkData) {
-    try {
-      await this.#bookmarksService.create(bookmarkData);
+    await this.#bookmarksService.create(bookmarkData);
 
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new CustomEvent("bookmark-created"));
-    } catch (error) {
-      console.error("Error adding bookmark:", error);
-      throw new Error(`Error adding bookmark: ${error.message}`);
-    }
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent("bookmark-created"));
   }
 
   #addEventListeners() {
@@ -56,23 +51,33 @@ export class LinkStackForm extends HTMLElement {
             img.src = metadata.previewImg;
 
             img.onload = async () => {
-              await this.#addBookmark({
-                url,
-                page_title: metadata.pageTitle,
-                meta_description: metadata.metaDescription,
-                preview_img: metadata.previewImg,
-              });
-              bookmarkForm.reset();
+              try {
+                await this.#addBookmark({
+                  url,
+                  page_title: metadata.pageTitle,
+                  meta_description: metadata.metaDescription,
+                  preview_img: metadata.previewImg,
+                });
+                bookmarkForm.reset();
+              } catch (error) {
+                console.error("Error adding bookmark:", error);
+                alert("Failed to add bookmark. Please try again.");
+              }
             };
 
             img.onerror = async () => {
-              await this.#addBookmark({
-                url,
-                page_title: metadata.pageTitle,
-                meta_description: metadata.metaDescription,
-                preview_img: previewFallback,
-              });
-              bookmarkForm.reset();
+              try {
+                await this.#addBookmark({
+                  url,
+                  page_title: metadata.pageTitle,
+                  meta_description: metadata.metaDescription,
+                  preview_img: previewFallback,
+                });
+                bookmarkForm.reset();
+              } catch (error) {
+                console.error("Error adding bookmark:", error);
+                alert("Failed to add bookmark. Please try again.");
+              }
             };
           } else {
             throw new Error("Failed to fetch bookmark metadata");
