@@ -18,6 +18,7 @@ export class LinkStackBookmarks extends HTMLElement {
   };
 
   #bookmarksService = new BookmarksService(supabase);
+  #renderPromise = null;
 
   constructor() {
     super();
@@ -43,13 +44,13 @@ export class LinkStackBookmarks extends HTMLElement {
     const { bookmarksContainer } = this.#elements;
 
     // Listen for bookmark-created custom event
-    window.addEventListener("bookmark-created", () => {
-      this.#renderBookmarks();
+    window.addEventListener("bookmark-created", async () => {
+      await this.#renderBookmarks();
     });
 
     // Listen for bookmark-updated custom event
-    window.addEventListener("bookmark-updated", () => {
-      this.#renderBookmarks();
+    window.addEventListener("bookmark-updated", async () => {
+      await this.#renderBookmarks();
     });
 
     bookmarksContainer.addEventListener("click", async (event) => {
@@ -105,6 +106,18 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   async #renderBookmarks() {
+    // Wait for any in-flight render to complete to prevent race conditions
+    if (this.#renderPromise) {
+      await this.#renderPromise;
+    }
+
+    // Store this render promise so subsequent calls can wait
+    this.#renderPromise = this.#doRender();
+    await this.#renderPromise;
+    this.#renderPromise = null;
+  }
+
+  async #doRender() {
     const { bookmarksContainer } = this.#elements;
     const entryTmpl = this.querySelector(
       LinkStackBookmarks.#selectors.bookmarksEntryTmpl,

@@ -36,12 +36,12 @@ export class LinkStackForm extends HTMLElement {
       bookmarkForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const endpoint = `${document.location.href}.netlify/functions/get-bookmark-data`;
+        const endpoint = `${window.location.origin}/.netlify/functions/get-bookmark-data`;
         const formData = new FormData(bookmarkForm);
         const url = formData.get("url");
 
         try {
-          const response = await fetch(`${endpoint}?url=${url}`);
+          const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
 
           if (response.ok) {
             const metadata = await response.json();
