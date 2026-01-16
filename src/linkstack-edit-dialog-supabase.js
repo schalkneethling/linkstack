@@ -11,6 +11,7 @@ export class LinkStackEditDialog extends HTMLElement {
     editId: "#edit-id",
     editTitleInput: "#edit-title",
     editDescriptionInput: "#edit-description",
+    editNotesInput: "#edit-notes",
     editDialog: "dialog",
     linkstackBookmarks: "linkstack-bookmarks",
   };
@@ -21,6 +22,7 @@ export class LinkStackEditDialog extends HTMLElement {
     editId: null,
     editTitleInput: null,
     editDescriptionInput: null,
+    editNotesInput: null,
     editDialog: null,
     linkstackBookmarks: null,
   };
@@ -51,6 +53,9 @@ export class LinkStackEditDialog extends HTMLElement {
     );
     this.#elements.editDescriptionInput = this.querySelector(
       LinkStackEditDialog.#selectors.editDescriptionInput,
+    );
+    this.#elements.editNotesInput = this.querySelector(
+      LinkStackEditDialog.#selectors.editNotesInput,
     );
     this.#elements.editDialog = this.querySelector(
       LinkStackEditDialog.#selectors.editDialog,
@@ -93,11 +98,13 @@ export class LinkStackEditDialog extends HTMLElement {
     const id = formData.get("id");
     const page_title = formData.get("title");
     const meta_description = formData.get("description");
+    const notes = formData.get("notes");
 
     try {
       await this.#bookmarksService.update(id, {
         page_title,
         meta_description,
+        notes,
       });
 
       // Dispatch custom event to notify other components
@@ -111,7 +118,7 @@ export class LinkStackEditDialog extends HTMLElement {
   }
 
   async #editBookmark(id) {
-    const { editDialog, editId, editTitleInput, editDescriptionInput } =
+    const { editDialog, editId, editTitleInput, editDescriptionInput, editNotesInput } =
       this.#elements;
 
     try {
@@ -120,6 +127,7 @@ export class LinkStackEditDialog extends HTMLElement {
       editId.value = id;
       editTitleInput.value = bookmarkData.page_title || "";
       editDescriptionInput.value = bookmarkData.meta_description || "";
+      editNotesInput.value = bookmarkData.notes || "";
 
       editDialog.showModal();
     } catch (error) {

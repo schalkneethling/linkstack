@@ -215,6 +215,14 @@ export class LinkStackBookmarks extends HTMLElement {
           entry.querySelector(".bookmark-description").textContent =
             bookmark.meta_description;
 
+          // Handle notes if present
+          const notesContainer = entry.querySelector(".bookmark-notes");
+          const notesContent = entry.querySelector(".notes-content");
+          if (bookmark.notes && bookmark.notes.trim()) {
+            notesContent.textContent = bookmark.notes;
+            notesContainer.classList.remove("hidden");
+          }
+
           deleteBookmark.dataset.id = bookmark.id;
           editBookmark.dataset.id = bookmark.id;
 
@@ -242,6 +250,14 @@ export class LinkStackBookmarks extends HTMLElement {
 
               childEntry.querySelector(".bookmark-description").textContent =
                 child.meta_description;
+
+              // Handle notes if present
+              const childNotesContainer = childEntry.querySelector(".bookmark-notes");
+              const childNotesContent = childEntry.querySelector(".notes-content");
+              if (child.notes && child.notes.trim()) {
+                childNotesContent.textContent = child.notes;
+                childNotesContainer.classList.remove("hidden");
+              }
 
               childDelete.dataset.id = child.id;
               childEdit.dataset.id = child.id;

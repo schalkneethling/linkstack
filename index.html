@@ -10,6 +10,7 @@
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-form.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-bookmarks.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-threads.css" media="screen" />
+  <link rel="stylesheet" type="text/css" href="css/components/linkstack-notes.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-dialog.css" media="screen" />
   <style>
     .hidden {
@@ -111,6 +112,20 @@
               <h3 class="bookmark-title"></h3>
             </a>
             <p class="bookmark-description"></p>
+            <div class="bookmark-notes hidden">
+              <details>
+                <summary>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" aria-hidden="true">
+                    <path d="M3 19V5C3 3.89543 3.89543 3 5 3H16.1716C16.702 3 17.2107 3.21071 17.5858 3.58579L19.4142 5.41421C19.7893 5.78929 20 6.29799 20 6.82843V19C20 20.1046 19.1046 21 18 21H5C3.89543 21 3 20.1046 3 19Z" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 9L11 9" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 13L17 13" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 17L13 17" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="notes-label">My Notes</span>
+                </summary>
+                <p class="notes-content"></p>
+              </details>
+            </div>
             <div class="bookmark-actions">
               <button id="edit-bookmark" type="button" class="button solid">
                 Edit Bookmark
@@ -137,6 +152,20 @@
               <h4 class="bookmark-title"></h4>
             </a>
             <p class="bookmark-description"></p>
+            <div class="bookmark-notes hidden">
+              <details>
+                <summary>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" aria-hidden="true">
+                    <path d="M3 19V5C3 3.89543 3.89543 3 5 3H16.1716C16.702 3 17.2107 3.21071 17.5858 3.58579L19.4142 5.41421C19.7893 5.78929 20 6.29799 20 6.82843V19C20 20.1046 19.1046 21 18 21H5C3.89543 21 3 20.1046 3 19Z" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 9L11 9" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 13L17 13" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 17L13 17" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="notes-label">My Notes</span>
+                </summary>
+                <p class="notes-content"></p>
+              </details>
+            </div>
             <div class="bookmark-actions">
               <button id="edit-bookmark" type="button" class="button solid">
                 Edit
@@ -174,6 +203,10 @@
           <div class="form-field">
             <label for="edit-description">Update the bookmark description</label>
             <textarea name="description" id="edit-description" rows="3"></textarea>
+          </div>
+          <div class="form-field">
+            <label for="edit-notes">Personal notes (optional)</label>
+            <textarea name="notes" id="edit-notes" rows="4" placeholder="Add your thoughts, reminders, or notes about this bookmark..."></textarea>
           </div>
           <input type="hidden" name="id" id="edit-id" />
           <div class="bookmark-actions">
