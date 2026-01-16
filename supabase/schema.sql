@@ -19,6 +19,7 @@ CREATE TABLE bookmarks (
   notes TEXT,
   archived BOOLEAN DEFAULT false,
   archived_at TIMESTAMPTZ,
+  parent_id UUID REFERENCES bookmarks(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -31,6 +32,7 @@ ADD CONSTRAINT unique_user_url UNIQUE (user_id, url);
 CREATE INDEX idx_user_bookmarks ON bookmarks(user_id, created_at DESC);
 CREATE INDEX idx_user_unread ON bookmarks(user_id, is_read);
 CREATE INDEX idx_tags ON bookmarks USING GIN(tags);
+CREATE INDEX idx_parent_bookmarks ON bookmarks(parent_id);
 
 -- Row Level Security (RLS) Policies
 ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;

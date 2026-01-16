@@ -8,6 +8,7 @@ export class LinkStackBookmarks extends HTMLElement {
   static #selectors = {
     bookmarksContainer: "#bookmarks-container",
     bookmarksEntryTmpl: "#bookmarks-entry-tmpl",
+    bookmarkChildTmpl: "#bookmark-child-tmpl",
     linkstackEditDialog: "linkstack-edit-dialog",
     noBookmarksTmpl: "#no-bookmarks-tmpl",
   };
@@ -85,6 +86,13 @@ export class LinkStackBookmarks extends HTMLElement {
     );
 
     bookmarksContainer.addEventListener("click", async (event) => {
+      // Handle thread toggle clicks
+      const threadToggle = event.target.closest(".thread-toggle");
+      if (threadToggle) {
+        this.#toggleThread(threadToggle);
+        return;
+      }
+
       if (event.target.id === "delete-bookmark") {
         const { id } = event.target.dataset;
         await this.#deleteBookmark(id);
@@ -105,6 +113,22 @@ export class LinkStackBookmarks extends HTMLElement {
         linkstackEditDialog.dispatchEvent(editBookmarkEvent);
       }
     });
+  }
+
+  #toggleThread(toggleButton) {
+    const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
+    const threadChildren = toggleButton.nextElementSibling;
+    const threadLabel = toggleButton.querySelector(".thread-label");
+
+    if (isExpanded) {
+      toggleButton.setAttribute("aria-expanded", "false");
+      threadChildren.classList.add("hidden");
+      threadLabel.textContent = "Show thread";
+    } else {
+      toggleButton.setAttribute("aria-expanded", "true");
+      threadChildren.classList.remove("hidden");
+      threadLabel.textContent = "Hide thread";
+    }
   }
 
   async #deleteBookmark(id) {
@@ -156,42 +180,82 @@ export class LinkStackBookmarks extends HTMLElement {
     const entryTmpl = this.querySelector(
       LinkStackBookmarks.#selectors.bookmarksEntryTmpl,
     );
+    const childTmpl = this.querySelector(
+      LinkStackBookmarks.#selectors.bookmarkChildTmpl,
+    );
 
     if (!bookmarksContainer) {
       return;
     }
 
     try {
-      const bookmarks = await this.#bookmarksService.getAll();
+      // Get only top-level bookmarks
+      const bookmarks = await this.#bookmarksService.getTopLevel();
 
       if (!bookmarks || bookmarks.length === 0) {
         this.#showNoBookmarks();
         return;
       }
 
-      const bookmarkElements = bookmarks.map((bookmark) => {
-        const entry = entryTmpl.content.cloneNode(true);
-        const bookmarkLink = entry.querySelector(".bookmark-link");
-        const deleteBookmark = entry.querySelector("#delete-bookmark");
-        const editBookmark = entry.querySelector("#edit-bookmark");
+      const bookmarkElements = await Promise.all(
+        bookmarks.map(async (bookmark) => {
+          const entry = entryTmpl.content.cloneNode(true);
+          const bookmarkLink = entry.querySelector(".bookmark-link");
+          const deleteBookmark = entry.querySelector("#delete-bookmark");
+          const editBookmark = entry.querySelector("#edit-bookmark");
+          const threadToggle = entry.querySelector(".thread-toggle");
+          const threadChildren = entry.querySelector(".thread-children");
 
-        entry.querySelector(".bookmark-img").src = bookmark.preview_img;
+          entry.querySelector(".bookmark-img").src = bookmark.preview_img;
 
-        bookmarkLink.href = bookmark.url;
-        bookmarkLink.querySelector(".bookmark-title").textContent =
-          bookmark.page_title;
+          bookmarkLink.href = bookmark.url;
+          bookmarkLink.querySelector(".bookmark-title").textContent =
+            bookmark.page_title;
 
-        entry.querySelector(".bookmark-description").textContent =
-          bookmark.meta_description;
+          entry.querySelector(".bookmark-description").textContent =
+            bookmark.meta_description;
 
-        deleteBookmark.dataset.id = bookmark.id;
-        editBookmark.dataset.id = bookmark.id;
+          deleteBookmark.dataset.id = bookmark.id;
+          editBookmark.dataset.id = bookmark.id;
 
-        entry.querySelector(".bookmark-entry").id =
-          `bookmark-entry-${bookmark.id}`;
+          entry.querySelector(".bookmark-entry").id =
+            `bookmark-entry-${bookmark.id}`;
 
-        return entry;
-      });
+          // Load children for this bookmark
+          const children = await this.#bookmarksService.getChildren(bookmark.id);
+
+          if (children && children.length > 0) {
+            // Show thread toggle
+            threadToggle.classList.remove("hidden");
+            threadToggle.dataset.id = bookmark.id;
+
+            // Render children
+            children.forEach((child) => {
+              const childEntry = childTmpl.content.cloneNode(true);
+              const childLink = childEntry.querySelector(".bookmark-link");
+              const childDelete = childEntry.querySelector("#delete-bookmark");
+              const childEdit = childEntry.querySelector("#edit-bookmark");
+
+              childLink.href = child.url;
+              childLink.querySelector(".bookmark-title").textContent =
+                child.page_title;
+
+              childEntry.querySelector(".bookmark-description").textContent =
+                child.meta_description;
+
+              childDelete.dataset.id = child.id;
+              childEdit.dataset.id = child.id;
+
+              childEntry.querySelector(".bookmark-child").id =
+                `bookmark-entry-${child.id}`;
+
+              threadChildren.appendChild(childEntry);
+            });
+          }
+
+          return entry;
+        }),
+      );
 
       let bookmarksList = this.querySelector("#bookmarks-list");
 

@@ -7,9 +7,13 @@ import { BookmarksService } from "./services/bookmarks.service.js";
 export class LinkStackForm extends HTMLElement {
   static #selectors = {
     bookmarkForm: "#bookmark-form",
+    parentSelect: "#parent-bookmark",
   };
 
   #bookmarksService = new BookmarksService(supabase);
+  #boundHandlers = {
+    onBookmarkCreated: null,
+  };
 
   constructor() {
     super();
@@ -17,6 +21,46 @@ export class LinkStackForm extends HTMLElement {
 
   connectedCallback() {
     this.#addEventListeners();
+    this.#populateParentSelect();
+  }
+
+  disconnectedCallback() {
+    // Clean up event listeners
+    if (this.#boundHandlers.onBookmarkCreated) {
+      window.removeEventListener(
+        "bookmark-created",
+        this.#boundHandlers.onBookmarkCreated,
+      );
+    }
+  }
+
+  async #populateParentSelect() {
+    const parentSelect = this.querySelector(
+      LinkStackForm.#selectors.parentSelect,
+    );
+
+    if (!parentSelect) {
+      return;
+    }
+
+    try {
+      const bookmarks = await this.#bookmarksService.getTopLevel();
+
+      // Clear existing options except the first one (default)
+      while (parentSelect.options.length > 1) {
+        parentSelect.remove(1);
+      }
+
+      // Add bookmarks as options
+      bookmarks.forEach((bookmark) => {
+        const option = document.createElement("option");
+        option.value = bookmark.id;
+        option.textContent = bookmark.page_title;
+        parentSelect.appendChild(option);
+      });
+    } catch (error) {
+      console.error("Error loading parent bookmarks:", error);
+    }
   }
 
   async #addBookmark(bookmarkData) {
@@ -32,6 +76,16 @@ export class LinkStackForm extends HTMLElement {
     );
     const previewFallback = "../assets/linkstack-fallback.webp";
 
+    // Listen for bookmark-created to refresh parent select
+    this.#boundHandlers.onBookmarkCreated = async () => {
+      await this.#populateParentSelect();
+    };
+
+    window.addEventListener(
+      "bookmark-created",
+      this.#boundHandlers.onBookmarkCreated,
+    );
+
     if (bookmarkForm) {
       bookmarkForm.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -42,6 +96,7 @@ export class LinkStackForm extends HTMLElement {
         const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
         const formData = new FormData(bookmarkForm);
         const url = formData.get("url");
+        const parentId = formData.get("parent_id");
 
         try {
           const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
@@ -54,12 +109,19 @@ export class LinkStackForm extends HTMLElement {
 
             img.onload = async () => {
               try {
-                await this.#addBookmark({
+                const bookmarkData = {
                   url,
                   page_title: metadata.pageTitle,
                   meta_description: metadata.metaDescription,
                   preview_img: metadata.previewImg,
-                });
+                };
+
+                // Add parent_id if selected
+                if (parentId) {
+                  bookmarkData.parent_id = parentId;
+                }
+
+                await this.#addBookmark(bookmarkData);
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
@@ -69,12 +131,19 @@ export class LinkStackForm extends HTMLElement {
 
             img.onerror = async () => {
               try {
-                await this.#addBookmark({
+                const bookmarkData = {
                   url,
                   page_title: metadata.pageTitle,
                   meta_description: metadata.metaDescription,
                   preview_img: previewFallback,
-                });
+                };
+
+                // Add parent_id if selected
+                if (parentId) {
+                  bookmarkData.parent_id = parentId;
+                }
+
+                await this.#addBookmark(bookmarkData);
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);

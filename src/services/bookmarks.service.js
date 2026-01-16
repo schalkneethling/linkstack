@@ -27,6 +27,45 @@ export class BookmarksService {
   }
 
   /**
+   * Get top-level bookmarks (no parent) for the current user
+   * @returns {Promise<Array>} Array of top-level bookmark objects
+   * @throws {Error} If fetch fails
+   */
+  async getTopLevel() {
+    const { data, error } = await this.#supabase
+      .from("bookmarks")
+      .select("*")
+      .is("parent_id", null)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  /**
+   * Get children bookmarks for a specific parent
+   * @param {string} parentId - Parent bookmark ID
+   * @returns {Promise<Array>} Array of child bookmark objects
+   * @throws {Error} If fetch fails
+   */
+  async getChildren(parentId) {
+    const { data, error } = await this.#supabase
+      .from("bookmarks")
+      .select("*")
+      .eq("parent_id", parentId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  /**
    * Get a single bookmark by ID
    * @param {string} id - Bookmark ID
    * @returns {Promise<Object>} Bookmark object
