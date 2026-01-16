@@ -1,14 +1,25 @@
 import * as cheerio from "cheerio";
 
-// CORS headers for development
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+// CORS configuration - restrict to known origins
+const getAllowedOrigin = (requestOrigin) => {
+  const allowedOrigins = [
+    "http://localhost:8888",
+    "http://localhost:3000",
+    "https://linkstack.netlify.app", // Add your production domain
+  ];
+
+  return allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
 };
 
 // Docs on request and context https://docs.netlify.com/functions/build/#code-your-function-2
 export default async (request) => {
+  const origin = request.headers.get("origin") || "http://localhost:8888";
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": getAllowedOrigin(origin),
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+  };
+
   // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return new Response(null, {

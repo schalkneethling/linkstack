@@ -61,12 +61,16 @@ export class BookmarksService {
     }
 
     // Check if bookmark already exists for this user
-    const { data: existing } = await this.#supabase
+    const { data: existing, error: checkError } = await this.#supabase
       .from("bookmarks")
       .select("id")
       .eq("user_id", user.id)
       .eq("url", bookmark.url)
-      .single();
+      .maybeSingle();
+
+    if (checkError) {
+      throw checkError;
+    }
 
     if (existing) {
       throw new Error("You've already bookmarked this URL");
