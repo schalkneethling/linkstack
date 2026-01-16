@@ -36,7 +36,10 @@ export class LinkStackForm extends HTMLElement {
       bookmarkForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const endpoint = `${window.location.origin}/.netlify/functions/get-bookmark-data`;
+        // Use port 8888 for Netlify dev server in development
+        const isDev = window.location.hostname === 'localhost';
+        const baseUrl = isDev ? 'http://localhost:8888' : window.location.origin;
+        const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
         const formData = new FormData(bookmarkForm);
         const url = formData.get("url");
 

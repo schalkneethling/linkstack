@@ -10,68 +10,11 @@
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-form.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-bookmarks.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/components/linkstack-dialog.css" media="screen" />
-  <style>
-    .hidden {
-      display: none;
-    }
-
-    .auth-container {
-      max-width: 400px;
-      margin: 4rem auto;
-      text-align: center;
-      padding: 2rem;
-      border: 1px solid var(--border-color, #e0e0e0);
-      border-radius: 8px;
-    }
-
-    .auth-container h2 {
-      margin-bottom: 0.5rem;
-    }
-
-    .auth-description {
-      color: var(--text-secondary, #666);
-      margin-bottom: 2rem;
-    }
-
-    .auth-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .auth-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .auth-container.authenticated {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 100%;
-      margin: 0;
-      padding: 1rem 2rem;
-      border: none;
-      border-bottom: 1px solid var(--border-color, #e0e0e0);
-      border-radius: 0;
-    }
-
-    .user-info {
-      font-weight: 500;
-    }
-  </style>
 </head>
 
 <body>
-  <!-- Authentication Component -->
-  <linkstack-auth></linkstack-auth>
-
-  <!-- Main Content (hidden until authenticated) -->
-  <div class="page-container main-content hidden">
+  <div class="page-container">
     <h1 class="heading-display page-heading">LinkStack</h1>
-
     <linkstack-form>
       <form class="linkstack-form" id="bookmark-form" name="bookmark" action="/" method="post">
         <div class="form-field">
@@ -154,8 +97,9 @@
     </linkstack-edit-dialog>
   </div>
 
-  <!-- Load main app coordinator -->
-  <script type="module" src="src/app.js"></script>
+  <script type="module" src="src/linkstack-form.js"></script>
+  <script type="module" src="src/linkstack-bookmarks.js"></script>
+  <script type="module" src="src/linkstack-edit-dialog.js"></script>
 </body>
 
 </html>
