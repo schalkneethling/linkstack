@@ -22,9 +22,9 @@
     "type": "git",
     "url": "git+https://github.com/schalkneethling/linkstack.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["linkstack", "bookmark", "manager", "reading list", "web development", "javascript", "web components", "supabase", "auth", "oauth", "testing", "e2e", "unit", "coverage", "linting", "prettier", "stylelint", "vite", "vitest", "playwright"],
+  "author": "Schalk Neethling",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/schalkneethling/linkstack/issues"
   },
@@ -50,5 +50,8 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=24.13.0"
   }
 }
