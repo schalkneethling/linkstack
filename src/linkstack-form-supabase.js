@@ -36,7 +36,10 @@ export class LinkStackForm extends HTMLElement {
       bookmarkForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const endpoint = `${window.location.origin}/.netlify/functions/get-bookmark-data`;
+        // Use port 8888 for Netlify dev server in development
+        const isDev = window.location.hostname === 'localhost';
+        const baseUrl = isDev ? 'http://localhost:8888' : window.location.origin;
+        const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
         const formData = new FormData(bookmarkForm);
         const url = formData.get("url");
 
@@ -48,7 +51,6 @@ export class LinkStackForm extends HTMLElement {
 
             // Test if preview image loads
             const img = new Image();
-            img.src = metadata.previewImg;
 
             img.onload = async () => {
               try {
@@ -61,7 +63,7 @@ export class LinkStackForm extends HTMLElement {
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
-                alert("Failed to add bookmark. Please try again.");
+                alert(error.message || "Failed to add bookmark. Please try again.");
               }
             };
 
@@ -76,15 +78,17 @@ export class LinkStackForm extends HTMLElement {
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
-                alert("Failed to add bookmark. Please try again.");
+                alert(error.message || "Failed to add bookmark. Please try again.");
               }
             };
+
+            img.src = metadata.previewImg;
           } else {
             throw new Error("Failed to fetch bookmark metadata");
           }
         } catch (error) {
           console.error("Error submitting bookmark:", error);
-          alert("Failed to add bookmark. Please try again.");
+          alert(error.message || "Failed to add bookmark. Please try again.");
         }
       });
     }

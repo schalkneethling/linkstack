@@ -23,6 +23,10 @@ CREATE TABLE bookmarks (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Unique constraint to prevent duplicate URLs per user
+ALTER TABLE bookmarks
+ADD CONSTRAINT unique_user_url UNIQUE (user_id, url);
+
 -- Index for common queries
 CREATE INDEX idx_user_bookmarks ON bookmarks(user_id, created_at DESC);
 CREATE INDEX idx_user_unread ON bookmarks(user_id, is_read);
