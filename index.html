@@ -86,10 +86,13 @@
             <option value="">Add as child of (optional)</option>
           </select>
         </div>
-        <div class="form-field">
-          <label for="notes">Personal notes (optional)</label>
-          <textarea name="notes" id="notes" rows="3" placeholder="Add your thoughts, reminders, or context about this bookmark..."></textarea>
-        </div>
+        <details class="form-field-collapsible">
+          <summary class="form-field-summary">Add a note (optional)</summary>
+          <div class="form-field">
+            <label class="visually-hidden" for="notes">Personal notes</label>
+            <textarea name="notes" id="notes" rows="3" placeholder="Add your thoughts, reminders, or context about this bookmark..."></textarea>
+          </div>
+        </details>
         <button class="button solid" type="submit">Add Bookmark</button>
       </form>
     </linkstack-form>

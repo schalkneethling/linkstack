@@ -215,17 +215,12 @@ export class LinkStackBookmarks extends HTMLElement {
           entry.querySelector(".bookmark-description").textContent =
             bookmark.meta_description;
 
-          // Handle notes - always show section for discoverability
+          // Handle notes - only show if present
           const notesContainer = entry.querySelector(".bookmark-notes");
           const notesContent = entry.querySelector(".notes-content");
-          notesContainer.classList.remove("hidden");
-
           if (bookmark.notes && bookmark.notes.trim()) {
             notesContent.textContent = bookmark.notes;
-            notesContent.classList.remove("empty-notes");
-          } else {
-            notesContent.textContent = "Click 'Edit Bookmark' to add your notes...";
-            notesContent.classList.add("empty-notes");
+            notesContainer.classList.remove("hidden");
           }
 
           deleteBookmark.dataset.id = bookmark.id;
@@ -256,17 +251,12 @@ export class LinkStackBookmarks extends HTMLElement {
               childEntry.querySelector(".bookmark-description").textContent =
                 child.meta_description;
 
-              // Handle notes - always show section for discoverability
+              // Handle notes - only show if present
               const childNotesContainer = childEntry.querySelector(".bookmark-notes");
               const childNotesContent = childEntry.querySelector(".notes-content");
-              childNotesContainer.classList.remove("hidden");
-
               if (child.notes && child.notes.trim()) {
                 childNotesContent.textContent = child.notes;
-                childNotesContent.classList.remove("empty-notes");
-              } else {
-                childNotesContent.textContent = "Click 'Edit' to add notes...";
-                childNotesContent.classList.add("empty-notes");
+                childNotesContainer.classList.remove("hidden");
               }
 
               childDelete.dataset.id = child.id;
