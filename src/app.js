@@ -36,7 +36,8 @@ class LinkStackApp {
         await this.#authService.signInWithGoogle();
       } catch (error) {
         console.error("Google sign in error:", error);
-        alert("Failed to sign in with Google. Please try again.");
+        const toast = document.querySelector("linkstack-toast");
+        toast.show("Failed to sign in with Google. Please try again.", "error");
       }
     });
 
@@ -45,7 +46,8 @@ class LinkStackApp {
         await this.#authService.signInWithGitHub();
       } catch (error) {
         console.error("GitHub sign in error:", error);
-        alert("Failed to sign in with GitHub. Please try again.");
+        const toast = document.querySelector("linkstack-toast");
+        toast.show("Failed to sign in with GitHub. Please try again.", "error");
       }
     });
 
@@ -55,7 +57,8 @@ class LinkStackApp {
         this.#handleAuthChange(null);
       } catch (error) {
         console.error("Sign out error:", error);
-        alert("Failed to sign out. Please try again.");
+        const toast = document.querySelector("linkstack-toast");
+        toast.show("Failed to sign out. Please try again.", "error");
       }
     });
 

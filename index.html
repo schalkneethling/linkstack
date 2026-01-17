@@ -1,234 +1,411 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkStack</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/minimalist/minimalist.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/linkstack.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-form.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-bookmarks.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-threads.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-notes.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-dialog.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-toast.css"
+      media="screen"
+    />
+    <style>
+      .hidden {
+        display: none;
+      }
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LinkStack</title>
-  <link rel="stylesheet" type="text/css" href="css/minimalist/minimalist.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/linkstack.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-form.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-bookmarks.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-threads.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-notes.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-dialog.css" media="screen" />
-  <style>
-    .hidden {
-      display: none;
-    }
+      .auth-container {
+        max-width: 400px;
+        margin: 4rem auto;
+        text-align: center;
+        padding: 2rem;
+        border: 1px solid var(--border-color, #e0e0e0);
+        border-radius: 8px;
+      }
 
-    .auth-container {
-      max-width: 400px;
-      margin: 4rem auto;
-      text-align: center;
-      padding: 2rem;
-      border: 1px solid var(--border-color, #e0e0e0);
-      border-radius: 8px;
-    }
+      .auth-container h2 {
+        margin-bottom: 0.5rem;
+      }
 
-    .auth-container h2 {
-      margin-bottom: 0.5rem;
-    }
+      .auth-description {
+        color: var(--text-secondary, #666);
+        margin-bottom: 2rem;
+      }
 
-    .auth-description {
-      color: var(--text-secondary, #666);
-      margin-bottom: 2rem;
-    }
+      .auth-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .auth-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+      .auth-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
 
-    .auth-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
+      .auth-container.authenticated {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 100%;
+        margin: 0;
+        padding: 1rem 2rem;
+        border: none;
+        border-bottom: 1px solid var(--border-color, #e0e0e0);
+        border-radius: 0;
+      }
 
-    .auth-container.authenticated {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 100%;
-      margin: 0;
-      padding: 1rem 2rem;
-      border: none;
-      border-bottom: 1px solid var(--border-color, #e0e0e0);
-      border-radius: 0;
-    }
+      .user-info {
+        font-weight: 500;
+      }
+    </style>
+  </head>
 
-    .user-info {
-      font-weight: 500;
-    }
-  </style>
-</head>
+  <body>
+    <!-- Authentication Component -->
+    <linkstack-auth></linkstack-auth>
 
-<body>
-  <!-- Authentication Component -->
-  <linkstack-auth></linkstack-auth>
+    <!-- Main Content (hidden until authenticated) -->
+    <div class="page-container main-content hidden">
+      <h1 class="heading-display page-heading">LinkStack</h1>
 
-  <!-- Main Content (hidden until authenticated) -->
-  <div class="page-container main-content hidden">
-    <h1 class="heading-display page-heading">LinkStack</h1>
-
-    <linkstack-form>
-      <form class="linkstack-form" id="bookmark-form" name="bookmark" action="/" method="post">
-        <div class="form-field">
-          <label class="visually-hidden" for="url">Enter bookmark URL</label>
-          <input type="url" name="url" id="url" required />
-        </div>
-        <div class="form-field">
-          <label class="visually-hidden" for="parent-bookmark">Add as child of (optional)</label>
-          <select name="parent_id" id="parent-bookmark">
-            <option value="">Add as child of (optional)</option>
-          </select>
-        </div>
-        <details class="form-field-collapsible">
-          <summary class="form-field-summary">Add a note (optional)</summary>
+      <linkstack-form>
+        <form
+          class="linkstack-form"
+          id="bookmark-form"
+          name="bookmark"
+          action="/"
+          method="post"
+        >
           <div class="form-field">
-            <label class="visually-hidden" for="notes">Personal notes</label>
-            <textarea name="notes" id="notes" rows="3" placeholder="Add your thoughts, reminders, or context about this bookmark..."></textarea>
+            <label class="visually-hidden" for="url">Enter bookmark URL</label>
+            <input type="url" name="url" id="url" required />
           </div>
-        </details>
-        <button class="button solid" type="submit">Add Bookmark</button>
-      </form>
-    </linkstack-form>
-
-    <linkstack-bookmarks>
-      <section class="bookmarks-container" id="bookmarks-container"></section>
-
-      <template id="no-bookmarks-tmpl">
-        <div class="no-bookmarks-wrapper">
-          <div class="no-bookmarks">
-            <h2>No bookmarks?!</h2>
-            <p class="text-medium">Why not add your first?</p>
+          <div class="form-field">
+            <label class="visually-hidden" for="parent-bookmark"
+              >Add as child of (optional)</label
+            >
+            <select name="parent_id" id="parent-bookmark">
+              <option value="">Add as child of (optional)</option>
+            </select>
           </div>
-        </div>
-      </template>
-
-      <template id="bookmarks-entry-tmpl">
-        <li class="bookmark-entry">
-          <div class="bookmark-img-container">
-            <img class="bookmark-img" height="630" width="1200" alt="" />
-          </div>
-          <div class="bookmark-info">
-            <a class="bookmark-link" target="_blank" rel="noopener noreferrer" href="">
-              <h3 class="bookmark-title"></h3>
-            </a>
-            <p class="bookmark-description"></p>
-            <div class="bookmark-notes hidden">
-              <details>
-                <summary>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" aria-hidden="true">
-                    <path d="M3 19V5C3 3.89543 3.89543 3 5 3H16.1716C16.702 3 17.2107 3.21071 17.5858 3.58579L19.4142 5.41421C19.7893 5.78929 20 6.29799 20 6.82843V19C20 20.1046 19.1046 21 18 21H5C3.89543 21 3 20.1046 3 19Z" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 9L11 9" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 13L17 13" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 17L13 17" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <span class="notes-label">My Notes</span>
-                </summary>
-                <p class="notes-content"></p>
-              </details>
+          <details class="form-field-collapsible">
+            <summary class="form-field-summary">Add a note (optional)</summary>
+            <div class="form-field">
+              <label class="visually-hidden" for="notes">Personal notes</label>
+              <textarea
+                name="notes"
+                id="notes"
+                rows="3"
+                placeholder="Add your thoughts, reminders, or context about this bookmark..."
+              ></textarea>
             </div>
-            <div class="bookmark-actions">
-              <button id="edit-bookmark" type="button" class="button solid">
-                Edit Bookmark
-              </button>
-              <button id="delete-bookmark" type="button" class="button solid critical">
-                Remove Bookmark
-              </button>
-            </div>
-          </div>
-          <button class="thread-toggle hidden" type="button" aria-expanded="false">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none">
-              <path d="M6 9L12 15L18 9" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="thread-label visually-hidden">Show thread</span>
-          </button>
-          <ul class="thread-children reset-list hidden"></ul>
-        </li>
-      </template>
-
-      <template id="bookmark-child-tmpl">
-        <li class="bookmark-child">
-          <div class="bookmark-child-info">
-            <a class="bookmark-link" target="_blank" rel="noopener noreferrer" href="">
-              <h4 class="bookmark-title"></h4>
-            </a>
-            <p class="bookmark-description"></p>
-            <div class="bookmark-notes hidden">
-              <details>
-                <summary>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" aria-hidden="true">
-                    <path d="M3 19V5C3 3.89543 3.89543 3 5 3H16.1716C16.702 3 17.2107 3.21071 17.5858 3.58579L19.4142 5.41421C19.7893 5.78929 20 6.29799 20 6.82843V19C20 20.1046 19.1046 21 18 21H5C3.89543 21 3 20.1046 3 19Z" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 9L11 9" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 13L17 13" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M7 17L13 17" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <span class="notes-label">My Notes</span>
-                </summary>
-                <p class="notes-content"></p>
-              </details>
-            </div>
-            <div class="bookmark-actions">
-              <button id="edit-bookmark" type="button" class="button solid">
-                Edit
-              </button>
-              <button id="delete-bookmark" type="button" class="button solid critical">
-                Remove
-              </button>
-            </div>
-          </div>
-        </li>
-      </template>
-    </linkstack-bookmarks>
-
-    <linkstack-edit-dialog>
-      <dialog aria-labelledby="dialog-edit-bookmark-title" class="linkstack-dialog" id="dialog-edit-bookmark">
-        <form class="form-close-dialog" method="dialog">
-          <button class="button-ghost" type="submit">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"
-              role="img">
-              <path
-                d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
-            </svg>
-            <span class="visually-hidden">Close dialog</span>
-          </button>
+          </details>
+          <button class="button solid" type="submit">Add Bookmark</button>
         </form>
+      </linkstack-form>
 
-        <h3 id="dialog-edit-bookmark-title">Edit Bookmark</h3>
+      <linkstack-bookmarks>
+        <section class="bookmarks-container" id="bookmarks-container"></section>
 
-        <form aria-labelledby="dialog-edit-bookmark-title" class="edit-bookmark-form" id="edit-bookmark-form"
-          name="edit-bookmark" method="post">
-          <div class="form-field">
-            <label for="edit-title">Update the bookmark title</label>
-            <input type="text" name="title" id="edit-title" required autofocus />
+        <template id="no-bookmarks-tmpl">
+          <div class="no-bookmarks-wrapper">
+            <div class="no-bookmarks">
+              <h2>No bookmarks?!</h2>
+              <p class="text-medium">Why not add your first?</p>
+            </div>
           </div>
-          <div class="form-field">
-            <label for="edit-description">Update the bookmark description</label>
-            <textarea name="description" id="edit-description" rows="3"></textarea>
-          </div>
-          <div class="form-field">
-            <label for="edit-notes">Personal notes (optional)</label>
-            <textarea name="notes" id="edit-notes" rows="4" placeholder="Add your thoughts, reminders, or notes about this bookmark..."></textarea>
-          </div>
-          <input type="hidden" name="id" id="edit-id" />
-          <div class="bookmark-actions">
-            <button id="dialog-close" class="button solid critical" type="button">
-              Cancel
+        </template>
+
+        <template id="bookmarks-entry-tmpl">
+          <li class="bookmark-entry">
+            <div class="bookmark-img-container">
+              <img class="bookmark-img" height="630" width="1200" alt="" />
+            </div>
+            <div class="bookmark-info">
+              <a
+                class="bookmark-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                href=""
+              >
+                <h3 class="bookmark-title"></h3>
+              </a>
+              <p class="bookmark-description"></p>
+              <div class="bookmark-notes hidden">
+                <details>
+                  <summary>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 19V5C3 3.89543 3.89543 3 5 3H16.1716C16.702 3 17.2107 3.21071 17.5858 3.58579L19.4142 5.41421C19.7893 5.78929 20 6.29799 20 6.82843V19C20 20.1046 19.1046 21 18 21H5C3.89543 21 3 20.1046 3 19Z"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M7 9L11 9"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M7 13L17 13"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M7 17L13 17"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span class="notes-label">My Notes</span>
+                  </summary>
+                  <p class="notes-content"></p>
+                </details>
+              </div>
+              <div class="bookmark-actions">
+                <button id="edit-bookmark" type="button" class="button solid">
+                  Edit Bookmark
+                </button>
+                <button
+                  id="delete-bookmark"
+                  type="button"
+                  class="button solid critical"
+                >
+                  Remove Bookmark
+                </button>
+              </div>
+            </div>
+            <button
+              class="thread-toggle hidden"
+              type="button"
+              aria-expanded="false"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                fill="none"
+              >
+                <path
+                  d="M6 9L12 15L18 9"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span class="thread-label visually-hidden">Show thread</span>
             </button>
-            <button class="button solid" type="submit">Save Changes</button>
-          </div>
-        </form>
-      </dialog>
-    </linkstack-edit-dialog>
-  </div>
+            <ul class="thread-children reset-list hidden"></ul>
+          </li>
+        </template>
 
-  <!-- Load main app coordinator -->
-  <script type="module" src="src/app.js"></script>
-</body>
+        <template id="bookmark-child-tmpl">
+          <li class="bookmark-child">
+            <div class="bookmark-child-info">
+              <a
+                class="bookmark-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                href=""
+              >
+                <h4 class="bookmark-title"></h4>
+              </a>
+              <p class="bookmark-description"></p>
+              <div class="bookmark-notes hidden">
+                <details>
+                  <summary>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 19V5C3 3.89543 3.89543 3 5 3H16.1716C16.702 3 17.2107 3.21071 17.5858 3.58579L19.4142 5.41421C19.7893 5.78929 20 6.29799 20 6.82843V19C20 20.1046 19.1046 21 18 21H5C3.89543 21 3 20.1046 3 19Z"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M7 9L11 9"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M7 13L17 13"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M7 17L13 17"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span class="notes-label">My Notes</span>
+                  </summary>
+                  <p class="notes-content"></p>
+                </details>
+              </div>
+              <div class="bookmark-actions">
+                <button id="edit-bookmark" type="button" class="button solid">
+                  Edit
+                </button>
+                <button
+                  id="delete-bookmark"
+                  type="button"
+                  class="button solid critical"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          </li>
+        </template>
+      </linkstack-bookmarks>
 
+      <linkstack-edit-dialog>
+        <dialog
+          aria-labelledby="dialog-edit-bookmark-title"
+          class="linkstack-dialog"
+          id="dialog-edit-bookmark"
+        >
+          <form class="form-close-dialog" method="dialog">
+            <button class="button-ghost" type="submit">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+                role="img"
+              >
+                <path
+                  d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"
+                />
+              </svg>
+              <span class="visually-hidden">Close dialog</span>
+            </button>
+          </form>
+
+          <h3 id="dialog-edit-bookmark-title">Edit Bookmark</h3>
+
+          <form
+            aria-labelledby="dialog-edit-bookmark-title"
+            class="edit-bookmark-form"
+            id="edit-bookmark-form"
+            name="edit-bookmark"
+            method="post"
+          >
+            <div class="form-field">
+              <label for="edit-title">Update the bookmark title</label>
+              <input
+                type="text"
+                name="title"
+                id="edit-title"
+                required
+                autofocus
+              />
+            </div>
+            <div class="form-field">
+              <label for="edit-description"
+                >Update the bookmark description</label
+              >
+              <textarea
+                name="description"
+                id="edit-description"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="form-field">
+              <label for="edit-notes">Personal notes (optional)</label>
+              <textarea
+                name="notes"
+                id="edit-notes"
+                rows="4"
+                placeholder="Add your thoughts, reminders, or notes about this bookmark..."
+              ></textarea>
+            </div>
+            <input type="hidden" name="id" id="edit-id" />
+            <div class="bookmark-actions">
+              <button
+                id="dialog-close"
+                class="button solid critical"
+                type="button"
+              >
+                Cancel
+              </button>
+              <button class="button solid" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </dialog>
+      </linkstack-edit-dialog>
+    </div>
+
+    <!-- Toast notifications -->
+    <linkstack-toast></linkstack-toast>
+
+    <!-- Load main app coordinator -->
+    <script type="module" src="src/app.js"></script>
+    <script type="module" src="src/components/linkstack-toast.js"></script>
+  </body>
 </html>

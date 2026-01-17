@@ -66,6 +66,10 @@ export class LinkStackForm extends HTMLElement {
   async #addBookmark(bookmarkData) {
     await this.#bookmarksService.create(bookmarkData);
 
+    // Show success toast
+    const toast = document.querySelector("linkstack-toast");
+    toast.show("Bookmark added successfully!", "success");
+
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent("bookmark-created"));
   }
@@ -91,8 +95,10 @@ export class LinkStackForm extends HTMLElement {
         event.preventDefault();
 
         // Use port 8888 for Netlify dev server in development
-        const isDev = window.location.hostname === 'localhost';
-        const baseUrl = isDev ? 'http://localhost:8888' : window.location.origin;
+        const isDev = window.location.hostname === "localhost";
+        const baseUrl = isDev
+          ? "http://localhost:8888"
+          : window.location.origin;
         const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
         const formData = new FormData(bookmarkForm);
         const url = formData.get("url");
@@ -100,7 +106,9 @@ export class LinkStackForm extends HTMLElement {
         const notes = formData.get("notes");
 
         try {
-          const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
+          const response = await fetch(
+            `${endpoint}?url=${encodeURIComponent(url)}`,
+          );
 
           if (response.ok) {
             const metadata = await response.json();
@@ -131,7 +139,11 @@ export class LinkStackForm extends HTMLElement {
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
-                alert(error.message || "Failed to add bookmark. Please try again.");
+                const toast = document.querySelector("linkstack-toast");
+                toast.show(
+                  error.message || "Failed to add bookmark. Please try again.",
+                  "error",
+                );
               }
             };
 
@@ -158,7 +170,11 @@ export class LinkStackForm extends HTMLElement {
                 bookmarkForm.reset();
               } catch (error) {
                 console.error("Error adding bookmark:", error);
-                alert(error.message || "Failed to add bookmark. Please try again.");
+                const toast = document.querySelector("linkstack-toast");
+                toast.show(
+                  error.message || "Failed to add bookmark. Please try again.",
+                  "error",
+                );
               }
             };
 
@@ -168,7 +184,11 @@ export class LinkStackForm extends HTMLElement {
           }
         } catch (error) {
           console.error("Error submitting bookmark:", error);
-          alert(error.message || "Failed to add bookmark. Please try again.");
+          const toast = document.querySelector("linkstack-toast");
+          toast.show(
+            error.message || "Failed to add bookmark. Please try again.",
+            "error",
+          );
         }
       });
     }

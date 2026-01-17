@@ -3,12 +3,14 @@
 ## ✅ Completed Setup
 
 ### 1. Development Environment
+
 - ✅ **Vite** installed and configured
   - Dev server runs on port 3000
   - Hot module reloading enabled
   - Script: `npm run dev`
 
 ### 2. Testing Infrastructure
+
 - ✅ **Vitest** for unit testing
   - All tests passing (13 tests)
   - Coverage reporting configured
@@ -25,6 +27,7 @@
     - `npm run test:e2e:ui` - Open Playwright UI
 
 ### 3. Supabase Integration
+
 - ✅ **Supabase client** installed and configured
   - Client setup in `src/lib/supabase.js`
   - Environment variables configured in `.env.example`
@@ -43,6 +46,7 @@
   - Troubleshooting guide
 
 ### 4. Authentication System
+
 - ✅ **AuthService** (`src/services/auth.service.js`)
   - Google OAuth sign in
   - GitHub OAuth sign in
@@ -61,11 +65,13 @@
 ## 📋 What You Need to Do Next
 
 ### Step 1: Create Supabase Project
+
 1. Go to [supabase.com](https://supabase.com) and create an account
 2. Create a new project
 3. Save your database password securely
 
 ### Step 2: Run Database Schema
+
 1. Open Supabase dashboard → SQL Editor
 2. Copy contents of `supabase/schema.sql`
 3. Paste and run in SQL Editor
@@ -74,6 +80,7 @@
 ### Step 3: Configure OAuth Providers
 
 #### For Google:
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create OAuth 2.0 credentials
 3. Add redirect URL: `https://[YOUR-PROJECT-REF].supabase.co/auth/v1/callback`
@@ -82,6 +89,7 @@
 6. Enable and save
 
 #### For GitHub:
+
 1. Go to GitHub Settings → Developer settings → OAuth Apps
 2. Create new OAuth App
 3. Set callback URL: `https://[YOUR-PROJECT-REF].supabase.co/auth/v1/callback`
@@ -90,7 +98,9 @@
 6. Enable and save
 
 ### Step 4: Configure Environment Variables
+
 1. Copy `.env.example` to `.env`:
+
    ```bash
    cp .env.example .env
    ```
@@ -101,6 +111,7 @@
    - Paste into `.env`
 
 ### Step 5: Test the Setup
+
 ```bash
 # Start dev server
 npm run dev
@@ -115,6 +126,7 @@ npm run test:e2e
 ## 🚧 Next Steps (Remaining Phase 1 Work)
 
 ### Still To Do:
+
 1. **Integrate auth into main app**
    - Add `<linkstack-auth>` component to `index.html`
    - Wire up auth events to AuthService
@@ -175,6 +187,7 @@ linkstack/
 ## 🧪 Test Coverage
 
 Current test status:
+
 - ✅ AuthService: 8/8 tests passing
 - ✅ LinkStackAuth: 5/5 tests passing
 - ⏳ BookmarksService: Not yet created
@@ -213,6 +226,7 @@ npm run prettier:format # Auto-format code
 ## 🚀 Ready to Continue?
 
 Once you've completed Steps 1-5 above, you'll be ready to:
+
 1. Integrate authentication into the main app
 2. Migrate the bookmarks component to use Supabase
 3. Test everything end-to-end

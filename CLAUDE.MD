@@ -7,6 +7,7 @@ LinkStack is a bookmark manager web application designed to serve as a **reading
 ### Project Goal
 
 Transform LinkStack into a complete reading list management tool where users can:
+
 - Save articles and web content for later reading
 - Organize and categorize saved content
 - Track reading progress and status
@@ -14,6 +15,7 @@ Transform LinkStack into a complete reading list management tool where users can
 - Manage their reading workflow efficiently
 
 **Important Design Principles:**
+
 - **Deliberately Simple**: LinkStack is a link manager, not a reader app
 - **External Reading**: Bookmarks always link to the original source
 - **No Built-in Reader**: Users read articles on the original websites
@@ -59,6 +61,7 @@ linkstack/
 Main component that manages bookmark display and interactions.
 
 **Key Features:**
+
 - Renders bookmarks from localStorage
 - Handles bookmark deletion
 - Triggers edit dialog via custom events
@@ -68,6 +71,7 @@ Main component that manages bookmark display and interactions.
 **Storage Key:** `bookmarks:linkstack`
 
 **Bookmark Object Structure:**
+
 ```javascript
 {
   id: string,              // UUID generated with crypto.randomUUID()
@@ -81,6 +85,7 @@ Main component that manages bookmark display and interactions.
 ```
 
 **Metadata Extraction Process (Current - localStorage):**
+
 1. User submits URL via form
 2. Frontend calls Netlify function `/netlify/functions/get-bookmark-data`
 3. Function fetches HTML using Cheerio
@@ -89,6 +94,7 @@ Main component that manages bookmark display and interactions.
 6. Frontend adds ID, timestamps, and stores in localStorage
 
 **Future Process (with Supabase):**
+
 1. User submits URL via form
 2. Frontend calls Netlify function for metadata extraction
 3. Function fetches HTML using Cheerio, extracts metadata
@@ -107,6 +113,7 @@ Form component for adding new bookmarks.
 Dialog component for editing bookmark title and description.
 
 **Features:**
+
 - Listens for custom `edit-bookmark` events
 - Updates bookmark data in localStorage
 - Sets `updatedAt` timestamp on save
@@ -124,6 +131,7 @@ npm run lint:css          # Lint CSS files
 ## Code Style & Conventions
 
 ### JavaScript
+
 - ES6 modules with explicit imports/exports
 - Web Components using Custom Elements API
 - Private fields/methods using `#` prefix
@@ -132,12 +140,14 @@ npm run lint:css          # Lint CSS files
 - Event delegation for dynamic content
 
 ### CSS
+
 - Component-scoped stylesheets
 - Minimalist design system
 - BEM-like naming conventions
 - Utility classes (`.visually-hidden`, `.reset-list`)
 
 ### HTML
+
 - Semantic HTML5
 - Accessibility-first (ARIA labels, proper heading hierarchy)
 - Template elements for dynamic content
@@ -154,6 +164,7 @@ npm run lint:css          # Lint CSS files
 ## Recent Changes
 
 Based on recent commits:
+
 - **Edit Bookmark Feature**: Users can now edit bookmark titles and descriptions (PR #35)
 - **updatedAt Timestamp**: Bookmarks track when they were last edited (commit 2015d65)
 - **Stylelint Update**: Updated to stylelint 16.14.1 (PR #33)
@@ -161,6 +172,7 @@ Based on recent commits:
 ## Working with This Project
 
 ### Adding New Features
+
 - Follow the Web Component pattern
 - Create component JS file in `src/`
 - Create corresponding CSS in `css/components/`
@@ -168,17 +180,20 @@ Based on recent commits:
 - Ensure accessibility compliance
 
 ### Modifying Bookmarks
+
 - All bookmark CRUD operations go through localStorage
 - Storage key: `bookmarks:linkstack`
 - Dispatch storage events for cross-tab sync
 - Update `updatedAt` field when modifying existing bookmarks
 
 ### Styling
+
 - Component styles go in `css/components/`
 - Use existing design system tokens from `css/minimalist/`
 - Run `npm run lint:css` before committing
 
 ### Testing Locally
+
 - Serve `index.html` with a local web server
 - Check browser console for errors
 - Test localStorage persistence
@@ -207,18 +222,21 @@ Based on recent commits:
 ### ✅ What's Currently Implemented
 
 **Core CRUD Operations:**
+
 - ✅ Add bookmarks via URL submission with automatic metadata extraction
 - ✅ Edit bookmark title and description
 - ✅ Delete bookmarks with immediate UI updates
 - ✅ View bookmarks in responsive grid layout
 
 **Metadata Capabilities:**
+
 - ✅ Automatic extraction of page title, description, and preview images
 - ✅ Timestamp tracking (created/updated)
 - ✅ Fallback handling for missing preview images
 - ✅ Cross-tab synchronization via storage events
 
 **UI/UX:**
+
 - ✅ Clean, responsive grid layout
 - ✅ Empty state messaging
 - ✅ Modal edit dialog
@@ -227,29 +245,34 @@ Based on recent commits:
 ### ❌ Critical Gaps for Reading List Use Case
 
 **1. Reading Status & Progress Tracking**
+
 - ❌ No read/unread status
 - ❌ No "to-read" vs "read" distinction
 - ❌ No progress tracking or reading timestamps
 - ❌ No priority/importance marking
 
 **2. Organization & Categorization**
+
 - ❌ No tags or labels system
 - ❌ No categories or folders
 - ❌ No custom collections
 - ❌ All bookmarks in single flat list
 
 **3. Search & Discovery**
+
 - ❌ No search functionality (by title, URL, or description)
 - ❌ No filtering capabilities
 - ❌ No advanced search with multiple criteria
 
 **4. Sorting & Display Options**
+
 - ❌ Fixed reverse-chronological order only
 - ❌ No user-controllable sorting (by title, date, status)
 - ❌ No list view alternative to grid
 - ❌ No compact/detailed view toggle
 
 **5. Data Management**
+
 - ❌ No export functionality (JSON, HTML, CSV)
 - ❌ No import from other bookmark managers
 - ❌ No multi-device support (currently localStorage only)
@@ -257,6 +280,7 @@ Based on recent commits:
 - ❌ No user authentication or accounts
 
 **6. Enhanced Reading Features**
+
 - ❌ No simple notes field on bookmarks
 - ❌ No archive or "read later" queue
 - ⚠️ No built-in reader (out of scope - external links only)
@@ -264,11 +288,13 @@ Based on recent commits:
 - ⚠️ No reading time estimation (not priority)
 
 **7. Batch Operations**
+
 - ❌ No multi-select for bulk actions
 - ❌ No batch delete or bulk tagging
 - ❌ No undo/redo for deletions
 
 **8. Advanced Metadata**
+
 - ❌ No author information capture
 - ❌ No source/domain grouping
 - ❌ No article publication date
@@ -277,6 +303,7 @@ Based on recent commits:
 ### 🎯 Recommended Implementation Roadmap
 
 **Phase 1: Supabase Database Migration**
+
 1. **Set up Supabase project**
    - Create Supabase account and project
    - Set up database schema with Row Level Security (RLS)
@@ -295,6 +322,7 @@ Based on recent commits:
 4. Test and verify all existing features work with Supabase
 
 **Phase 2: Essential Reading List Features**
+
 1. Read/unread toggle for each bookmark
 2. Basic search by title and description
 3. Sort options (newest, oldest, alphabetical)
@@ -306,6 +334,7 @@ Based on recent commits:
 9. Quick filters (unread, starred, recent)
 
 **Phase 3: Data & Workflow**
+
 1. Export bookmarks (JSON, HTML formats)
 2. Import from other services
 3. Bulk operations (multi-select, batch actions)
@@ -313,6 +342,7 @@ Based on recent commits:
 5. Archive feature for completed reads
 
 **Phase 4: Polish & Extensions**
+
 1. Browser extension for quick bookmark capture
 2. Basic statistics (total bookmarks, unread count, etc.)
 3. Duplicate detection and management
@@ -321,12 +351,14 @@ Based on recent commits:
 ### 💡 Key Design Considerations
 
 **Simplicity First:**
+
 - LinkStack is NOT a reader app - it's a bookmark organizer
 - No built-in article readers, text extraction, or reading modes
 - All bookmarks link to external sources
 - Focus on making it easy to save, organize, and find links
 
 **Database-First Architecture:**
+
 - **Current**: localStorage only (~5-10MB limit, single device)
 - **Target**: Supabase as single source of truth
   - No offline-first complexity or sync logic
@@ -337,6 +369,7 @@ Based on recent commits:
 - **Rationale**: Users need internet to read links anyway, so offline access to the list provides minimal value
 
 **Performance:**
+
 - Supabase Postgres database with good performance
 - Current implementation is fast for small collections
 - May need pagination/virtualization for 500+ bookmarks
@@ -345,6 +378,7 @@ Based on recent commits:
 - Consider Supabase's real-time features for multi-tab sync (optional)
 
 **User Experience:**
+
 - Maintain current simplicity and speed
 - Avoid over-engineering; keep it lightweight
 - Supabase client provides optimistic updates and caching
@@ -354,6 +388,7 @@ Based on recent commits:
 
 **Data Model Evolution:**
 Bookmark object structure:
+
 ```javascript
 {
   // Core fields (Phase 1 - Supabase migration)
@@ -380,6 +415,7 @@ Bookmark object structure:
 ```
 
 **Supabase Database Schema (Phase 1):**
+
 ```sql
 -- Note: Supabase provides auth.users table automatically
 -- We just need to create the bookmarks table
@@ -461,6 +497,7 @@ CREATE INDEX idx_search_vector ON bookmarks USING GIN(search_vector);
 ```
 
 **Supabase Integration Architecture:**
+
 - **Database**: Postgres with automatic backups and scaling
 - **Authentication**: Built-in Supabase Auth with social providers
   - Google, GitHub, GitLab OAuth

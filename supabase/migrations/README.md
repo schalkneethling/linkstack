@@ -20,6 +20,7 @@ If you already have a LinkStack database running and need to add new features, r
 ### Available Migrations
 
 **`20250117_add_parent_id_and_notes.sql`**
+
 - Adds `parent_id` column for bookmark threads (parent-child relationships)
 - Adds `notes` column for personal annotations on bookmarks
 - Creates index for efficient parent-child queries

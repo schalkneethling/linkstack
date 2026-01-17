@@ -1,105 +1,175 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkStack</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/minimalist/minimalist.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/linkstack.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-form.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-bookmarks.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/linkstack-dialog.css"
+      media="screen"
+    />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LinkStack</title>
-  <link rel="stylesheet" type="text/css" href="css/minimalist/minimalist.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/linkstack.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-form.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-bookmarks.css" media="screen" />
-  <link rel="stylesheet" type="text/css" href="css/components/linkstack-dialog.css" media="screen" />
-</head>
-
-<body>
-  <div class="page-container">
-    <h1 class="heading-display page-heading">LinkStack</h1>
-    <linkstack-form>
-      <form class="linkstack-form" id="bookmark-form" name="bookmark" action="/" method="post">
-        <div class="form-field">
-          <label class="visually-hidden" for="url">Enter bookmark URL</label>
-          <input type="url" name="url" id="url" required />
-        </div>
-        <button class="button solid" type="submit">Add Bookmark</button>
-      </form>
-    </linkstack-form>
-
-    <linkstack-bookmarks>
-      <section class="bookmarks-container" id="bookmarks-container"></section>
-
-      <template id="no-bookmarks-tmpl">
-        <div class="no-bookmarks-wrapper">
-          <div class="no-bookmarks">
-            <h2>No bookmarks?!</h2>
-            <p class="text-medium">Why not add your first?</p>
+  <body>
+    <div class="page-container">
+      <h1 class="heading-display page-heading">LinkStack</h1>
+      <linkstack-form>
+        <form
+          class="linkstack-form"
+          id="bookmark-form"
+          name="bookmark"
+          action="/"
+          method="post"
+        >
+          <div class="form-field">
+            <label class="visually-hidden" for="url">Enter bookmark URL</label>
+            <input type="url" name="url" id="url" required />
           </div>
-        </div>
-      </template>
+          <button class="button solid" type="submit">Add Bookmark</button>
+        </form>
+      </linkstack-form>
 
-      <template id="bookmarks-entry-tmpl">
-        <li class="bookmark-entry">
-          <div class="bookmark-img-container">
-            <img class="bookmark-img" height="630" width="1200" alt="" />
-          </div>
-          <div class="bookmark-info">
-            <a class="bookmark-link" target="_blank" rel="noopener noreferrer" href="">
-              <h3 class="bookmark-title"></h3>
-            </a>
-            <p class="bookmark-description"></p>
-            <div class="bookmark-actions">
-              <button id="edit-bookmark" type="button" class="button solid">
-                Edit Bookmark
-              </button>
-              <button id="delete-bookmark" type="button" class="button solid critical">
-                Remove Bookmark
-              </button>
+      <linkstack-bookmarks>
+        <section class="bookmarks-container" id="bookmarks-container"></section>
+
+        <template id="no-bookmarks-tmpl">
+          <div class="no-bookmarks-wrapper">
+            <div class="no-bookmarks">
+              <h2>No bookmarks?!</h2>
+              <p class="text-medium">Why not add your first?</p>
             </div>
           </div>
-        </li>
-      </template>
-    </linkstack-bookmarks>
+        </template>
 
-    <linkstack-edit-dialog>
-      <dialog aria-labelledby="dialog-edit-bookmark-title" class="linkstack-dialog" id="dialog-edit-bookmark">
-        <form class="form-close-dialog" method="dialog">
-          <button class="button-ghost" type="submit">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"
-              role="img">
-              <path
-                d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
-            </svg>
-            <span class="visually-hidden">Close dialog</span>
-          </button>
-        </form>
+        <template id="bookmarks-entry-tmpl">
+          <li class="bookmark-entry">
+            <div class="bookmark-img-container">
+              <img class="bookmark-img" height="630" width="1200" alt="" />
+            </div>
+            <div class="bookmark-info">
+              <a
+                class="bookmark-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                href=""
+              >
+                <h3 class="bookmark-title"></h3>
+              </a>
+              <p class="bookmark-description"></p>
+              <div class="bookmark-actions">
+                <button id="edit-bookmark" type="button" class="button solid">
+                  Edit Bookmark
+                </button>
+                <button
+                  id="delete-bookmark"
+                  type="button"
+                  class="button solid critical"
+                >
+                  Remove Bookmark
+                </button>
+              </div>
+            </div>
+          </li>
+        </template>
+      </linkstack-bookmarks>
 
-        <h3 id="dialog-edit-bookmark-title">Edit Bookmark</h3>
-
-        <form aria-labelledby="dialog-edit-bookmark-title" class="edit-bookmark-form" id="edit-bookmark-form"
-          name="edit-bookmark" method="post">
-          <div class="form-field">
-            <label for="edit-title">Update the bookmark title</label>
-            <input type="text" name="title" id="edit-title" required autofocus />
-          </div>
-          <div class="form-field">
-            <label for="edit-description">Update the bookmark description</label>
-            <textarea name="description" id="edit-description" rows="3"></textarea>
-          </div>
-          <input type="hidden" name="id" id="edit-id" />
-          <div class="bookmark-actions">
-            <button id="dialog-close" class="button solid critical" type="button">
-              Cancel
+      <linkstack-edit-dialog>
+        <dialog
+          aria-labelledby="dialog-edit-bookmark-title"
+          class="linkstack-dialog"
+          id="dialog-edit-bookmark"
+        >
+          <form class="form-close-dialog" method="dialog">
+            <button class="button-ghost" type="submit">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                fill="currentColor"
+                viewBox="0 0 16 16"
+                role="img"
+              >
+                <path
+                  d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"
+                />
+              </svg>
+              <span class="visually-hidden">Close dialog</span>
             </button>
-            <button class="button solid" type="submit">Save Changes</button>
-          </div>
-        </form>
-      </dialog>
-    </linkstack-edit-dialog>
-  </div>
+          </form>
 
-  <script type="module" src="src/linkstack-form.js"></script>
-  <script type="module" src="src/linkstack-bookmarks.js"></script>
-  <script type="module" src="src/linkstack-edit-dialog.js"></script>
-</body>
+          <h3 id="dialog-edit-bookmark-title">Edit Bookmark</h3>
 
+          <form
+            aria-labelledby="dialog-edit-bookmark-title"
+            class="edit-bookmark-form"
+            id="edit-bookmark-form"
+            name="edit-bookmark"
+            method="post"
+          >
+            <div class="form-field">
+              <label for="edit-title">Update the bookmark title</label>
+              <input
+                type="text"
+                name="title"
+                id="edit-title"
+                required
+                autofocus
+              />
+            </div>
+            <div class="form-field">
+              <label for="edit-description"
+                >Update the bookmark description</label
+              >
+              <textarea
+                name="description"
+                id="edit-description"
+                rows="3"
+              ></textarea>
+            </div>
+            <input type="hidden" name="id" id="edit-id" />
+            <div class="bookmark-actions">
+              <button
+                id="dialog-close"
+                class="button solid critical"
+                type="button"
+              >
+                Cancel
+              </button>
+              <button class="button solid" type="submit">Save Changes</button>
+            </div>
+          </form>
+        </dialog>
+      </linkstack-edit-dialog>
+    </div>
+
+    <script type="module" src="src/linkstack-form.js"></script>
+    <script type="module" src="src/linkstack-bookmarks.js"></script>
+    <script type="module" src="src/linkstack-edit-dialog.js"></script>
+  </body>
 </html>
