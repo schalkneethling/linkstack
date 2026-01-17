@@ -97,6 +97,7 @@ export class LinkStackForm extends HTMLElement {
         const formData = new FormData(bookmarkForm);
         const url = formData.get("url");
         const parentId = formData.get("parent_id");
+        const notes = formData.get("notes");
 
         try {
           const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
@@ -121,6 +122,11 @@ export class LinkStackForm extends HTMLElement {
                   bookmarkData.parent_id = parentId;
                 }
 
+                // Add notes if provided
+                if (notes && notes.trim()) {
+                  bookmarkData.notes = notes.trim();
+                }
+
                 await this.#addBookmark(bookmarkData);
                 bookmarkForm.reset();
               } catch (error) {
@@ -141,6 +147,11 @@ export class LinkStackForm extends HTMLElement {
                 // Add parent_id if selected
                 if (parentId) {
                   bookmarkData.parent_id = parentId;
+                }
+
+                // Add notes if provided
+                if (notes && notes.trim()) {
+                  bookmarkData.notes = notes.trim();
                 }
 
                 await this.#addBookmark(bookmarkData);

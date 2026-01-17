@@ -1,0 +1,109 @@
+/* Bookmark notes styling */
+.bookmark-notes {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary, #f0f7ff);
+  border-left: 3px solid var(--accent-color, #0066cc);
+  border-radius: 4px;
+}
+
+.bookmark-notes details {
+  cursor: pointer;
+}
+
+.bookmark-notes summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-primary, #333);
+  list-style: none;
+  user-select: none;
+}
+
+/* Hide default disclosure triangle */
+.bookmark-notes summary::-webkit-details-marker {
+  display: none;
+}
+
+.bookmark-notes summary::marker {
+  display: none;
+}
+
+.bookmark-notes summary svg {
+  flex-shrink: 0;
+  color: var(--accent-color, #0066cc);
+  transition: transform 0.2s ease;
+}
+
+.bookmark-notes details[open] summary svg {
+  transform: rotate(10deg);
+}
+
+.bookmark-notes .notes-label {
+  color: var(--accent-color, #0066cc);
+}
+
+.bookmark-notes .notes-content {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color-light, #e0e8f0);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-primary, #333);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Hover state for summary */
+.bookmark-notes summary:hover {
+  opacity: 0.8;
+}
+
+/* Focus state for accessibility */
+.bookmark-notes summary:focus {
+  outline: 2px solid var(--focus-color, #0066cc);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Empty notes state - subtle prompt for discoverability */
+.bookmark-notes .notes-content.empty-notes {
+  font-style: italic;
+  color: var(--text-secondary, #666);
+  opacity: 0.7;
+  font-size: 0.875rem;
+}
+
+/* Child bookmark notes - slightly different styling */
+.bookmark-child .bookmark-notes {
+  background: var(--bg-secondary, #f9f9f9);
+  border-left-color: var(--border-color, #ccc);
+}
+
+.bookmark-child .bookmark-notes summary svg,
+.bookmark-child .bookmark-notes .notes-label {
+  color: var(--text-secondary, #666);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bookmark-notes {
+    padding: 0.5rem;
+  }
+
+  .bookmark-notes summary {
+    font-size: 0.8125rem;
+  }
+
+  .bookmark-notes summary svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bookmark-notes .notes-content {
+    font-size: 0.875rem;
+  }
+}

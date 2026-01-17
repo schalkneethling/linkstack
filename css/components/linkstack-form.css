@@ -1,9 +1,81 @@
 .linkstack-form {
+  align-items: start;
   display: flex;
   gap: 1rem;
+
+  .form-field-summary {
+    align-items: center;
+    block-size: 100%;
+    cursor: pointer;
+    display: flex;
+    gap: 0.5rem;
+    list-style: none;
+    padding-inline: 1rem;
+    user-select: none;
+  }
+
+  .form-field-collapsible {
+    border: var(--minimalist-input-border, var(--border-primary-border));
+    flex: 1;
+    margin-block-end: 0;
+    padding: 0;
+    position: relative;
+  }
+
+  .form-field-collapsible,
+  input,
+  select {
+    block-size: 3rem;
+  }
+
+  .form-field {
+    flex: 1;
+    margin-block-end: 0;
+  }
 }
 
-.linkstack-form .form-field {
-  flex: 1;
+.form-field-summary::marker,
+.form-field-summary::-webkit-details-marker {
+  display: none;
+}
+
+.form-field-summary::before {
+  border-color: transparent transparent transparent var(--text-secondary, #666);
+  border-style: solid;
+  border-width: 0.3125rem 0 0.3125rem 0.5rem;
+  content: '';
+  display: inline-block;
+  inline-size: 0;
+  transition: transform 0.2s ease;
+}
+
+.form-field-collapsible[open] {
+  &::details-content {
+    background-color: var(--bg-primary, #fff);
+    border: var(--minimalist-input-border, var(--border-primary-border));
+    border-block-start: 0;
+    inline-size: 100%;
+    inset-block-start: 100%;
+    inset-inline-start: -0.125rem;
+    position: absolute;
+    z-index: 10;
+  }
+
+  .form-field-summary::before {
+    transform: rotate(90deg);
+  }
+}
+
+.form-field-summary:hover {
+  background: var(--bg-secondary, #f9f9f9);
+}
+
+.form-field-summary:focus-visible {
+  outline: 0.125rem solid var(--focus-color, #06c);
+  outline-offset: 0.125rem;
+}
+
+.form-field-collapsible .form-field {
   margin-block-end: 0;
+  padding: 1rem;
 }
