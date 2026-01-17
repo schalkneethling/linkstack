@@ -1,4 +1,5 @@
 .linkstack-form {
+  align-items: start;
   display: flex;
   gap: 1rem;
 }
