@@ -131,7 +131,9 @@ class LinkStackToast extends HTMLElement {
    */
   dismiss(toastId) {
     const toastIndex = this.#toasts.findIndex((t) => t.id === toastId);
-    if (toastIndex === -1) return;
+    if (toastIndex === -1) {
+      return;
+    }
 
     const toast = this.#toasts[toastIndex];
 
