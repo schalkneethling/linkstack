@@ -88,7 +88,7 @@ class LinkStackToast extends HTMLElement {
    * @private
    */
   #createToast(message, type) {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = crypto.randomUUID();
 
     // Clone template
     const template = this.querySelector(
