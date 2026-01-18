@@ -8,7 +8,9 @@ const getAllowedOrigin = (requestOrigin) => {
     "https://linkstack.netlify.app", // Add your production domain
   ];
 
-  return allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
+  return allowedOrigins.includes(requestOrigin)
+    ? requestOrigin
+    : allowedOrigins[0];
 };
 
 // Docs on request and context https://docs.netlify.com/functions/build/#code-your-function-2
@@ -33,10 +35,13 @@ export default async (request) => {
     const bookmark = url.searchParams.get("url");
 
     if (!bookmark) {
-      return new Response(JSON.stringify({ error: "URL parameter is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "URL parameter is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "content-type": "application/json" },
+        },
+      );
     }
 
     const response = await fetch(bookmark);

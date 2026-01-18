@@ -2,6 +2,13 @@
   --linkstack-dialog-border-radius: 0.5rem;
   --linkstack-dialog-box-shadow: 0 0 var(--size-16) rgba(0 0 0 / 30%);
   --linkstack-dialog-backdrop: rgb(0 0 0 / 70%);
+
+  /* Toast notification colors - using minimalist library colors */
+  --success-color: var(--color-green-50);
+  --error-color: var(--color-red-60);
+  --warning-color: var(--color-yellow-50);
+  --info-color: #3b82f6;
+  --focus-color: #0066cc;
 }
 
 body {

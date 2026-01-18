@@ -93,7 +93,10 @@ export class BookmarksService {
    */
   async create(bookmark) {
     // Get current user
-    const { data: { user }, error: authError } = await this.#supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await this.#supabase.auth.getUser();
 
     if (authError) {
       throw authError;
@@ -132,7 +135,7 @@ export class BookmarksService {
 
     if (error) {
       // Handle unique constraint violation from database
-      if (error.code === '23505') {
+      if (error.code === "23505") {
         throw new Error("You've already bookmarked this URL");
       }
       throw error;

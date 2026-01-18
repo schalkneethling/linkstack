@@ -50,9 +50,7 @@ describe("BookmarksService", () => {
         error,
       });
 
-      await expect(bookmarksService.getAll()).rejects.toThrow(
-        "Database error",
-      );
+      await expect(bookmarksService.getAll()).rejects.toThrow("Database error");
     });
   });
 
@@ -122,9 +120,9 @@ describe("BookmarksService", () => {
         error,
       });
 
-      await expect(
-        bookmarksService.create({ url: "test" }),
-      ).rejects.toThrow("Insert failed");
+      await expect(bookmarksService.create({ url: "test" })).rejects.toThrow(
+        "Insert failed",
+      );
     });
   });
 

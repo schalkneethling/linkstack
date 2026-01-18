@@ -138,6 +138,10 @@ export class LinkStackBookmarks extends HTMLElement {
       // Remove from DOM
       this.querySelector(`#bookmark-entry-${id}`)?.remove();
 
+      // Show success toast
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Bookmark deleted successfully", "success");
+
       // Check if we need to show empty state
       const bookmarksList = this.querySelector("#bookmarks-list");
       if (!bookmarksList || bookmarksList.children.length === 0) {
@@ -145,7 +149,8 @@ export class LinkStackBookmarks extends HTMLElement {
       }
     } catch (error) {
       console.error("Error deleting bookmark:", error);
-      alert("Failed to delete bookmark. Please try again.");
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Failed to delete bookmark. Please try again.", "error");
     }
   }
 
@@ -230,7 +235,9 @@ export class LinkStackBookmarks extends HTMLElement {
             `bookmark-entry-${bookmark.id}`;
 
           // Load children for this bookmark
-          const children = await this.#bookmarksService.getChildren(bookmark.id);
+          const children = await this.#bookmarksService.getChildren(
+            bookmark.id,
+          );
 
           if (children && children.length > 0) {
             // Show thread toggle
@@ -252,8 +259,10 @@ export class LinkStackBookmarks extends HTMLElement {
                 child.meta_description;
 
               // Handle notes - only show if present
-              const childNotesContainer = childEntry.querySelector(".bookmark-notes");
-              const childNotesContent = childEntry.querySelector(".notes-content");
+              const childNotesContainer =
+                childEntry.querySelector(".bookmark-notes");
+              const childNotesContent =
+                childEntry.querySelector(".notes-content");
               if (child.notes && child.notes.trim()) {
                 childNotesContent.textContent = child.notes;
                 childNotesContainer.classList.remove("hidden");

@@ -78,8 +78,7 @@ export class LinkStackAuth extends HTMLElement {
   }
 
   #renderAuthenticatedView() {
-    const displayName =
-      this.#user.user_metadata?.full_name || this.#user.email;
+    const displayName = this.#user.user_metadata?.full_name || this.#user.email;
 
     this.innerHTML = `
       <div class="auth-container authenticated">

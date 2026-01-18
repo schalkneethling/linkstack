@@ -107,19 +107,29 @@ export class LinkStackEditDialog extends HTMLElement {
         notes,
       });
 
+      // Show success toast
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Bookmark updated successfully!", "success");
+
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
 
       editDialog.close();
     } catch (error) {
       console.error("Error saving bookmark changes:", error);
-      alert("Failed to save changes. Please try again.");
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Failed to save changes. Please try again.", "error");
     }
   }
 
   async #editBookmark(id) {
-    const { editDialog, editId, editTitleInput, editDescriptionInput, editNotesInput } =
-      this.#elements;
+    const {
+      editDialog,
+      editId,
+      editTitleInput,
+      editDescriptionInput,
+      editNotesInput,
+    } = this.#elements;
 
     try {
       const bookmarkData = await this.#getBookmarkData(id);
@@ -132,7 +142,8 @@ export class LinkStackEditDialog extends HTMLElement {
       editDialog.showModal();
     } catch (error) {
       console.error("Error loading bookmark for edit:", error);
-      alert("Failed to load bookmark. Please try again.");
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Failed to load bookmark. Please try again.", "error");
     }
   }
 }
