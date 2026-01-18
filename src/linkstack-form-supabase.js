@@ -1,5 +1,6 @@
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
+import { validateUrl } from "./utils/validation-schemas.js";
 
 /**
  * Form component for adding bookmarks with Supabase storage
@@ -8,12 +9,16 @@ export class LinkStackForm extends HTMLElement {
   static #selectors = {
     bookmarkForm: "#bookmark-form",
     parentSelect: "#parent-bookmark",
+    urlInput: "#url",
+    urlError: "#url-error",
+    submitButton: "#submit-bookmark",
   };
 
   #bookmarksService = new BookmarksService(supabase);
   #boundHandlers = {
     onBookmarkCreated: null,
   };
+  #isSubmitting = false;
 
   constructor() {
     super();
@@ -22,6 +27,7 @@ export class LinkStackForm extends HTMLElement {
   connectedCallback() {
     this.#addEventListeners();
     this.#populateParentSelect();
+    this.#setupUrlValidation();
   }
 
   disconnectedCallback() {
@@ -74,6 +80,149 @@ export class LinkStackForm extends HTMLElement {
     window.dispatchEvent(new CustomEvent("bookmark-created"));
   }
 
+  /**
+   * Set up real-time URL validation
+   * @private
+   */
+  #setupUrlValidation() {
+    const urlInput = this.querySelector(LinkStackForm.#selectors.urlInput);
+
+    if (!urlInput) {
+      return;
+    }
+
+    // Validate on blur (when user leaves the field)
+    urlInput.addEventListener("blur", () => {
+      this.#validateUrlField();
+    });
+
+    // Clear error on input (as user types)
+    urlInput.addEventListener("input", () => {
+      this.#clearUrlError();
+    });
+  }
+
+  /**
+   * Validate URL field and show inline error if invalid
+   * @private
+   * @returns {boolean} - True if valid, false otherwise
+   */
+  #validateUrlField() {
+    const urlInput = this.querySelector(LinkStackForm.#selectors.urlInput);
+    const url = urlInput?.value.trim();
+
+    if (!url) {
+      return false;
+    }
+
+    const result = validateUrl(url);
+
+    if (!result.success) {
+      const errorMessage = result.error.errors[0]?.message || "Invalid URL";
+      this.#showUrlError(errorMessage);
+      return false;
+    }
+
+    this.#clearUrlError();
+    return true;
+  }
+
+  /**
+   * Show URL validation error
+   * @private
+   */
+  #showUrlError(message) {
+    const urlInput = this.querySelector(LinkStackForm.#selectors.urlInput);
+    const errorEl = this.querySelector(LinkStackForm.#selectors.urlError);
+
+    if (urlInput) {
+      urlInput.setAttribute("aria-invalid", "true");
+      urlInput.classList.add("error");
+    }
+
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+  }
+
+  /**
+   * Clear URL validation error
+   * @private
+   */
+  #clearUrlError() {
+    const urlInput = this.querySelector(LinkStackForm.#selectors.urlInput);
+    const errorEl = this.querySelector(LinkStackForm.#selectors.urlError);
+
+    if (urlInput) {
+      urlInput.removeAttribute("aria-invalid");
+      urlInput.classList.remove("error");
+    }
+
+    if (errorEl) {
+      errorEl.textContent = "";
+      errorEl.hidden = true;
+    }
+  }
+
+  /**
+   * Check if URL already exists in bookmarks
+   * @private
+   * @returns {Promise<boolean>} - True if duplicate exists
+   */
+  async #checkDuplicateUrl(url) {
+    try {
+      const bookmarks = await this.#bookmarksService.fetchAll();
+      return bookmarks.some((bookmark) => bookmark.url === url);
+    } catch (error) {
+      console.error("Error checking for duplicates:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Set loading state on submit button
+   * @private
+   */
+  #setSubmitButtonLoading(isLoading) {
+    const submitButton = this.querySelector(
+      LinkStackForm.#selectors.submitButton,
+    );
+
+    if (!submitButton) {
+      return;
+    }
+
+    const buttonText = submitButton.querySelector(".button-text");
+    const buttonLoading = submitButton.querySelector(".button-loading");
+
+    if (isLoading) {
+      this.#isSubmitting = true;
+      submitButton.disabled = true;
+      submitButton.setAttribute("aria-busy", "true");
+
+      if (buttonText) {
+        buttonText.hidden = true;
+      }
+
+      if (buttonLoading) {
+        buttonLoading.hidden = false;
+      }
+    } else {
+      this.#isSubmitting = false;
+      submitButton.disabled = false;
+      submitButton.removeAttribute("aria-busy");
+
+      if (buttonText) {
+        buttonText.hidden = false;
+      }
+
+      if (buttonLoading) {
+        buttonLoading.hidden = true;
+      }
+    }
+  }
+
   #addEventListeners() {
     const bookmarkForm = this.querySelector(
       LinkStackForm.#selectors.bookmarkForm,
@@ -94,16 +243,40 @@ export class LinkStackForm extends HTMLElement {
       bookmarkForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
+        // Prevent double submission
+        if (this.#isSubmitting) {
+          return;
+        }
+
+        const formData = new FormData(bookmarkForm);
+        const url = formData.get("url")?.trim();
+        const parentId = formData.get("parent_id");
+        const notes = formData.get("notes");
+
+        // Validate URL before submission
+        if (!this.#validateUrlField()) {
+          return;
+        }
+
+        // Check for duplicate URL
+        const isDuplicate = await this.#checkDuplicateUrl(url);
+
+        if (isDuplicate) {
+          this.#showUrlError(
+            "This URL has already been bookmarked. Please enter a different URL.",
+          );
+          return;
+        }
+
+        // Set loading state
+        this.#setSubmitButtonLoading(true);
+
         // Use port 8888 for Netlify dev server in development
         const isDev = window.location.hostname === "localhost";
         const baseUrl = isDev
           ? "http://localhost:8888"
           : window.location.origin;
         const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
-        const formData = new FormData(bookmarkForm);
-        const url = formData.get("url");
-        const parentId = formData.get("parent_id");
-        const notes = formData.get("notes");
 
         try {
           const response = await fetch(
@@ -137,6 +310,7 @@ export class LinkStackForm extends HTMLElement {
 
                 await this.#addBookmark(bookmarkData);
                 bookmarkForm.reset();
+                this.#setSubmitButtonLoading(false);
               } catch (error) {
                 console.error("Error adding bookmark:", error);
                 const toast = document.querySelector("linkstack-toast");
@@ -144,6 +318,7 @@ export class LinkStackForm extends HTMLElement {
                   error.message || "Failed to add bookmark. Please try again.",
                   "error",
                 );
+                this.#setSubmitButtonLoading(false);
               }
             };
 
@@ -168,6 +343,7 @@ export class LinkStackForm extends HTMLElement {
 
                 await this.#addBookmark(bookmarkData);
                 bookmarkForm.reset();
+                this.#setSubmitButtonLoading(false);
               } catch (error) {
                 console.error("Error adding bookmark:", error);
                 const toast = document.querySelector("linkstack-toast");
@@ -175,6 +351,7 @@ export class LinkStackForm extends HTMLElement {
                   error.message || "Failed to add bookmark. Please try again.",
                   "error",
                 );
+                this.#setSubmitButtonLoading(false);
               }
             };
 
@@ -189,6 +366,7 @@ export class LinkStackForm extends HTMLElement {
             error.message || "Failed to add bookmark. Please try again.",
             "error",
           );
+          this.#setSubmitButtonLoading(false);
         }
       });
     }

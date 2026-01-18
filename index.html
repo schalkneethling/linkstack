@@ -125,6 +125,7 @@
           <div class="form-field">
             <label class="visually-hidden" for="url">Enter bookmark URL</label>
             <input type="url" name="url" id="url" required />
+            <div class="field-error" id="url-error" role="alert" aria-live="polite"></div>
           </div>
           <div class="form-field">
             <label class="visually-hidden" for="parent-bookmark"
@@ -146,7 +147,10 @@
               ></textarea>
             </div>
           </details>
-          <button class="button solid" type="submit">Add Bookmark</button>
+          <button class="button solid" type="submit" id="submit-bookmark">
+            <span class="button-text">Add Bookmark</span>
+            <span class="button-loading" hidden>Adding...</span>
+          </button>
         </form>
       </linkstack-form>
 
