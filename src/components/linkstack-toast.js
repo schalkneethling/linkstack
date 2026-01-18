@@ -24,7 +24,7 @@ class LinkStackToast extends HTMLElement {
 
   static #selectors = {
     container: ".toast-container",
-    toast: ".toast",
+    toastTemplate: "#toast-template",
   };
 
   connectedCallback() {
@@ -33,9 +33,25 @@ class LinkStackToast extends HTMLElement {
   }
 
   render() {
-    this.innerHTML = `
+    const template = document.createElement("template");
+    template.innerHTML = `
       <div class="toast-container" role="region" aria-live="polite" aria-atomic="false"></div>
+
+      <template id="toast-template">
+        <div class="toast" role="status">
+          <div class="toast-icon" aria-hidden="true"></div>
+          <div class="toast-message"></div>
+          <button type="button" class="toast-close" aria-label="Dismiss notification">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </template>
     `;
+
+    this.appendChild(template.content.cloneNode(true));
   }
 
   /**
@@ -73,25 +89,27 @@ class LinkStackToast extends HTMLElement {
    */
   #createToast(message, type) {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const element = document.createElement("div");
+
+    // Clone template
+    const template = this.querySelector(
+      LinkStackToast.#selectors.toastTemplate,
+    );
+    const element = template.content.cloneNode(true).querySelector(".toast");
+
+    // Set attributes
     element.className = `toast toast-${type}`;
     element.id = id;
-    element.setAttribute("role", "status");
     element.setAttribute(
       "aria-live",
       type === "error" ? "assertive" : "polite",
     );
 
-    element.innerHTML = `
-      <div class="toast-icon" aria-hidden="true">${this.#getIcon(type)}</div>
-      <div class="toast-message">${this.#escapeHtml(message)}</div>
-      <button type="button" class="toast-close" aria-label="Dismiss notification">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    `;
+    // Populate content
+    const icon = element.querySelector(".toast-icon");
+    icon.innerHTML = this.#getIcon(type);
+
+    const messageEl = element.querySelector(".toast-message");
+    messageEl.textContent = message;
 
     // Close button handler
     const closeButton = element.querySelector(".toast-close");
@@ -180,16 +198,6 @@ class LinkStackToast extends HTMLElement {
     };
 
     return icons[type] || icons.info;
-  }
-
-  /**
-   * Escape HTML to prevent XSS
-   * @private
-   */
-  #escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
   }
 }
 
