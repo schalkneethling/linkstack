@@ -52,6 +52,12 @@
       href="css/components/linkstack-toast.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/skeleton-loader.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -163,6 +169,37 @@
               <h2>No bookmarks?!</h2>
               <p class="text-medium">Why not add your first?</p>
             </div>
+          </div>
+        </template>
+
+        <template id="skeleton-loader-tmpl">
+          <div class="skeleton-loader" role="status" aria-label="Loading bookmarks">
+            <ul class="bookmarks-list skeleton-list">
+              <li class="skeleton-item">
+                <div class="skeleton-img"></div>
+                <div class="skeleton-content">
+                  <div class="skeleton-title"></div>
+                  <div class="skeleton-description"></div>
+                  <div class="skeleton-actions"></div>
+                </div>
+              </li>
+              <li class="skeleton-item">
+                <div class="skeleton-img"></div>
+                <div class="skeleton-content">
+                  <div class="skeleton-title"></div>
+                  <div class="skeleton-description"></div>
+                  <div class="skeleton-actions"></div>
+                </div>
+              </li>
+              <li class="skeleton-item">
+                <div class="skeleton-img"></div>
+                <div class="skeleton-content">
+                  <div class="skeleton-title"></div>
+                  <div class="skeleton-description"></div>
+                  <div class="skeleton-actions"></div>
+                </div>
+              </li>
+            </ul>
           </div>
         </template>
 
@@ -398,7 +435,10 @@
               >
                 Cancel
               </button>
-              <button class="button solid" type="submit">Save Changes</button>
+              <button class="button solid" type="submit" id="save-changes-button">
+                <span class="button-text">Save Changes</span>
+                <span class="button-loading" hidden>Saving...</span>
+              </button>
             </div>
           </form>
         </dialog>

@@ -14,6 +14,7 @@ export class LinkStackEditDialog extends HTMLElement {
     editNotesInput: "#edit-notes",
     editDialog: "dialog",
     linkstackBookmarks: "linkstack-bookmarks",
+    saveButton: "#save-changes-button",
   };
 
   #elements = {
@@ -25,9 +26,11 @@ export class LinkStackEditDialog extends HTMLElement {
     editNotesInput: null,
     editDialog: null,
     linkstackBookmarks: null,
+    saveButton: null,
   };
 
   #bookmarksService = new BookmarksService(supabase);
+  #isSaving = false;
 
   constructor() {
     super();
@@ -63,6 +66,9 @@ export class LinkStackEditDialog extends HTMLElement {
     this.#elements.linkstackBookmarks = document.querySelector(
       LinkStackEditDialog.#selectors.linkstackBookmarks,
     );
+    this.#elements.saveButton = this.querySelector(
+      LinkStackEditDialog.#selectors.saveButton,
+    );
   }
 
   #addEventListeners() {
@@ -78,9 +84,56 @@ export class LinkStackEditDialog extends HTMLElement {
 
     editBookmarkForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+
+      // Prevent double submission
+      if (this.#isSaving) {
+        return;
+      }
+
       const formData = new FormData(editBookmarkForm);
       await this.#saveBookmarkChanges(formData);
     });
+  }
+
+  /**
+   * Set loading state on save button
+   * @private
+   */
+  #setSaveButtonLoading(isLoading) {
+    const { saveButton } = this.#elements;
+
+    if (!saveButton) {
+      return;
+    }
+
+    const buttonText = saveButton.querySelector(".button-text");
+    const buttonLoading = saveButton.querySelector(".button-loading");
+
+    if (isLoading) {
+      this.#isSaving = true;
+      saveButton.disabled = true;
+      saveButton.setAttribute("aria-busy", "true");
+
+      if (buttonText) {
+        buttonText.hidden = true;
+      }
+
+      if (buttonLoading) {
+        buttonLoading.hidden = false;
+      }
+    } else {
+      this.#isSaving = false;
+      saveButton.disabled = false;
+      saveButton.removeAttribute("aria-busy");
+
+      if (buttonText) {
+        buttonText.hidden = false;
+      }
+
+      if (buttonLoading) {
+        buttonLoading.hidden = true;
+      }
+    }
   }
 
   async #getBookmarkData(id) {
@@ -100,6 +153,9 @@ export class LinkStackEditDialog extends HTMLElement {
     const meta_description = formData.get("description");
     const notes = formData.get("notes");
 
+    // Set loading state
+    this.#setSaveButtonLoading(true);
+
     try {
       await this.#bookmarksService.update(id, {
         page_title,
@@ -114,11 +170,13 @@ export class LinkStackEditDialog extends HTMLElement {
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
 
+      this.#setSaveButtonLoading(false);
       editDialog.close();
     } catch (error) {
       console.error("Error saving bookmark changes:", error);
       const toast = document.querySelector("linkstack-toast");
       toast.show("Failed to save changes. Please try again.", "error");
+      this.#setSaveButtonLoading(false);
     }
   }
 
