@@ -12,16 +12,24 @@ export class LinkStackBookmarks extends HTMLElement {
     linkstackEditDialog: "linkstack-edit-dialog",
     noBookmarksTmpl: "#no-bookmarks-tmpl",
     skeletonLoaderTmpl: "#skeleton-loader-tmpl",
+    searchInput: "#search-input",
+    clearSearchButton: "#clear-search",
+    searchResultsInfo: ".search-results-info",
   };
 
   #elements = {
     bookmarksContainer: null,
     linkstackEditDialog: null,
+    searchInput: null,
+    clearSearchButton: null,
+    searchResultsInfo: null,
   };
 
   #bookmarksService = new BookmarksService(supabase);
   #renderPromise = null;
   #isInitialLoad = true;
+  #searchQuery = "";
+  #searchDebounceTimer = null;
   #boundHandlers = {
     onBookmarkCreated: null,
     onBookmarkUpdated: null,
@@ -58,8 +66,27 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#elements.linkstackEditDialog = document.querySelector(
       LinkStackBookmarks.#selectors.linkstackEditDialog,
     );
+    this.#elements.searchInput = document.querySelector(
+      LinkStackBookmarks.#selectors.searchInput,
+    );
+    this.#elements.clearSearchButton = document.querySelector(
+      LinkStackBookmarks.#selectors.clearSearchButton,
+    );
+    this.#elements.searchResultsInfo = document.querySelector(
+      LinkStackBookmarks.#selectors.searchResultsInfo,
+    );
+
+    // Read search query from URL
+    const params = new URLSearchParams(window.location.search);
+    this.#searchQuery = params.get("search") || "";
+
+    if (this.#searchQuery && this.#elements.searchInput) {
+      this.#elements.searchInput.value = this.#searchQuery;
+      this.#elements.clearSearchButton.hidden = false;
+    }
 
     this.#addEventListeners();
+    this.#setupSearch();
     await this.#renderBookmarks();
   }
 
@@ -138,6 +165,157 @@ export class LinkStackBookmarks extends HTMLElement {
       toggleButton.setAttribute("aria-expanded", "true");
       threadChildren.classList.remove("hidden");
       threadLabel.textContent = "Hide thread";
+    }
+  }
+
+  /**
+   * Set up search functionality
+   * @private
+   */
+  #setupSearch() {
+    const { searchInput, clearSearchButton } = this.#elements;
+
+    if (!searchInput) {
+      return;
+    }
+
+    // Search on input with debounce
+    searchInput.addEventListener("input", (event) => {
+      const query = event.target.value.trim();
+
+      // Show/hide clear button
+      if (clearSearchButton) {
+        clearSearchButton.hidden = !query;
+      }
+
+      // Debounce search
+      clearTimeout(this.#searchDebounceTimer);
+      this.#searchDebounceTimer = setTimeout(() => {
+        this.#handleSearch(query);
+      }, 300);
+    });
+
+    // Clear search button
+    if (clearSearchButton) {
+      clearSearchButton.addEventListener("click", () => {
+        this.#clearSearch();
+      });
+    }
+
+    // Listen for browser back/forward
+    window.addEventListener("popstate", () => {
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get("search") || "";
+      this.#applySearch(query);
+    });
+  }
+
+  /**
+   * Handle search query change
+   * @private
+   */
+  async #handleSearch(query) {
+    this.#searchQuery = query;
+    this.#updateUrlWithSearch(query);
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Apply search from URL or history
+   * @private
+   */
+  async #applySearch(query) {
+    this.#searchQuery = query;
+    const { searchInput, clearSearchButton } = this.#elements;
+
+    if (searchInput) {
+      searchInput.value = query;
+    }
+
+    if (clearSearchButton) {
+      clearSearchButton.hidden = !query;
+    }
+
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Clear search
+   * @private
+   */
+  async #clearSearch() {
+    this.#searchQuery = "";
+    const { searchInput, clearSearchButton } = this.#elements;
+
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
+    if (clearSearchButton) {
+      clearSearchButton.hidden = true;
+    }
+
+    this.#updateUrlWithSearch("");
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Update URL with search query
+   * @private
+   */
+  #updateUrlWithSearch(query) {
+    const url = new URL(window.location);
+
+    if (query) {
+      url.searchParams.set("search", query);
+    } else {
+      url.searchParams.delete("search");
+    }
+
+    window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Filter bookmarks by search query
+   * @private
+   */
+  #filterBookmarks(bookmarks, query) {
+    if (!query.trim()) {
+      return bookmarks;
+    }
+
+    const lowerQuery = query.toLowerCase();
+
+    return bookmarks.filter((bookmark) => {
+      const title = bookmark.page_title?.toLowerCase() || "";
+      const description = bookmark.meta_description?.toLowerCase() || "";
+      const url = bookmark.url?.toLowerCase() || "";
+      const notes = bookmark.notes?.toLowerCase() || "";
+
+      return (
+        title.includes(lowerQuery) ||
+        description.includes(lowerQuery) ||
+        url.includes(lowerQuery) ||
+        notes.includes(lowerQuery)
+      );
+    });
+  }
+
+  /**
+   * Update search results info
+   * @private
+   */
+  #updateSearchResultsInfo(filteredCount, totalCount) {
+    const { searchResultsInfo } = this.#elements;
+
+    if (!searchResultsInfo) {
+      return;
+    }
+
+    if (this.#searchQuery && filteredCount !== totalCount) {
+      searchResultsInfo.textContent = `Showing ${filteredCount} of ${totalCount} bookmarks`;
+    } else {
+      searchResultsInfo.textContent = "";
     }
   }
 
@@ -302,7 +480,7 @@ export class LinkStackBookmarks extends HTMLElement {
 
     try {
       // Get only top-level bookmarks
-      const bookmarks = await this.#bookmarksService.getTopLevel();
+      const allBookmarks = await this.#bookmarksService.getTopLevel();
 
       // Hide skeleton loader
       if (this.#isInitialLoad) {
@@ -310,7 +488,32 @@ export class LinkStackBookmarks extends HTMLElement {
         this.#isInitialLoad = false;
       }
 
-      if (!bookmarks || bookmarks.length === 0) {
+      if (!allBookmarks || allBookmarks.length === 0) {
+        this.#showNoBookmarks();
+        this.#updateSearchResultsInfo(0, 0);
+        return;
+      }
+
+      // Apply search filter
+      const bookmarks = this.#filterBookmarks(allBookmarks, this.#searchQuery);
+
+      // Update search results info
+      this.#updateSearchResultsInfo(bookmarks.length, allBookmarks.length);
+
+      // Handle empty search results
+      if (bookmarks.length === 0 && this.#searchQuery) {
+        bookmarksContainer.innerHTML = `
+          <div class="no-bookmarks-wrapper">
+            <div class="no-bookmarks">
+              <h2>No results found</h2>
+              <p class="text-medium">No bookmarks match your search query "${this.#searchQuery}"</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (bookmarks.length === 0) {
         this.#showNoBookmarks();
         return;
       }
@@ -362,9 +565,12 @@ export class LinkStackBookmarks extends HTMLElement {
           }
 
           // Load children for this bookmark
-          const children = await this.#bookmarksService.getChildren(
+          const allChildren = await this.#bookmarksService.getChildren(
             bookmark.id,
           );
+
+          // Apply search filter to children as well
+          const children = this.#filterBookmarks(allChildren, this.#searchQuery);
 
           if (children && children.length > 0) {
             // Show thread toggle

@@ -64,6 +64,12 @@
       href="css/components/read-status.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/search-bar.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -165,6 +171,42 @@
           </button>
         </form>
       </linkstack-form>
+
+      <!-- Search Bar -->
+      <div class="search-bar-container" role="search">
+        <div class="search-bar">
+          <label for="search-input" class="visually-hidden">Search bookmarks</label>
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Search bookmarks by title, description, or URL..."
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            id="clear-search"
+            class="clear-search-button"
+            aria-label="Clear search"
+            hidden
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="search-results-info" role="status" aria-live="polite" aria-atomic="true"></div>
+      </div>
 
       <linkstack-bookmarks>
         <section class="bookmarks-container" id="bookmarks-container"></section>
