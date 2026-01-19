@@ -11,6 +11,7 @@ export class LinkStackBookmarks extends HTMLElement {
     bookmarkChildTmpl: "#bookmark-child-tmpl",
     linkstackEditDialog: "linkstack-edit-dialog",
     noBookmarksTmpl: "#no-bookmarks-tmpl",
+    skeletonLoaderTmpl: "#skeleton-loader-tmpl",
   };
 
   #elements = {
@@ -20,6 +21,7 @@ export class LinkStackBookmarks extends HTMLElement {
 
   #bookmarksService = new BookmarksService(supabase);
   #renderPromise = null;
+  #isInitialLoad = true;
   #boundHandlers = {
     onBookmarkCreated: null,
     onBookmarkUpdated: null,
@@ -132,6 +134,17 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   async #deleteBookmark(id) {
+    const deleteButton = this.querySelector(
+      `#bookmark-entry-${id} #delete-bookmark`,
+    );
+
+    // Set loading state on button
+    if (deleteButton) {
+      deleteButton.disabled = true;
+      deleteButton.setAttribute("aria-busy", "true");
+      deleteButton.textContent = "Deleting...";
+    }
+
     try {
       await this.#bookmarksService.delete(id);
 
@@ -151,6 +164,13 @@ export class LinkStackBookmarks extends HTMLElement {
       console.error("Error deleting bookmark:", error);
       const toast = document.querySelector("linkstack-toast");
       toast.show("Failed to delete bookmark. Please try again.", "error");
+
+      // Reset button state on error
+      if (deleteButton) {
+        deleteButton.disabled = false;
+        deleteButton.removeAttribute("aria-busy");
+        deleteButton.textContent = "Remove Bookmark";
+      }
     }
   }
 
@@ -163,6 +183,30 @@ export class LinkStackBookmarks extends HTMLElement {
 
     bookmarksContainer.innerHTML = "";
     bookmarksContainer.append(noBookmarks);
+  }
+
+  #showSkeletonLoader() {
+    const { bookmarksContainer } = this.#elements;
+    const skeletonTmpl = this.querySelector(
+      LinkStackBookmarks.#selectors.skeletonLoaderTmpl,
+    );
+
+    if (!skeletonTmpl) {
+      return;
+    }
+
+    const skeleton = skeletonTmpl.content.cloneNode(true);
+    bookmarksContainer.innerHTML = "";
+    bookmarksContainer.append(skeleton);
+  }
+
+  #hideSkeletonLoader() {
+    const { bookmarksContainer } = this.#elements;
+    const skeletonLoader = bookmarksContainer.querySelector(".skeleton-loader");
+
+    if (skeletonLoader) {
+      skeletonLoader.remove();
+    }
   }
 
   async #renderBookmarks() {
@@ -193,9 +237,20 @@ export class LinkStackBookmarks extends HTMLElement {
       return;
     }
 
+    // Show skeleton loader only on initial load
+    if (this.#isInitialLoad) {
+      this.#showSkeletonLoader();
+    }
+
     try {
       // Get only top-level bookmarks
       const bookmarks = await this.#bookmarksService.getTopLevel();
+
+      // Hide skeleton loader
+      if (this.#isInitialLoad) {
+        this.#hideSkeletonLoader();
+        this.#isInitialLoad = false;
+      }
 
       if (!bookmarks || bookmarks.length === 0) {
         this.#showNoBookmarks();
@@ -303,6 +358,13 @@ export class LinkStackBookmarks extends HTMLElement {
       bookmarksList.append(...bookmarkElements);
     } catch (error) {
       console.error("Error rendering bookmarks:", error);
+
+      // Hide skeleton loader on error
+      if (this.#isInitialLoad) {
+        this.#hideSkeletonLoader();
+        this.#isInitialLoad = false;
+      }
+
       bookmarksContainer.innerHTML = `
         <div class="error-message">
           <p>Failed to load bookmarks. Please try refreshing the page.</p>
