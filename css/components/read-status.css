@@ -1,0 +1,75 @@
+/* Read/Unread Status Styles */
+
+/* Read status toggle button */
+#toggle-read-status {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+#toggle-read-status .read-icon {
+  display: inline-block;
+  font-size: 1.125rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Read bookmark visual indicator */
+.bookmark-entry.read,
+.bookmark-child.read {
+  opacity: 0.7;
+  position: relative;
+}
+
+.bookmark-entry.read .bookmark-title,
+.bookmark-child.read .bookmark-title {
+  color: var(--text-secondary, #666);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-neutral-40, #999);
+  text-decoration-thickness: 0.0625rem;
+}
+
+.bookmark-entry.read .bookmark-description,
+.bookmark-child.read .bookmark-description {
+  color: var(--text-secondary, #666);
+}
+
+/* Hover state for read bookmarks */
+.bookmark-entry.read:hover,
+.bookmark-child.read:hover {
+  opacity: 0.85;
+}
+
+/* Read indicator badge */
+.bookmark-entry.read::before,
+.bookmark-child.read::before {
+  background-color: var(--color-green-50, #10b981);
+  block-size: 0.5rem;
+  border-radius: 50%;
+  content: "";
+  inline-size: 0.5rem;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  position: absolute;
+}
+
+/* Button state when read */
+#toggle-read-status[data-is-read="true"] {
+  background-color: var(--color-green-50, #10b981);
+  border-color: var(--color-green-60, #059669);
+  color: white;
+}
+
+#toggle-read-status[data-is-read="true"]:hover {
+  background-color: var(--color-green-60, #059669);
+}
+
+#toggle-read-status[data-is-read="true"]:focus-visible {
+  outline-color: var(--color-green-60, #059669);
+}
+
+/* Loading state for read toggle */
+#toggle-read-status:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

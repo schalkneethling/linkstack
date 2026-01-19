@@ -58,6 +58,12 @@
       href="css/components/skeleton-loader.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/read-status.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -258,6 +264,16 @@
                 </details>
               </div>
               <div class="bookmark-actions">
+                <button
+                  id="toggle-read-status"
+                  type="button"
+                  class="button solid"
+                  data-is-read="false"
+                  aria-label="Mark as read"
+                >
+                  <span class="read-icon" aria-hidden="true">✓</span>
+                  <span class="read-text">Mark as Read</span>
+                </button>
                 <button id="edit-bookmark" type="button" class="button solid">
                   Edit Bookmark
                 </button>
@@ -348,6 +364,16 @@
                 </details>
               </div>
               <div class="bookmark-actions">
+                <button
+                  id="toggle-read-status"
+                  type="button"
+                  class="button solid"
+                  data-is-read="false"
+                  aria-label="Mark as read"
+                >
+                  <span class="read-icon" aria-hidden="true">✓</span>
+                  <span class="read-text">Mark as Read</span>
+                </button>
                 <button id="edit-bookmark" type="button" class="button solid">
                   Edit
                 </button>

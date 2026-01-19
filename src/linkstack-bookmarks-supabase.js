@@ -95,6 +95,14 @@ export class LinkStackBookmarks extends HTMLElement {
         return;
       }
 
+      // Handle read/unread toggle
+      const readToggle = event.target.closest("#toggle-read-status");
+      if (readToggle) {
+        const { id } = readToggle.dataset;
+        await this.#toggleReadStatus(id, readToggle);
+        return;
+      }
+
       if (event.target.id === "delete-bookmark") {
         const { id } = event.target.dataset;
         await this.#deleteBookmark(id);
@@ -130,6 +138,56 @@ export class LinkStackBookmarks extends HTMLElement {
       toggleButton.setAttribute("aria-expanded", "true");
       threadChildren.classList.remove("hidden");
       threadLabel.textContent = "Hide thread";
+    }
+  }
+
+  async #toggleReadStatus(id, button) {
+    const currentStatus = button.dataset.isRead === "true";
+    const newStatus = !currentStatus;
+
+    // Set loading state
+    const originalText = button.querySelector(".read-text").textContent;
+    button.disabled = true;
+    button.querySelector(".read-text").textContent = "Updating...";
+
+    try {
+      await this.#bookmarksService.toggleReadStatus(id, newStatus);
+
+      // Update button state
+      button.dataset.isRead = newStatus;
+      button.querySelector(".read-text").textContent = newStatus
+        ? "Mark as Unread"
+        : "Mark as Read";
+      button.setAttribute(
+        "aria-label",
+        newStatus ? "Mark as unread" : "Mark as read",
+      );
+
+      // Add visual indicator
+      const bookmarkEntry = this.querySelector(`#bookmark-entry-${id}`);
+      if (bookmarkEntry) {
+        if (newStatus) {
+          bookmarkEntry.classList.add("read");
+        } else {
+          bookmarkEntry.classList.remove("read");
+        }
+      }
+
+      // Show success toast
+      const toast = document.querySelector("linkstack-toast");
+      toast.show(
+        `Marked as ${newStatus ? "read" : "unread"}`,
+        "success",
+      );
+    } catch (error) {
+      console.error("Error toggling read status:", error);
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Failed to update read status. Please try again.", "error");
+
+      // Reset button state on error
+      button.querySelector(".read-text").textContent = originalText;
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -286,8 +344,22 @@ export class LinkStackBookmarks extends HTMLElement {
           deleteBookmark.dataset.id = bookmark.id;
           editBookmark.dataset.id = bookmark.id;
 
-          entry.querySelector(".bookmark-entry").id =
-            `bookmark-entry-${bookmark.id}`;
+          // Setup read/unread toggle
+          const readToggle = entry.querySelector("#toggle-read-status");
+          readToggle.dataset.id = bookmark.id;
+          readToggle.dataset.isRead = bookmark.is_read || false;
+
+          if (bookmark.is_read) {
+            readToggle.querySelector(".read-text").textContent = "Mark as Unread";
+            readToggle.setAttribute("aria-label", "Mark as unread");
+          }
+
+          const bookmarkEntry = entry.querySelector(".bookmark-entry");
+          bookmarkEntry.id = `bookmark-entry-${bookmark.id}`;
+
+          if (bookmark.is_read) {
+            bookmarkEntry.classList.add("read");
+          }
 
           // Load children for this bookmark
           const children = await this.#bookmarksService.getChildren(
@@ -326,8 +398,22 @@ export class LinkStackBookmarks extends HTMLElement {
               childDelete.dataset.id = child.id;
               childEdit.dataset.id = child.id;
 
-              childEntry.querySelector(".bookmark-child").id =
-                `bookmark-entry-${child.id}`;
+              // Setup read/unread toggle for child
+              const childReadToggle = childEntry.querySelector("#toggle-read-status");
+              childReadToggle.dataset.id = child.id;
+              childReadToggle.dataset.isRead = child.is_read || false;
+
+              if (child.is_read) {
+                childReadToggle.querySelector(".read-text").textContent = "Mark as Unread";
+                childReadToggle.setAttribute("aria-label", "Mark as unread");
+              }
+
+              const bookmarkChild = childEntry.querySelector(".bookmark-child");
+              bookmarkChild.id = `bookmark-entry-${child.id}`;
+
+              if (child.is_read) {
+                bookmarkChild.classList.add("read");
+              }
 
               threadChildren.appendChild(childEntry);
             });

@@ -176,7 +176,7 @@ export class BookmarksService {
    * @throws {Error} If deletion fails
    */
   async delete(id) {
-    const { error } = await this.#supabase
+    const { error} = await this.#supabase
       .from("bookmarks")
       .delete()
       .eq("id", id);
@@ -184,5 +184,44 @@ export class BookmarksService {
     if (error) {
       throw error;
     }
+  }
+
+  /**
+   * Toggle read/unread status of a bookmark
+   * @param {string} id - Bookmark ID
+   * @param {boolean} isRead - New read status
+   * @returns {Promise<Object>} Updated bookmark object
+   * @throws {Error} If update fails
+   */
+  async toggleReadStatus(id, isRead) {
+    const updates = {
+      is_read: isRead,
+      read_at: isRead ? new Date().toISOString() : null,
+    };
+
+    const { data, error } = await this.#supabase
+      .from("bookmarks")
+      .update(updates)
+      .eq("id", id)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error(`Bookmark with id ${id} not found`);
+    }
+
+    return data[0];
+  }
+
+  /**
+   * Alias for getAll() - fetch all bookmarks
+   * @returns {Promise<Array>} Array of bookmark objects
+   * @throws {Error} If fetch fails
+   */
+  async fetchAll() {
+    return this.getAll();
   }
 }
