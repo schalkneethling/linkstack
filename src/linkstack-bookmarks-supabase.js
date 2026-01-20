@@ -499,14 +499,26 @@ export class LinkStackBookmarks extends HTMLElement {
 
       // Handle empty search results
       if (bookmarks.length === 0 && this.#searchQuery) {
-        bookmarksContainer.innerHTML = `
-          <div class="no-bookmarks-wrapper">
-            <div class="no-bookmarks">
-              <h2>No results found</h2>
-              <p class="text-medium">No bookmarks match your search query "${this.#searchQuery}"</p>
-            </div>
-          </div>
-        `;
+        // Create empty state DOM safely to prevent XSS
+        const wrapper = document.createElement("div");
+        wrapper.className = "no-bookmarks-wrapper";
+
+        const container = document.createElement("div");
+        container.className = "no-bookmarks";
+
+        const heading = document.createElement("h2");
+        heading.textContent = "No results found";
+
+        const message = document.createElement("p");
+        message.className = "text-medium";
+        message.textContent = `No bookmarks match your search query "${this.#searchQuery}"`;
+
+        container.appendChild(heading);
+        container.appendChild(message);
+        wrapper.appendChild(container);
+
+        bookmarksContainer.innerHTML = "";
+        bookmarksContainer.appendChild(wrapper);
         return;
       }
 
