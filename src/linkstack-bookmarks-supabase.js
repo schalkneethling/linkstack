@@ -91,7 +91,8 @@ export class LinkStackBookmarks extends HTMLElement {
       this.#elements.clearSearchButton.hidden = false;
     }
 
-    // Read sort preference from localStorage or URL
+    // Read sort preference: URL takes precedence, localStorage is fallback for clean URLs
+    // This allows users to share URLs without sort params while preserving their preference
     const urlSort = params.get("sort");
     const savedSort = localStorage.getItem("linkstack:sortBy");
     this.#sortBy = urlSort || savedSort || "newest";
@@ -257,12 +258,14 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   /**
-   * Handle sort change
+   * Handle sort change from user interaction
+   * Updates URL and persists preference to localStorage
    * @private
    */
   async #handleSort(sortBy) {
     this.#sortBy = sortBy;
     this.#updateUrlWithSort(sortBy);
+    // Save to localStorage as fallback when URL has no sort parameter
     localStorage.setItem("linkstack:sortBy", sortBy);
     await this.#renderBookmarks();
   }
@@ -339,7 +342,8 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   /**
-   * Apply sort from URL or history
+   * Apply sort state (e.g., from browser navigation or initialization)
+   * Updates UI dropdown and re-renders bookmarks
    * @private
    */
   async #applySort(sortBy) {
