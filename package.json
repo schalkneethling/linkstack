@@ -45,7 +45,7 @@
     "@vitest/ui": "^4.0.17",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
-    "eslint-config-prettier": "^10.0.1",
+    "eslint-config-prettier": "^10.1.8",
     "globals": "^17.0.0",
     "happy-dom": "^20.3.3",
     "jsdom": "^27.4.0",
