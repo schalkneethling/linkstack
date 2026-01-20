@@ -56,11 +56,46 @@ export default async (request) => {
     const responseTxt = await response.text();
     const $ = cheerio.load(responseTxt);
 
-    const pageTitle = $("head > title").text();
-    const metaDescription = $('meta[name="description"]').attr("content");
-    const ogImage = $('meta[property="og:image"]').attr("content");
-    const twitterImg = $('meta[name="twitter:image"]').attr("content");
-    const previewImg = ogImage || twitterImg;
+    // Helper to clean and validate text
+    const cleanText = (text) => (text || "").trim();
+
+    // Extract title with robust fallback chain
+    const ogTitle = cleanText($('meta[property="og:title"]').attr("content"));
+    const twitterTitle = cleanText(
+      $('meta[name="twitter:title"]').attr("content"),
+    );
+    const htmlTitleInHead = cleanText($("head > title").text());
+    const htmlTitleInBody = cleanText($("body > title").text()); // Edge case: invalid HTML
+    const htmlTitleAnywhere = cleanText($("title").text());
+
+    // Fallback chain: og:title → twitter:title → <title> in head → <title> in body → <title> anywhere → URL
+    const pageTitle =
+      ogTitle ||
+      twitterTitle ||
+      htmlTitleInHead ||
+      htmlTitleInBody ||
+      htmlTitleAnywhere ||
+      bookmark;
+
+    // Extract description with fallback chain
+    const ogDescription = cleanText(
+      $('meta[property="og:description"]').attr("content"),
+    );
+    const twitterDescription = cleanText(
+      $('meta[name="twitter:description"]').attr("content"),
+    );
+    const htmlDescription = cleanText(
+      $('meta[name="description"]').attr("content"),
+    );
+    const metaDescription =
+      ogDescription || twitterDescription || htmlDescription || "";
+
+    // Extract preview image with fallback
+    const ogImage = cleanText($('meta[property="og:image"]').attr("content"));
+    const twitterImg = cleanText(
+      $('meta[name="twitter:image"]').attr("content"),
+    );
+    const previewImg = ogImage || twitterImg || "";
 
     const jsonResponse = JSON.stringify({
       pageTitle,

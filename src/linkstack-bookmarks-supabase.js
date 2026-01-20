@@ -12,16 +12,24 @@ export class LinkStackBookmarks extends HTMLElement {
     linkstackEditDialog: "linkstack-edit-dialog",
     noBookmarksTmpl: "#no-bookmarks-tmpl",
     skeletonLoaderTmpl: "#skeleton-loader-tmpl",
+    searchInput: "#search-input",
+    clearSearchButton: "#clear-search",
+    searchResultsInfo: ".search-results-info",
   };
 
   #elements = {
     bookmarksContainer: null,
     linkstackEditDialog: null,
+    searchInput: null,
+    clearSearchButton: null,
+    searchResultsInfo: null,
   };
 
   #bookmarksService = new BookmarksService(supabase);
   #renderPromise = null;
   #isInitialLoad = true;
+  #searchQuery = "";
+  #searchDebounceTimer = null;
   #boundHandlers = {
     onBookmarkCreated: null,
     onBookmarkUpdated: null,
@@ -58,8 +66,27 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#elements.linkstackEditDialog = document.querySelector(
       LinkStackBookmarks.#selectors.linkstackEditDialog,
     );
+    this.#elements.searchInput = document.querySelector(
+      LinkStackBookmarks.#selectors.searchInput,
+    );
+    this.#elements.clearSearchButton = document.querySelector(
+      LinkStackBookmarks.#selectors.clearSearchButton,
+    );
+    this.#elements.searchResultsInfo = document.querySelector(
+      LinkStackBookmarks.#selectors.searchResultsInfo,
+    );
+
+    // Read search query from URL
+    const params = new URLSearchParams(window.location.search);
+    this.#searchQuery = params.get("search") || "";
+
+    if (this.#searchQuery && this.#elements.searchInput) {
+      this.#elements.searchInput.value = this.#searchQuery;
+      this.#elements.clearSearchButton.hidden = false;
+    }
 
     this.#addEventListeners();
+    this.#setupSearch();
     await this.#renderBookmarks();
   }
 
@@ -92,6 +119,14 @@ export class LinkStackBookmarks extends HTMLElement {
       const threadToggle = event.target.closest(".thread-toggle");
       if (threadToggle) {
         this.#toggleThread(threadToggle);
+        return;
+      }
+
+      // Handle read/unread toggle
+      const readToggle = event.target.closest("#toggle-read-status");
+      if (readToggle) {
+        const { id } = readToggle.dataset;
+        await this.#toggleReadStatus(id, readToggle);
         return;
       }
 
@@ -130,6 +165,204 @@ export class LinkStackBookmarks extends HTMLElement {
       toggleButton.setAttribute("aria-expanded", "true");
       threadChildren.classList.remove("hidden");
       threadLabel.textContent = "Hide thread";
+    }
+  }
+
+  /**
+   * Set up search functionality
+   * @private
+   */
+  #setupSearch() {
+    const { searchInput, clearSearchButton } = this.#elements;
+
+    if (!searchInput) {
+      return;
+    }
+
+    // Search on input with debounce
+    searchInput.addEventListener("input", (event) => {
+      const query = event.target.value.trim();
+
+      // Show/hide clear button
+      if (clearSearchButton) {
+        clearSearchButton.hidden = !query;
+      }
+
+      // Debounce search
+      clearTimeout(this.#searchDebounceTimer);
+      this.#searchDebounceTimer = setTimeout(() => {
+        this.#handleSearch(query);
+      }, 300);
+    });
+
+    // Clear search button
+    if (clearSearchButton) {
+      clearSearchButton.addEventListener("click", () => {
+        this.#clearSearch();
+      });
+    }
+
+    // Listen for browser back/forward
+    window.addEventListener("popstate", () => {
+      const params = new URLSearchParams(window.location.search);
+      const query = params.get("search") || "";
+      this.#applySearch(query);
+    });
+  }
+
+  /**
+   * Handle search query change
+   * @private
+   */
+  async #handleSearch(query) {
+    this.#searchQuery = query;
+    this.#updateUrlWithSearch(query);
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Apply search from URL or history
+   * @private
+   */
+  async #applySearch(query) {
+    this.#searchQuery = query;
+    const { searchInput, clearSearchButton } = this.#elements;
+
+    if (searchInput) {
+      searchInput.value = query;
+    }
+
+    if (clearSearchButton) {
+      clearSearchButton.hidden = !query;
+    }
+
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Clear search
+   * @private
+   */
+  async #clearSearch() {
+    this.#searchQuery = "";
+    const { searchInput, clearSearchButton } = this.#elements;
+
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
+    if (clearSearchButton) {
+      clearSearchButton.hidden = true;
+    }
+
+    this.#updateUrlWithSearch("");
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Update URL with search query
+   * @private
+   */
+  #updateUrlWithSearch(query) {
+    const url = new URL(window.location);
+
+    if (query) {
+      url.searchParams.set("search", query);
+    } else {
+      url.searchParams.delete("search");
+    }
+
+    window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Filter bookmarks by search query
+   * @private
+   */
+  #filterBookmarks(bookmarks, query) {
+    if (!query.trim()) {
+      return bookmarks;
+    }
+
+    const lowerQuery = query.toLowerCase();
+
+    return bookmarks.filter((bookmark) => {
+      const title = bookmark.page_title?.toLowerCase() || "";
+      const description = bookmark.meta_description?.toLowerCase() || "";
+      const url = bookmark.url?.toLowerCase() || "";
+      const notes = bookmark.notes?.toLowerCase() || "";
+
+      return (
+        title.includes(lowerQuery) ||
+        description.includes(lowerQuery) ||
+        url.includes(lowerQuery) ||
+        notes.includes(lowerQuery)
+      );
+    });
+  }
+
+  /**
+   * Update search results info
+   * @private
+   */
+  #updateSearchResultsInfo(filteredCount, totalCount) {
+    const { searchResultsInfo } = this.#elements;
+
+    if (!searchResultsInfo) {
+      return;
+    }
+
+    if (this.#searchQuery && filteredCount !== totalCount) {
+      searchResultsInfo.textContent = `Showing ${filteredCount} of ${totalCount} bookmarks`;
+    } else {
+      searchResultsInfo.textContent = "";
+    }
+  }
+
+  async #toggleReadStatus(id, button) {
+    const currentStatus = button.dataset.isRead === "true";
+    const newStatus = !currentStatus;
+
+    // Set loading state
+    const originalText = button.querySelector(".read-text").textContent;
+    button.disabled = true;
+    button.querySelector(".read-text").textContent = "Updating...";
+
+    try {
+      await this.#bookmarksService.toggleReadStatus(id, newStatus);
+
+      // Update button state
+      button.dataset.isRead = newStatus;
+      button.querySelector(".read-text").textContent = newStatus
+        ? "Mark as Unread"
+        : "Mark as Read";
+      button.setAttribute(
+        "aria-label",
+        newStatus ? "Mark as unread" : "Mark as read",
+      );
+
+      // Add visual indicator
+      const bookmarkEntry = this.querySelector(`#bookmark-entry-${id}`);
+      if (bookmarkEntry) {
+        if (newStatus) {
+          bookmarkEntry.classList.add("read");
+        } else {
+          bookmarkEntry.classList.remove("read");
+        }
+      }
+
+      // Show success toast
+      const toast = document.querySelector("linkstack-toast");
+      toast.show(`Marked as ${newStatus ? "read" : "unread"}`, "success");
+    } catch (error) {
+      console.error("Error toggling read status:", error);
+      const toast = document.querySelector("linkstack-toast");
+      toast.show("Failed to update read status. Please try again.", "error");
+
+      // Reset button state on error
+      button.querySelector(".read-text").textContent = originalText;
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -244,7 +477,7 @@ export class LinkStackBookmarks extends HTMLElement {
 
     try {
       // Get only top-level bookmarks
-      const bookmarks = await this.#bookmarksService.getTopLevel();
+      const allBookmarks = await this.#bookmarksService.getTopLevel();
 
       // Hide skeleton loader
       if (this.#isInitialLoad) {
@@ -252,7 +485,44 @@ export class LinkStackBookmarks extends HTMLElement {
         this.#isInitialLoad = false;
       }
 
-      if (!bookmarks || bookmarks.length === 0) {
+      if (!allBookmarks || allBookmarks.length === 0) {
+        this.#showNoBookmarks();
+        this.#updateSearchResultsInfo(0, 0);
+        return;
+      }
+
+      // Apply search filter
+      const bookmarks = this.#filterBookmarks(allBookmarks, this.#searchQuery);
+
+      // Update search results info
+      this.#updateSearchResultsInfo(bookmarks.length, allBookmarks.length);
+
+      // Handle empty search results
+      if (bookmarks.length === 0 && this.#searchQuery) {
+        // Create empty state DOM safely to prevent XSS
+        const wrapper = document.createElement("div");
+        wrapper.className = "no-bookmarks-wrapper";
+
+        const container = document.createElement("div");
+        container.className = "no-bookmarks";
+
+        const heading = document.createElement("h2");
+        heading.textContent = "No results found";
+
+        const message = document.createElement("p");
+        message.className = "text-medium";
+        message.textContent = `No bookmarks match your search query "${this.#searchQuery}"`;
+
+        container.appendChild(heading);
+        container.appendChild(message);
+        wrapper.appendChild(container);
+
+        bookmarksContainer.innerHTML = "";
+        bookmarksContainer.appendChild(wrapper);
+        return;
+      }
+
+      if (bookmarks.length === 0) {
         this.#showNoBookmarks();
         return;
       }
@@ -286,12 +556,33 @@ export class LinkStackBookmarks extends HTMLElement {
           deleteBookmark.dataset.id = bookmark.id;
           editBookmark.dataset.id = bookmark.id;
 
-          entry.querySelector(".bookmark-entry").id =
-            `bookmark-entry-${bookmark.id}`;
+          // Setup read/unread toggle
+          const readToggle = entry.querySelector("#toggle-read-status");
+          readToggle.dataset.id = bookmark.id;
+          readToggle.dataset.isRead = bookmark.is_read || false;
+
+          if (bookmark.is_read) {
+            readToggle.querySelector(".read-text").textContent =
+              "Mark as Unread";
+            readToggle.setAttribute("aria-label", "Mark as unread");
+          }
+
+          const bookmarkEntry = entry.querySelector(".bookmark-entry");
+          bookmarkEntry.id = `bookmark-entry-${bookmark.id}`;
+
+          if (bookmark.is_read) {
+            bookmarkEntry.classList.add("read");
+          }
 
           // Load children for this bookmark
-          const children = await this.#bookmarksService.getChildren(
+          const allChildren = await this.#bookmarksService.getChildren(
             bookmark.id,
+          );
+
+          // Apply search filter to children as well
+          const children = this.#filterBookmarks(
+            allChildren,
+            this.#searchQuery,
           );
 
           if (children && children.length > 0) {
@@ -326,8 +617,25 @@ export class LinkStackBookmarks extends HTMLElement {
               childDelete.dataset.id = child.id;
               childEdit.dataset.id = child.id;
 
-              childEntry.querySelector(".bookmark-child").id =
-                `bookmark-entry-${child.id}`;
+              // Setup read/unread toggle for child
+              const childReadToggle = childEntry.querySelector(
+                "#toggle-read-status",
+              );
+              childReadToggle.dataset.id = child.id;
+              childReadToggle.dataset.isRead = child.is_read || false;
+
+              if (child.is_read) {
+                childReadToggle.querySelector(".read-text").textContent =
+                  "Mark as Unread";
+                childReadToggle.setAttribute("aria-label", "Mark as unread");
+              }
+
+              const bookmarkChild = childEntry.querySelector(".bookmark-child");
+              bookmarkChild.id = `bookmark-entry-${child.id}`;
+
+              if (child.is_read) {
+                bookmarkChild.classList.add("read");
+              }
 
               threadChildren.appendChild(childEntry);
             });

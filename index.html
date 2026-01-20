@@ -58,6 +58,18 @@
       href="css/components/skeleton-loader.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/read-status.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/search-bar.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -131,7 +143,12 @@
           <div class="form-field">
             <label class="visually-hidden" for="url">Enter bookmark URL</label>
             <input type="url" name="url" id="url" required />
-            <div class="field-error" id="url-error" role="alert" aria-live="polite"></div>
+            <div
+              class="field-error"
+              id="url-error"
+              role="alert"
+              aria-live="polite"
+            ></div>
           </div>
           <div class="form-field">
             <label class="visually-hidden" for="parent-bookmark"
@@ -160,6 +177,49 @@
         </form>
       </linkstack-form>
 
+      <!-- Search Bar -->
+      <div class="search-bar-container" role="search">
+        <div class="search-bar">
+          <label for="search-input" class="visually-hidden"
+            >Search bookmarks</label
+          >
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Search bookmarks by title, description, or URL..."
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            id="clear-search"
+            class="clear-search-button"
+            aria-label="Clear search"
+            hidden
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div
+          class="search-results-info"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ></div>
+      </div>
+
       <linkstack-bookmarks>
         <section class="bookmarks-container" id="bookmarks-container"></section>
 
@@ -173,7 +233,11 @@
         </template>
 
         <template id="skeleton-loader-tmpl">
-          <div class="skeleton-loader" role="status" aria-label="Loading bookmarks">
+          <div
+            class="skeleton-loader"
+            role="status"
+            aria-label="Loading bookmarks"
+          >
             <ul class="bookmarks-list skeleton-list">
               <li class="skeleton-item">
                 <div class="skeleton-img"></div>
@@ -258,6 +322,16 @@
                 </details>
               </div>
               <div class="bookmark-actions">
+                <button
+                  id="toggle-read-status"
+                  type="button"
+                  class="button solid"
+                  data-is-read="false"
+                  aria-label="Mark as read"
+                >
+                  <span class="read-icon" aria-hidden="true">✓</span>
+                  <span class="read-text">Mark as Read</span>
+                </button>
                 <button id="edit-bookmark" type="button" class="button solid">
                   Edit Bookmark
                 </button>
@@ -348,6 +422,16 @@
                 </details>
               </div>
               <div class="bookmark-actions">
+                <button
+                  id="toggle-read-status"
+                  type="button"
+                  class="button solid"
+                  data-is-read="false"
+                  aria-label="Mark as read"
+                >
+                  <span class="read-icon" aria-hidden="true">✓</span>
+                  <span class="read-text">Mark as Read</span>
+                </button>
                 <button id="edit-bookmark" type="button" class="button solid">
                   Edit
                 </button>
@@ -435,7 +519,11 @@
               >
                 Cancel
               </button>
-              <button class="button solid" type="submit" id="save-changes-button">
+              <button
+                class="button solid"
+                type="submit"
+                id="save-changes-button"
+              >
                 <span class="button-text">Save Changes</span>
                 <span class="button-loading" hidden>Saving...</span>
               </button>
