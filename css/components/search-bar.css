@@ -31,6 +31,19 @@
   color: var(--text-secondary, #666);
 }
 
+/* Hide native browser clear button since we have our own */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.search-input::-moz-search-clear-button {
+  appearance: none;
+  display: none;
+}
+
 .clear-search-button {
   align-items: center;
   background: transparent;
