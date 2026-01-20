@@ -176,7 +176,7 @@ export class BookmarksService {
    * @throws {Error} If deletion fails
    */
   async delete(id) {
-    const { error} = await this.#supabase
+    const { error } = await this.#supabase
       .from("bookmarks")
       .delete()
       .eq("id", id);

@@ -353,10 +353,7 @@ export class LinkStackBookmarks extends HTMLElement {
 
       // Show success toast
       const toast = document.querySelector("linkstack-toast");
-      toast.show(
-        `Marked as ${newStatus ? "read" : "unread"}`,
-        "success",
-      );
+      toast.show(`Marked as ${newStatus ? "read" : "unread"}`, "success");
     } catch (error) {
       console.error("Error toggling read status:", error);
       const toast = document.querySelector("linkstack-toast");
@@ -553,7 +550,8 @@ export class LinkStackBookmarks extends HTMLElement {
           readToggle.dataset.isRead = bookmark.is_read || false;
 
           if (bookmark.is_read) {
-            readToggle.querySelector(".read-text").textContent = "Mark as Unread";
+            readToggle.querySelector(".read-text").textContent =
+              "Mark as Unread";
             readToggle.setAttribute("aria-label", "Mark as unread");
           }
 
@@ -570,7 +568,10 @@ export class LinkStackBookmarks extends HTMLElement {
           );
 
           // Apply search filter to children as well
-          const children = this.#filterBookmarks(allChildren, this.#searchQuery);
+          const children = this.#filterBookmarks(
+            allChildren,
+            this.#searchQuery,
+          );
 
           if (children && children.length > 0) {
             // Show thread toggle
@@ -605,12 +606,15 @@ export class LinkStackBookmarks extends HTMLElement {
               childEdit.dataset.id = child.id;
 
               // Setup read/unread toggle for child
-              const childReadToggle = childEntry.querySelector("#toggle-read-status");
+              const childReadToggle = childEntry.querySelector(
+                "#toggle-read-status",
+              );
               childReadToggle.dataset.id = child.id;
               childReadToggle.dataset.isRead = child.is_read || false;
 
               if (child.is_read) {
-                childReadToggle.querySelector(".read-text").textContent = "Mark as Unread";
+                childReadToggle.querySelector(".read-text").textContent =
+                  "Mark as Unread";
                 childReadToggle.setAttribute("aria-label", "Mark as unread");
               }
 
