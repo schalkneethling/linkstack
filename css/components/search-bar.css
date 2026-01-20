@@ -4,6 +4,31 @@
   margin-block-end: 2rem;
 }
 
+@media (width >= 48rem) {
+  .search-bar-container {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+
+  .search-bar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .sort-controls-container {
+    align-self: start;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .search-results-info {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
 .search-bar {
   align-items: center;
   display: flex;

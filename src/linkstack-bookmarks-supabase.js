@@ -15,6 +15,7 @@ export class LinkStackBookmarks extends HTMLElement {
     searchInput: "#search-input",
     clearSearchButton: "#clear-search",
     searchResultsInfo: ".search-results-info",
+    sortSelect: "#sort-select",
   };
 
   #elements = {
@@ -23,12 +24,14 @@ export class LinkStackBookmarks extends HTMLElement {
     searchInput: null,
     clearSearchButton: null,
     searchResultsInfo: null,
+    sortSelect: null,
   };
 
   #bookmarksService = new BookmarksService(supabase);
   #renderPromise = null;
   #isInitialLoad = true;
   #searchQuery = "";
+  #sortBy = "newest";
   #searchDebounceTimer = null;
   #boundHandlers = {
     onBookmarkCreated: null,
@@ -75,6 +78,9 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#elements.searchResultsInfo = document.querySelector(
       LinkStackBookmarks.#selectors.searchResultsInfo,
     );
+    this.#elements.sortSelect = document.querySelector(
+      LinkStackBookmarks.#selectors.sortSelect,
+    );
 
     // Read search query from URL
     const params = new URLSearchParams(window.location.search);
@@ -85,8 +91,18 @@ export class LinkStackBookmarks extends HTMLElement {
       this.#elements.clearSearchButton.hidden = false;
     }
 
+    // Read sort preference from localStorage or URL
+    const urlSort = params.get("sort");
+    const savedSort = localStorage.getItem("linkstack:sortBy");
+    this.#sortBy = urlSort || savedSort || "newest";
+
+    if (this.#elements.sortSelect) {
+      this.#elements.sortSelect.value = this.#sortBy;
+    }
+
     this.#addEventListeners();
     this.#setupSearch();
+    this.#setupSort();
     await this.#renderBookmarks();
   }
 
@@ -206,7 +222,27 @@ export class LinkStackBookmarks extends HTMLElement {
     window.addEventListener("popstate", () => {
       const params = new URLSearchParams(window.location.search);
       const query = params.get("search") || "";
+      const sort = params.get("sort") || this.#sortBy;
       this.#applySearch(query);
+      this.#applySort(sort);
+    });
+  }
+
+  /**
+   * Setup sort controls
+   * @private
+   */
+  #setupSort() {
+    const { sortSelect } = this.#elements;
+
+    if (!sortSelect) {
+      return;
+    }
+
+    // Sort on change
+    sortSelect.addEventListener("change", (event) => {
+      const sortBy = event.target.value;
+      this.#handleSort(sortBy);
     });
   }
 
@@ -217,6 +253,17 @@ export class LinkStackBookmarks extends HTMLElement {
   async #handleSearch(query) {
     this.#searchQuery = query;
     this.#updateUrlWithSearch(query);
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Handle sort change
+   * @private
+   */
+  async #handleSort(sortBy) {
+    this.#sortBy = sortBy;
+    this.#updateUrlWithSort(sortBy);
+    localStorage.setItem("linkstack:sortBy", sortBy);
     await this.#renderBookmarks();
   }
 
@@ -273,6 +320,36 @@ export class LinkStackBookmarks extends HTMLElement {
     }
 
     window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Update URL with sort parameter
+   * @private
+   */
+  #updateUrlWithSort(sortBy) {
+    const url = new URL(window.location);
+
+    if (sortBy && sortBy !== "newest") {
+      url.searchParams.set("sort", sortBy);
+    } else {
+      url.searchParams.delete("sort");
+    }
+
+    window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Apply sort from URL or history
+   * @private
+   */
+  async #applySort(sortBy) {
+    this.#sortBy = sortBy;
+
+    if (this.#elements.sortSelect) {
+      this.#elements.sortSelect.value = sortBy;
+    }
+
+    await this.#renderBookmarks();
   }
 
   /**
@@ -476,8 +553,10 @@ export class LinkStackBookmarks extends HTMLElement {
     }
 
     try {
-      // Get only top-level bookmarks
-      const allBookmarks = await this.#bookmarksService.getTopLevel();
+      // Get only top-level bookmarks with sorting
+      const allBookmarks = await this.#bookmarksService.getTopLevel(
+        this.#sortBy,
+      );
 
       // Hide skeleton loader
       if (this.#isInitialLoad) {
@@ -574,9 +653,10 @@ export class LinkStackBookmarks extends HTMLElement {
             bookmarkEntry.classList.add("read");
           }
 
-          // Load children for this bookmark
+          // Load children for this bookmark with sorting
           const allChildren = await this.#bookmarksService.getChildren(
             bookmark.id,
+            this.#sortBy,
           );
 
           // Apply search filter to children as well
