@@ -91,8 +91,8 @@ export class LinkStackBookmarks extends HTMLElement {
       this.#elements.clearSearchButton.hidden = false;
     }
 
-    // Read sort preference: URL takes precedence, localStorage is fallback for clean URLs
-    // This allows users to share URLs without sort params while preserving their preference
+    // Read sort preference: URL takes precedence, localStorage preserves user's own preference
+    // localStorage is for direct navigation (bookmarks, typing URL), not for sharing state
     const urlSort = params.get("sort");
     const savedSort = localStorage.getItem("linkstack:sortBy");
     this.#sortBy = urlSort || savedSort || "newest";
