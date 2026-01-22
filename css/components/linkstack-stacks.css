@@ -1,5 +1,5 @@
-/* Thread toggle button */
-.thread-toggle {
+/* Stack toggle button */
+.stack-toggle {
   position: absolute;
   top: 1rem;
   right: 1rem;
@@ -16,27 +16,27 @@
   padding: 0;
 }
 
-.thread-toggle:hover {
+.stack-toggle:hover {
   background: var(--bg-secondary, #f5f5f5);
   border-color: var(--border-hover, #ccc);
 }
 
-.thread-toggle:focus {
+.stack-toggle:focus {
   outline: 2px solid var(--focus-color, #007bff);
   outline-offset: 2px;
 }
 
-.thread-toggle svg {
+.stack-toggle svg {
   transition: transform 0.2s ease;
   color: var(--text-primary, #333);
 }
 
-.thread-toggle[aria-expanded="true"] svg {
+.stack-toggle[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }
 
-/* Thread children container */
-.thread-children {
+/* Stack children container */
+.stack-children {
   margin: 1rem;
   margin-block-end: 0;
 }
@@ -102,16 +102,16 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .thread-children {
+  .stack-children {
     padding-left: 1rem;
   }
 
-  .thread-toggle {
+  .stack-toggle {
     width: 36px;
     height: 36px;
   }
 
-  .thread-toggle svg {
+  .stack-toggle svg {
     width: 20px;
     height: 20px;
   }
