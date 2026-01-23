@@ -16,6 +16,7 @@ export class LinkStackBookmarks extends HTMLElement {
     clearSearchButton: "#clear-search",
     searchResultsInfo: ".search-results-info",
     sortSelect: "#sort-select",
+    filterButtons: ".filter-button",
   };
 
   #elements = {
@@ -25,6 +26,7 @@ export class LinkStackBookmarks extends HTMLElement {
     clearSearchButton: null,
     searchResultsInfo: null,
     sortSelect: null,
+    filterButtons: null,
   };
 
   #bookmarksService = new BookmarksService(supabase);
@@ -32,6 +34,7 @@ export class LinkStackBookmarks extends HTMLElement {
   #isInitialLoad = true;
   #searchQuery = "";
   #sortBy = "newest";
+  #filterBy = "unread";
   #searchDebounceTimer = null;
   #boundHandlers = {
     onBookmarkCreated: null,
@@ -81,6 +84,9 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#elements.sortSelect = document.querySelector(
       LinkStackBookmarks.#selectors.sortSelect,
     );
+    this.#elements.filterButtons = document.querySelectorAll(
+      LinkStackBookmarks.#selectors.filterButtons,
+    );
 
     // Read search query from URL
     const params = new URLSearchParams(window.location.search);
@@ -101,9 +107,18 @@ export class LinkStackBookmarks extends HTMLElement {
       this.#elements.sortSelect.value = this.#sortBy;
     }
 
+    // Read filter preference: URL takes precedence, localStorage preserves user's own preference
+    const urlFilter = params.get("filter");
+    const savedFilter = localStorage.getItem("linkstack:filterBy");
+    this.#filterBy = urlFilter || savedFilter || "unread";
+
+    // Set active filter button
+    this.#setActiveFilterButton(this.#filterBy);
+
     this.#addEventListeners();
     this.#setupSearch();
     this.#setupSort();
+    this.#setupFilter();
     await this.#renderBookmarks();
   }
 
@@ -132,10 +147,10 @@ export class LinkStackBookmarks extends HTMLElement {
     );
 
     bookmarksContainer.addEventListener("click", async (event) => {
-      // Handle thread toggle clicks
-      const threadToggle = event.target.closest(".thread-toggle");
-      if (threadToggle) {
-        this.#toggleThread(threadToggle);
+      // Handle stack toggle clicks
+      const stackToggle = event.target.closest(".stack-toggle");
+      if (stackToggle) {
+        this.#toggleStack(stackToggle);
         return;
       }
 
@@ -169,19 +184,19 @@ export class LinkStackBookmarks extends HTMLElement {
     });
   }
 
-  #toggleThread(toggleButton) {
+  #toggleStack(toggleButton) {
     const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
-    const threadChildren = toggleButton.nextElementSibling;
-    const threadLabel = toggleButton.querySelector(".thread-label");
+    const stackChildren = toggleButton.nextElementSibling;
+    const stackLabel = toggleButton.querySelector(".stack-label");
 
     if (isExpanded) {
       toggleButton.setAttribute("aria-expanded", "false");
-      threadChildren.classList.add("hidden");
-      threadLabel.textContent = "Show thread";
+      stackChildren.classList.add("hidden");
+      stackLabel.textContent = "Show stack";
     } else {
       toggleButton.setAttribute("aria-expanded", "true");
-      threadChildren.classList.remove("hidden");
-      threadLabel.textContent = "Hide thread";
+      stackChildren.classList.remove("hidden");
+      stackLabel.textContent = "Hide stack";
     }
   }
 
@@ -224,8 +239,10 @@ export class LinkStackBookmarks extends HTMLElement {
       const params = new URLSearchParams(window.location.search);
       const query = params.get("search") || "";
       const sort = params.get("sort") || this.#sortBy;
+      const filter = params.get("filter") || "all";
       this.#applySearch(query);
       this.#applySort(sort);
+      this.#applyFilter(filter);
     });
   }
 
@@ -244,6 +261,51 @@ export class LinkStackBookmarks extends HTMLElement {
     sortSelect.addEventListener("change", (event) => {
       const sortBy = event.target.value;
       this.#handleSort(sortBy);
+    });
+  }
+
+  /**
+   * Setup filter controls
+   * @private
+   */
+  #setupFilter() {
+    const { filterButtons } = this.#elements;
+
+    if (!filterButtons || filterButtons.length === 0) {
+      return;
+    }
+
+    // Filter on click
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        const filterBy = event.target.dataset.filter;
+        this.#handleFilter(filterBy);
+      });
+    });
+
+    // Listen for browser back/forward to update filter state
+    window.addEventListener("popstate", () => {
+      const params = new URLSearchParams(window.location.search);
+      const filter = params.get("filter") || this.#filterBy;
+      this.#applyFilter(filter);
+    });
+  }
+
+  /**
+   * Set the active filter button
+   * @private
+   */
+  #setActiveFilterButton(filterBy) {
+    const { filterButtons } = this.#elements;
+
+    if (!filterButtons || filterButtons.length === 0) {
+      return;
+    }
+
+    filterButtons.forEach((button) => {
+      const isActive = button.dataset.filter === filterBy;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-pressed", isActive);
     });
   }
 
@@ -267,6 +329,20 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#updateUrlWithSort(sortBy);
     // Save to localStorage as fallback when URL has no sort parameter
     localStorage.setItem("linkstack:sortBy", sortBy);
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Handle filter change from user interaction
+   * Updates URL and persists preference to localStorage
+   * @private
+   */
+  async #handleFilter(filterBy) {
+    this.#filterBy = filterBy;
+    this.#setActiveFilterButton(filterBy);
+    this.#updateUrlWithFilter(filterBy);
+    // Save to localStorage as fallback when URL has no filter parameter
+    localStorage.setItem("linkstack:filterBy", filterBy);
     await this.#renderBookmarks();
   }
 
@@ -342,6 +418,22 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   /**
+   * Update URL with filter parameter
+   * @private
+   */
+  #updateUrlWithFilter(filterBy) {
+    const url = new URL(window.location);
+
+    if (filterBy && filterBy !== "all") {
+      url.searchParams.set("filter", filterBy);
+    } else {
+      url.searchParams.delete("filter");
+    }
+
+    window.history.replaceState({}, "", url);
+  }
+
+  /**
    * Apply sort state (e.g., from browser navigation or initialization)
    * Updates UI dropdown and re-renders bookmarks
    * @private
@@ -357,17 +449,38 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   /**
-   * Filter bookmarks by search query
+   * Apply filter state (e.g., from browser navigation or initialization)
+   * Updates UI buttons and re-renders bookmarks
+   * @private
+   */
+  async #applyFilter(filterBy) {
+    this.#filterBy = filterBy;
+    this.#setActiveFilterButton(filterBy);
+    await this.#renderBookmarks();
+  }
+
+  /**
+   * Filter bookmarks by search query and read status
    * @private
    */
   #filterBookmarks(bookmarks, query) {
+    let filtered = bookmarks;
+
+    // Apply read status filter
+    if (this.#filterBy === "read") {
+      filtered = filtered.filter((bookmark) => bookmark.is_read === true);
+    } else if (this.#filterBy === "unread") {
+      filtered = filtered.filter((bookmark) => bookmark.is_read !== true);
+    }
+
+    // Apply search query filter
     if (!query.trim()) {
-      return bookmarks;
+      return filtered;
     }
 
     const lowerQuery = query.toLowerCase();
 
-    return bookmarks.filter((bookmark) => {
+    return filtered.filter((bookmark) => {
       const title = bookmark.page_title?.toLowerCase() || "";
       const description = bookmark.meta_description?.toLowerCase() || "";
       const url = bookmark.url?.toLowerCase() || "";
@@ -616,8 +729,8 @@ export class LinkStackBookmarks extends HTMLElement {
           const bookmarkLink = entry.querySelector(".bookmark-link");
           const deleteBookmark = entry.querySelector("#delete-bookmark");
           const editBookmark = entry.querySelector("#edit-bookmark");
-          const threadToggle = entry.querySelector(".thread-toggle");
-          const threadChildren = entry.querySelector(".thread-children");
+          const stackToggle = entry.querySelector(".stack-toggle");
+          const stackChildren = entry.querySelector(".stack-children");
 
           entry.querySelector(".bookmark-img").src = bookmark.preview_img;
 
@@ -670,9 +783,9 @@ export class LinkStackBookmarks extends HTMLElement {
           );
 
           if (children && children.length > 0) {
-            // Show thread toggle
-            threadToggle.classList.remove("hidden");
-            threadToggle.dataset.id = bookmark.id;
+            // Show stack toggle
+            stackToggle.classList.remove("hidden");
+            stackToggle.dataset.id = bookmark.id;
 
             // Render children
             children.forEach((child) => {
@@ -721,7 +834,7 @@ export class LinkStackBookmarks extends HTMLElement {
                 bookmarkChild.classList.add("read");
               }
 
-              threadChildren.appendChild(childEntry);
+              stackChildren.appendChild(childEntry);
             });
           }
 

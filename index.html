@@ -31,7 +31,7 @@
     <link
       rel="stylesheet"
       type="text/css"
-      href="css/components/linkstack-threads.css"
+      href="css/components/linkstack-stacks.css"
       media="screen"
     />
     <link
@@ -74,6 +74,18 @@
       rel="stylesheet"
       type="text/css"
       href="css/components/sort-controls.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/filter-controls.css"
+      media="screen"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/app-header.css"
       media="screen"
     />
     <style>
@@ -133,6 +145,18 @@
   <body>
     <!-- Authentication Component -->
     <linkstack-auth></linkstack-auth>
+
+    <!-- App Header (shown when authenticated) -->
+    <header class="app-header hidden" id="app-header">
+      <div class="header-container">
+        <div class="header-logo">
+          <h1 class="logo-text">LinkStack</h1>
+        </div>
+        <nav class="header-nav">
+          <div id="header-profile"></div>
+        </nav>
+      </div>
+    </header>
 
     <!-- Main Content (hidden until authenticated) -->
     <div class="page-container main-content hidden">
@@ -219,19 +243,53 @@
           </button>
         </div>
 
-        <!-- Sort Controls -->
-        <div class="sort-controls-container">
-          <label for="sort-select" class="sort-label">Sort by:</label>
-          <select
-            id="sort-select"
-            class="sort-select"
-            aria-label="Sort bookmarks"
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="alpha-asc">A-Z</option>
-            <option value="alpha-desc">Z-A</option>
-          </select>
+        <!-- Filter and Sort Controls -->
+        <div class="filter-sort-controls">
+          <!-- Filter Buttons -->
+          <div class="filter-controls-container">
+            <span class="filter-label">Show:</span>
+            <div class="filter-buttons" role="group" aria-label="Filter bookmarks">
+              <button
+                type="button"
+                class="filter-button"
+                data-filter="all"
+                aria-pressed="false"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                class="filter-button active"
+                data-filter="unread"
+                aria-pressed="true"
+              >
+                Unread
+              </button>
+              <button
+                type="button"
+                class="filter-button"
+                data-filter="read"
+                aria-pressed="false"
+              >
+                Read
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Controls -->
+          <div class="sort-controls-container">
+            <label for="sort-select" class="sort-label">Sort by:</label>
+            <select
+              id="sort-select"
+              class="sort-select"
+              aria-label="Sort bookmarks"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="alpha-asc">A-Z</option>
+              <option value="alpha-desc">Z-A</option>
+            </select>
+          </div>
         </div>
 
         <div
@@ -367,7 +425,7 @@
               </div>
             </div>
             <button
-              class="thread-toggle hidden"
+              class="stack-toggle hidden"
               type="button"
               aria-expanded="false"
             >
@@ -386,9 +444,9 @@
                   stroke-linejoin="round"
                 />
               </svg>
-              <span class="thread-label visually-hidden">Show thread</span>
+              <span class="stack-label visually-hidden">Show stack</span>
             </button>
-            <ul class="thread-children reset-list hidden"></ul>
+            <ul class="stack-children reset-list hidden"></ul>
           </li>
         </template>
 
