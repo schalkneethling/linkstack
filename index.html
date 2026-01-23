@@ -88,6 +88,12 @@
       href="css/components/app-header.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/form-drawer.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -153,16 +159,43 @@
           <h1 class="logo-text">LinkStack</h1>
         </div>
         <nav class="header-nav">
+          <button
+            type="button"
+            class="button solid new-bookmark-btn"
+            id="new-bookmark-btn"
+            popovertarget="form-drawer"
+            aria-label="Add new bookmark"
+            title="Add new bookmark (Ctrl+N)"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
+            </svg>
+            <span>New Bookmark</span>
+          </button>
           <div id="header-profile"></div>
         </nav>
       </div>
     </header>
 
-    <!-- Main Content (hidden until authenticated) -->
-    <div class="page-container main-content hidden">
-      <h1 class="heading-display page-heading">LinkStack</h1>
-
-      <linkstack-form>
+    <!-- Form Drawer Popover (hidden until authenticated) -->
+    <form-drawer class="form-drawer hidden" id="form-drawer" popover anchor="new-bookmark-btn">
+      <div class="form-drawer-header">
+        <h2 id="form-drawer-title">Add New Bookmark</h2>
+        <button
+          type="button"
+          class="form-drawer-close"
+          id="form-drawer-close"
+          aria-label="Close"
+          popovertarget="form-drawer"
+          popovertargetaction="hide"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="form-drawer-content">
+        <linkstack-form>
         <form
           class="linkstack-form"
           id="bookmark-form"
@@ -182,10 +215,10 @@
           </div>
           <div class="form-field">
             <label class="visually-hidden" for="parent-bookmark"
-              >Add as child of (optional)</label
+              >Add to stack (optional)</label
             >
             <select name="parent_id" id="parent-bookmark">
-              <option value="">Add as child of (optional)</option>
+              <option value="">Add to stack (optional)</option>
             </select>
           </div>
           <details class="form-field-collapsible">
@@ -206,6 +239,12 @@
           </button>
         </form>
       </linkstack-form>
+      </div>
+    </form-drawer>
+
+    <!-- Main Content (hidden until authenticated) -->
+    <div class="page-container main-content hidden">
+      <h1 class="heading-display page-heading visually-hidden">LinkStack</h1>
 
       <!-- Search Bar -->
       <div class="search-bar-container" role="search">

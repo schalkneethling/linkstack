@@ -52,22 +52,13 @@
 .form-field-collapsible[open] {
   &::details-content {
     background-color: var(--bg-primary, #fff);
-    border: var(--minimalist-input-border, var(--border-primary-border));
     border-block-start: 0;
     inline-size: 100%;
-    inset-block-start: 100%;
-    inset-inline-start: -0.125rem;
-    position: absolute;
-    z-index: 10;
   }
 
   .form-field-summary::before {
     transform: rotate(90deg);
   }
-}
-
-.form-field-summary:hover {
-  background: var(--bg-secondary, #f9f9f9);
 }
 
 .form-field-summary:focus-visible {

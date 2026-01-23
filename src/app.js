@@ -4,6 +4,7 @@ import "./linkstack-auth.js";
 import "./linkstack-form-supabase.js";
 import "./linkstack-bookmarks-supabase.js";
 import "./linkstack-edit-dialog-supabase.js";
+import "./form-drawer.js";
 
 /**
  * Main application coordinator
@@ -79,14 +80,18 @@ class LinkStackApp {
   }
 
   #handleAuthChange(user) {
+    const formDrawer = document.getElementById("form-drawer");
+
     if (user) {
       // User is signed in
       this.#authComponent?.setUser(user);
       this.#mainContent?.classList.remove("hidden");
+      formDrawer?.classList.remove("hidden");
     } else {
       // User is signed out
       this.#authComponent?.setUser(null);
       this.#mainContent?.classList.add("hidden");
+      formDrawer?.classList.add("hidden");
     }
   }
 }
