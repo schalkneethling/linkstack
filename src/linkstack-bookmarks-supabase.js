@@ -34,7 +34,7 @@ export class LinkStackBookmarks extends HTMLElement {
   #isInitialLoad = true;
   #searchQuery = "";
   #sortBy = "newest";
-  #filterBy = "all";
+  #filterBy = "unread";
   #searchDebounceTimer = null;
   #boundHandlers = {
     onBookmarkCreated: null,
@@ -110,7 +110,7 @@ export class LinkStackBookmarks extends HTMLElement {
     // Read filter preference: URL takes precedence, localStorage preserves user's own preference
     const urlFilter = params.get("filter");
     const savedFilter = localStorage.getItem("linkstack:filterBy");
-    this.#filterBy = urlFilter || savedFilter || "all";
+    this.#filterBy = urlFilter || savedFilter || "unread";
 
     // Set active filter button
     this.#setActiveFilterButton(this.#filterBy);
