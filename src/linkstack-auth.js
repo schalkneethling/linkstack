@@ -38,6 +38,15 @@ export class LinkStackAuth extends HTMLElement {
   }
 
   #renderSignInView() {
+    // Show the auth component
+    this.style.display = "";
+
+    // Hide the header
+    const header = document.getElementById("app-header");
+    if (header) {
+      header.classList.add("hidden");
+    }
+
     this.innerHTML = `
       <div class="auth-container">
         <h2>Sign in to LinkStack</h2>
@@ -78,17 +87,10 @@ export class LinkStackAuth extends HTMLElement {
   }
 
   #renderAuthenticatedView() {
-    // Debug: Log user object to inspect available data
-    console.log("User object:", this.#user);
-    console.log("User metadata:", this.#user.user_metadata);
-
     const displayName = this.#user.user_metadata?.full_name || this.#user.email;
     const email = this.#user.email;
     const avatar = this.#user.user_metadata?.avatar_url;
     const initials = this.#getInitials(displayName || email);
-
-    // Debug: Log avatar URL
-    console.log("Avatar URL:", avatar);
 
     // Hide the auth component (sign-in view)
     this.innerHTML = "";
