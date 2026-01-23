@@ -213,7 +213,8 @@ export class LinkStackAuth extends HTMLElement {
   #attachEventListeners() {
     const googleBtn = this.querySelector("#google-signin");
     const githubBtn = this.querySelector("#github-signin");
-    const signOutBtn = this.querySelector("#signout-btn");
+    // Sign out button is now in header dropdown, use document instead of this
+    const signOutBtn = document.getElementById("signout-btn");
 
     if (googleBtn) {
       googleBtn.addEventListener("click", () => {
