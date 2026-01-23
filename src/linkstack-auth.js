@@ -78,10 +78,17 @@ export class LinkStackAuth extends HTMLElement {
   }
 
   #renderAuthenticatedView() {
+    // Debug: Log user object to inspect available data
+    console.log("User object:", this.#user);
+    console.log("User metadata:", this.#user.user_metadata);
+
     const displayName = this.#user.user_metadata?.full_name || this.#user.email;
     const email = this.#user.email;
     const avatar = this.#user.user_metadata?.avatar_url;
     const initials = this.#getInitials(displayName || email);
+
+    // Debug: Log avatar URL
+    console.log("Avatar URL:", avatar);
 
     // Hide the auth component (sign-in view)
     this.innerHTML = "";
@@ -125,10 +132,6 @@ export class LinkStackAuth extends HTMLElement {
               data-testid="signout-btn"
               id="signout-btn"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M5 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5zM4 2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z"/>
-                <path d="M8.5 8.5L6 11l2.5 2.5"/>
-              </svg>
               Sign Out
             </button>
           </div>
