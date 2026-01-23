@@ -28,15 +28,34 @@ export class BookmarksService {
 
   /**
    * Get top-level bookmarks (no parent) for the current user
+   * @param {string} sortBy - Sort option: 'newest', 'oldest', 'alpha-asc', 'alpha-desc'
    * @returns {Promise<Array>} Array of top-level bookmark objects
    * @throws {Error} If fetch fails
    */
-  async getTopLevel() {
-    const { data, error } = await this.#supabase
+  async getTopLevel(sortBy = "newest") {
+    let query = this.#supabase
       .from("bookmarks")
       .select("*")
-      .is("parent_id", null)
-      .order("created_at", { ascending: false });
+      .is("parent_id", null);
+
+    // Apply sorting based on sortBy parameter
+    switch (sortBy) {
+      case "oldest":
+        query = query.order("created_at", { ascending: true });
+        break;
+      case "alpha-asc":
+        query = query.order("page_title", { ascending: true });
+        break;
+      case "alpha-desc":
+        query = query.order("page_title", { ascending: false });
+        break;
+      case "newest":
+      default:
+        query = query.order("created_at", { ascending: false });
+        break;
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw error;
@@ -48,15 +67,34 @@ export class BookmarksService {
   /**
    * Get children bookmarks for a specific parent
    * @param {string} parentId - Parent bookmark ID
+   * @param {string} sortBy - Sort option: 'newest', 'oldest', 'alpha-asc', 'alpha-desc'
    * @returns {Promise<Array>} Array of child bookmark objects
    * @throws {Error} If fetch fails
    */
-  async getChildren(parentId) {
-    const { data, error } = await this.#supabase
+  async getChildren(parentId, sortBy = "newest") {
+    let query = this.#supabase
       .from("bookmarks")
       .select("*")
-      .eq("parent_id", parentId)
-      .order("created_at", { ascending: false });
+      .eq("parent_id", parentId);
+
+    // Apply sorting based on sortBy parameter
+    switch (sortBy) {
+      case "oldest":
+        query = query.order("created_at", { ascending: true });
+        break;
+      case "alpha-asc":
+        query = query.order("page_title", { ascending: true });
+        break;
+      case "alpha-desc":
+        query = query.order("page_title", { ascending: false });
+        break;
+      case "newest":
+      default:
+        query = query.order("created_at", { ascending: false });
+        break;
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw error;

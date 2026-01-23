@@ -70,6 +70,12 @@
       href="css/components/search-bar.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/sort-controls.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -212,6 +218,22 @@
             </svg>
           </button>
         </div>
+
+        <!-- Sort Controls -->
+        <div class="sort-controls-container">
+          <label for="sort-select" class="sort-label">Sort by:</label>
+          <select
+            id="sort-select"
+            class="sort-select"
+            aria-label="Sort bookmarks"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="alpha-asc">A-Z</option>
+            <option value="alpha-desc">Z-A</option>
+          </select>
+        </div>
+
         <div
           class="search-results-info"
           role="status"
