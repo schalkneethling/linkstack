@@ -82,6 +82,12 @@
       href="css/components/filter-controls.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/app-header.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -139,6 +145,18 @@
   <body>
     <!-- Authentication Component -->
     <linkstack-auth></linkstack-auth>
+
+    <!-- App Header (shown when authenticated) -->
+    <header class="app-header hidden" id="app-header">
+      <div class="header-container">
+        <div class="header-logo">
+          <h1 class="logo-text">LinkStack</h1>
+        </div>
+        <nav class="header-nav">
+          <div id="header-profile"></div>
+        </nav>
+      </div>
+    </header>
 
     <!-- Main Content (hidden until authenticated) -->
     <div class="page-container main-content hidden">

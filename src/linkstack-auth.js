@@ -79,24 +79,132 @@ export class LinkStackAuth extends HTMLElement {
 
   #renderAuthenticatedView() {
     const displayName = this.#user.user_metadata?.full_name || this.#user.email;
+    const email = this.#user.email;
+    const avatar = this.#user.user_metadata?.avatar_url;
+    const initials = this.#getInitials(displayName || email);
 
-    this.innerHTML = `
-      <div class="auth-container authenticated">
-        <div class="user-info" data-testid="user-info">
-          <p class="user-email">${displayName}</p>
+    // Hide the auth component (sign-in view)
+    this.innerHTML = "";
+    this.style.display = "none";
+
+    // Show the header
+    const header = document.getElementById("app-header");
+    if (header) {
+      header.classList.remove("hidden");
+    }
+
+    // Render profile in header
+    const headerProfile = document.getElementById("header-profile");
+    if (headerProfile) {
+      headerProfile.innerHTML = `
+        <div class="user-profile">
+          <button
+            type="button"
+            class="profile-trigger"
+            aria-expanded="false"
+            aria-haspopup="true"
+            data-testid="profile-trigger"
+            id="profile-trigger"
+          >
+            <div class="profile-avatar">
+              ${avatar ? `<img src="${avatar}" alt="${displayName}" />` : initials}
+            </div>
+            <span class="profile-name">${displayName}</span>
+            <svg class="profile-arrow" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+              <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="profile-dropdown" id="profile-dropdown">
+            <div class="dropdown-user-info">
+              <div class="dropdown-user-name">${displayName}</div>
+              <div class="dropdown-user-email">${email}</div>
+            </div>
+            <button
+              type="button"
+              class="dropdown-item danger"
+              data-testid="signout-btn"
+              id="signout-btn"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M5 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5zM4 2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z"/>
+                <path d="M8.5 8.5L6 11l2.5 2.5"/>
+              </svg>
+              Sign Out
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          class="button solid"
-          data-testid="signout-btn"
-          id="signout-btn"
-        >
-          Sign Out
-        </button>
-      </div>
-    `;
+      `;
+    }
 
     this.#attachEventListeners();
+    this.#setupDropdown();
+  }
+
+  /**
+   * Get initials from name for avatar
+   */
+  #getInitials(name) {
+    if (!name) return "U";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  /**
+   * Setup dropdown toggle functionality
+   */
+  #setupDropdown() {
+    const trigger = document.getElementById("profile-trigger");
+    const dropdown = document.getElementById("profile-dropdown");
+
+    if (!trigger || !dropdown) return;
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isExpanded = trigger.getAttribute("aria-expanded") === "true";
+
+      if (isExpanded) {
+        this.#closeDropdown();
+      } else {
+        this.#openDropdown();
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!trigger.contains(e.target) && !dropdown.contains(e.target)) {
+        this.#closeDropdown();
+      }
+    });
+
+    // Close dropdown on ESC key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.#closeDropdown();
+      }
+    });
+  }
+
+  #openDropdown() {
+    const trigger = document.getElementById("profile-trigger");
+    const dropdown = document.getElementById("profile-dropdown");
+
+    if (trigger && dropdown) {
+      trigger.setAttribute("aria-expanded", "true");
+      dropdown.classList.add("active");
+    }
+  }
+
+  #closeDropdown() {
+    const trigger = document.getElementById("profile-trigger");
+    const dropdown = document.getElementById("profile-dropdown");
+
+    if (trigger && dropdown) {
+      trigger.setAttribute("aria-expanded", "false");
+      dropdown.classList.remove("active");
+    }
   }
 
   #attachEventListeners() {
