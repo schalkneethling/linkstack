@@ -67,19 +67,7 @@
     <link
       rel="stylesheet"
       type="text/css"
-      href="css/components/search-bar.css"
-      media="screen"
-    />
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="css/components/sort-controls.css"
-      media="screen"
-    />
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="css/components/filter-controls.css"
+      href="css/components/toolbar.css"
       media="screen"
     />
     <link
@@ -246,44 +234,83 @@
     <div class="page-container main-content hidden">
       <h1 class="heading-display page-heading visually-hidden">LinkStack</h1>
 
-      <!-- Search Bar -->
-      <div class="search-bar-container" role="search">
-        <div class="search-bar">
-          <label for="search-input" class="visually-hidden"
-            >Search bookmarks</label
-          >
-          <input
-            type="search"
-            id="search-input"
-            class="search-input"
-            placeholder="Search bookmarks by title, description, or URL..."
-            autocomplete="off"
-          />
-          <button
-            type="button"
-            id="clear-search"
-            class="clear-search-button"
-            aria-label="Clear search"
-            hidden
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
+      <!-- Search and Controls Toolbar -->
+      <div class="toolbar-container">
+        <!-- Main Search Bar Row -->
+        <div class="toolbar-search-row">
+          <div class="search-bar" role="search">
+            <label for="search-input" class="visually-hidden"
+              >Search bookmarks</label
             >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+            <input
+              type="search"
+              id="search-input"
+              class="search-input"
+              placeholder="Search bookmarks by title, description, or URL..."
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              id="clear-search"
+              class="clear-search-button"
+              aria-label="Clear search"
+              hidden
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- View Toggle -->
+          <view-toggle class="view-toggle" role="group" aria-label="Change view layout">
+            <button
+              type="button"
+              class="view-toggle-button"
+              data-view="grid"
+              aria-pressed="true"
+              aria-label="Grid view"
+              title="Grid view"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="view-toggle-button"
+              data-view="list"
+              aria-pressed="false"
+              aria-label="List view"
+              title="List view"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+            </button>
+          </view-toggle>
         </div>
 
-        <!-- Filter and Sort Controls -->
-        <div class="filter-sort-controls">
+        <!-- Filter and Sort Controls Row -->
+        <div class="toolbar-controls-row">
           <!-- Filter Buttons -->
           <div class="filter-controls-container">
             <span class="filter-label">Show:</span>
@@ -331,6 +358,7 @@
           </div>
         </div>
 
+        <!-- Search Results Info -->
         <div
           class="search-results-info"
           role="status"
@@ -658,5 +686,6 @@
     <!-- Load main app coordinator -->
     <script type="module" src="src/app.js"></script>
     <script type="module" src="src/components/linkstack-toast.js"></script>
+    <script type="module" src="src/components/view-toggle.js"></script>
   </body>
 </html>
