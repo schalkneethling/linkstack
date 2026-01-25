@@ -162,14 +162,35 @@ export class LinkStackBookmarks extends HTMLElement {
         return;
       }
 
+      // Handle context menu trigger click
+      const contextMenuTrigger = event.target.closest(".context-menu-trigger");
+      if (contextMenuTrigger) {
+        const contextMenu = contextMenuTrigger.nextElementSibling;
+        if (contextMenu && contextMenu.hasAttribute("popover")) {
+          contextMenu.togglePopover();
+        }
+        return;
+      }
+
       if (event.target.id === "delete-bookmark") {
         const { id } = event.target.dataset;
+        // Close the context menu popover if open
+        const contextMenu = event.target.closest(".context-menu");
+        if (contextMenu) {
+          contextMenu.hidePopover();
+        }
         await this.#deleteBookmark(id);
       }
 
       if (event.target.id === "edit-bookmark") {
         const { id } = event.target.dataset;
         const { linkstackEditDialog } = this.#elements;
+
+        // Close the context menu popover if open
+        const contextMenu = event.target.closest(".context-menu");
+        if (contextMenu) {
+          contextMenu.hidePopover();
+        }
 
         if (!linkstackEditDialog) {
           throw new Error("Linkstack edit dialog not found");

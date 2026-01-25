@@ -82,6 +82,12 @@
       href="css/components/form-drawer.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/context-menu.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -469,26 +475,48 @@
                 </details>
               </div>
               <div class="bookmark-actions">
+                <div class="bookmark-actions-primary">
+                  <button
+                    id="toggle-read-status"
+                    type="button"
+                    class="button solid"
+                    data-is-read="false"
+                    aria-label="Mark as read"
+                  >
+                    <span class="read-icon" aria-hidden="true">✓</span>
+                    <span class="read-text">Mark as Read</span>
+                  </button>
+                </div>
                 <button
-                  id="toggle-read-status"
                   type="button"
-                  class="button solid"
-                  data-is-read="false"
-                  aria-label="Mark as read"
+                  class="context-menu-trigger"
+                  aria-label="More actions"
+                  aria-haspopup="true"
                 >
-                  <span class="read-icon" aria-hidden="true">✓</span>
-                  <span class="read-text">Mark as Read</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="12" cy="19" r="2"></circle>
+                  </svg>
                 </button>
-                <button id="edit-bookmark" type="button" class="button solid">
-                  Edit Bookmark
-                </button>
-                <button
-                  id="delete-bookmark"
-                  type="button"
-                  class="button solid critical"
-                >
-                  Remove Bookmark
-                </button>
+                <div class="context-menu" popover>
+                  <button id="edit-bookmark" type="button" class="context-menu-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit Bookmark
+                  </button>
+                  <button id="delete-bookmark" type="button" class="context-menu-item destructive">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    Remove Bookmark
+                  </button>
+                </div>
               </div>
             </div>
             <button
@@ -569,26 +597,48 @@
                 </details>
               </div>
               <div class="bookmark-actions">
+                <div class="bookmark-actions-primary">
+                  <button
+                    id="toggle-read-status"
+                    type="button"
+                    class="button solid"
+                    data-is-read="false"
+                    aria-label="Mark as read"
+                  >
+                    <span class="read-icon" aria-hidden="true">✓</span>
+                    <span class="read-text">Mark as Read</span>
+                  </button>
+                </div>
                 <button
-                  id="toggle-read-status"
                   type="button"
-                  class="button solid"
-                  data-is-read="false"
-                  aria-label="Mark as read"
+                  class="context-menu-trigger"
+                  aria-label="More actions"
+                  aria-haspopup="true"
                 >
-                  <span class="read-icon" aria-hidden="true">✓</span>
-                  <span class="read-text">Mark as Read</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="12" cy="19" r="2"></circle>
+                  </svg>
                 </button>
-                <button id="edit-bookmark" type="button" class="button solid">
-                  Edit
-                </button>
-                <button
-                  id="delete-bookmark"
-                  type="button"
-                  class="button solid critical"
-                >
-                  Remove
-                </button>
+                <div class="context-menu" popover>
+                  <button id="edit-bookmark" type="button" class="context-menu-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Edit
+                  </button>
+                  <button id="delete-bookmark" type="button" class="context-menu-item destructive">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    Remove
+                  </button>
+                </div>
               </div>
             </div>
           </li>
