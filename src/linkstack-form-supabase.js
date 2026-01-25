@@ -357,15 +357,66 @@ export class LinkStackForm extends HTMLElement {
 
             img.src = metadata.previewImg;
           } else {
-            throw new Error("Failed to fetch bookmark metadata");
+            // Metadata extraction failed - save with fallback data
+            console.warn(
+              "Metadata extraction failed, saving with fallback data",
+            );
+            const urlObj = new URL(url);
+            const fallbackTitle = urlObj.hostname.replace("www.", "");
+
+            const bookmarkData = {
+              url,
+              page_title: fallbackTitle,
+              meta_description: "",
+              preview_img: "",
+            };
+
+            if (parentId) {
+              bookmarkData.parent_id = parentId;
+            }
+
+            if (notes && notes.trim()) {
+              bookmarkData.notes = notes.trim();
+            }
+
+            try {
+              await this.#addBookmark(bookmarkData);
+              bookmarkForm.reset();
+              const toast = document.querySelector("linkstack-toast");
+              toast.show(
+                "Bookmark saved (metadata unavailable for this site)",
+                "warning",
+              );
+            } catch (addError) {
+              console.error("Error adding bookmark:", addError);
+              const toast = document.querySelector("linkstack-toast");
+              toast.show(
+                addError.message || "Failed to add bookmark. Please try again.",
+                "error",
+              );
+            }
+            this.#setSubmitButtonLoading(false);
           }
         } catch (error) {
           console.error("Error submitting bookmark:", error);
           const toast = document.querySelector("linkstack-toast");
-          toast.show(
-            error.message || "Failed to add bookmark. Please try again.",
-            "error",
-          );
+
+          // Provide user-friendly error messages
+          let errorMessage = "Failed to add bookmark. Please try again.";
+          if (error.message === "Failed to fetch") {
+            const isDev = window.location.hostname === "localhost";
+            if (isDev) {
+              errorMessage =
+                "Cannot connect to the server. Make sure you're running 'netlify dev' instead of a regular HTTP server.";
+            } else {
+              errorMessage =
+                "Network error. Please check your connection and try again.";
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          toast.show(errorMessage, "error");
           this.#setSubmitButtonLoading(false);
         }
       });
