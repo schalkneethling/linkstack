@@ -44,13 +44,26 @@ export default async (request) => {
       );
     }
 
-    const response = await fetch(bookmark);
+    const response = await fetch(bookmark, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; LinkStack/1.0; +https://linkstack.netlify.app)",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: "Failed to fetch URL" }), {
-        status: 500,
-        headers: { ...corsHeaders, "content-type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "content-type": "application/json" },
+        },
+      );
     }
 
     const responseTxt = await response.text();
@@ -107,9 +120,15 @@ export default async (request) => {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "content-type": "application/json" },
-    });
+    console.error("Error fetching bookmark data:", error);
+    return new Response(
+      JSON.stringify({
+        error: `Error processing URL: ${error.message}`,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "content-type": "application/json" },
+      },
+    );
   }
 };

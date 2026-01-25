@@ -357,7 +357,11 @@ export class LinkStackForm extends HTMLElement {
 
             img.src = metadata.previewImg;
           } else {
-            throw new Error("Failed to fetch bookmark metadata");
+            // Read the error message from the response body
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              errorData.error || `Server error: ${response.status}`,
+            );
           }
         } catch (error) {
           console.error("Error submitting bookmark:", error);
