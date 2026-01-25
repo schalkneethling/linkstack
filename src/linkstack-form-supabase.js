@@ -362,10 +362,23 @@ export class LinkStackForm extends HTMLElement {
         } catch (error) {
           console.error("Error submitting bookmark:", error);
           const toast = document.querySelector("linkstack-toast");
-          toast.show(
-            error.message || "Failed to add bookmark. Please try again.",
-            "error",
-          );
+
+          // Provide user-friendly error messages
+          let errorMessage = "Failed to add bookmark. Please try again.";
+          if (error.message === "Failed to fetch") {
+            const isDev = window.location.hostname === "localhost";
+            if (isDev) {
+              errorMessage =
+                "Cannot connect to the server. Make sure you're running 'netlify dev' instead of a regular HTTP server.";
+            } else {
+              errorMessage =
+                "Network error. Please check your connection and try again.";
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          toast.show(errorMessage, "error");
           this.#setSubmitButtonLoading(false);
         }
       });

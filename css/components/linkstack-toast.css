@@ -9,7 +9,7 @@
   inset-inline: 1rem;
   pointer-events: none;
   position: fixed;
-  z-index: 1000;
+  z-index: 2147483647;
 }
 
 .toast {
