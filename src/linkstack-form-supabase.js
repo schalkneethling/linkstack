@@ -357,11 +357,45 @@ export class LinkStackForm extends HTMLElement {
 
             img.src = metadata.previewImg;
           } else {
-            // Read the error message from the response body
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(
-              errorData.error || `Server error: ${response.status}`,
+            // Metadata extraction failed - save with fallback data
+            console.warn(
+              "Metadata extraction failed, saving with fallback data",
             );
+            const urlObj = new URL(url);
+            const fallbackTitle = urlObj.hostname.replace("www.", "");
+
+            const bookmarkData = {
+              url,
+              page_title: fallbackTitle,
+              meta_description: "",
+              preview_img: "",
+            };
+
+            if (parentId) {
+              bookmarkData.parent_id = parentId;
+            }
+
+            if (notes && notes.trim()) {
+              bookmarkData.notes = notes.trim();
+            }
+
+            try {
+              await this.#addBookmark(bookmarkData);
+              bookmarkForm.reset();
+              const toast = document.querySelector("linkstack-toast");
+              toast.show(
+                "Bookmark saved (metadata unavailable for this site)",
+                "warning",
+              );
+            } catch (addError) {
+              console.error("Error adding bookmark:", addError);
+              const toast = document.querySelector("linkstack-toast");
+              toast.show(
+                addError.message || "Failed to add bookmark. Please try again.",
+                "error",
+              );
+            }
+            this.#setSubmitButtonLoading(false);
           }
         } catch (error) {
           console.error("Error submitting bookmark:", error);
