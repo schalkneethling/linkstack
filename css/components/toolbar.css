@@ -1,0 +1,316 @@
+/* Toolbar Container - Redesigned for Phase 3 */
+
+.toolbar-container {
+  background-color: var(--bg-primary, #fff);
+  border-block-end: 0.0625rem solid var(--border-color, #e0e0e0);
+  margin-block-end: 2rem;
+  padding-block-end: 1.5rem;
+}
+
+/* Main Search Row */
+.toolbar-search-row {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  margin-block-end: 1rem;
+}
+
+.search-bar {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.search-input {
+  border: 0.0625rem solid var(--border-color, #e0e0e0);
+  border-radius: 0.5rem;
+  flex: 1;
+  font-size: 1rem;
+  padding-block: 0.875rem;
+  padding-inline: 1.25rem;
+  padding-inline-end: 3.5rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--focus-color, #06c);
+  box-shadow: 0 0 0 0.1875rem rgb(0 102 204 / 10%);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary, #666);
+}
+
+/* Hide native browser clear button */
+.search-input::-webkit-search-cancel-button,
+.search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+.search-input::-moz-search-clear-button {
+  appearance: none;
+  display: none;
+}
+
+.clear-search-button {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  display: flex;
+  inset-block-start: 50%;
+  inset-inline-end: 0.875rem;
+  justify-content: center;
+  padding: 0.25rem;
+  position: absolute;
+  transform: translateY(-50%);
+  transition: color 0.2s ease;
+}
+
+.clear-search-button:hover {
+  color: var(--text-primary, #000);
+}
+
+.clear-search-button:focus-visible {
+  outline: 0.125rem solid var(--focus-color, #06c);
+  outline-offset: 0.125rem;
+}
+
+.clear-search-button[hidden] {
+  display: none;
+}
+
+/* View Toggle Buttons */
+.view-toggle {
+  align-items: center;
+  background-color: var(--bg-secondary, #f5f5f5);
+  border-radius: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.view-toggle-button {
+  align-items: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-button:hover {
+  background-color: var(--bg-tertiary, #e8e8e8);
+  color: var(--text-primary, #333);
+}
+
+.view-toggle-button[aria-pressed="true"] {
+  background-color: var(--bg-primary, #fff);
+  color: var(--accent-color, #007bff);
+  box-shadow: 0 0.0625rem 0.1875rem rgb(0 0 0 / 10%);
+}
+
+.view-toggle-button:focus-visible {
+  outline: 0.125rem solid var(--focus-color, #06c);
+  outline-offset: 0.125rem;
+}
+
+/* Controls Row - Filter and Sort */
+.toolbar-controls-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+/* Filter Controls */
+.filter-controls-container {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.filter-label {
+  color: var(--text-primary, #333);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.filter-buttons {
+  background-color: var(--bg-secondary, #f5f5f5);
+  border-radius: 0.375rem;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+.filter-button {
+  background-color: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding-block: 0.5rem;
+  padding-inline: 1rem;
+  transition: all 0.2s ease;
+}
+
+.filter-button:hover {
+  background-color: var(--bg-tertiary, #e8e8e8);
+  color: var(--text-primary, #333);
+}
+
+.filter-button:focus-visible {
+  outline: 0.125rem solid var(--accent-color, #007bff);
+  outline-offset: 0.125rem;
+}
+
+.filter-button.active {
+  background-color: var(--bg-primary, #fff);
+  box-shadow: 0 0.0625rem 0.1875rem rgb(0 0 0 / 10%);
+  color: var(--accent-color, #007bff);
+}
+
+/* Sort Controls */
+.sort-controls-container {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sort-label {
+  color: var(--text-secondary, #666);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sort-select {
+  background-color: var(--background-color, #fff);
+  border: 0.0625rem solid var(--border-color, #e0e0e0);
+  border-radius: 0.375rem;
+  color: var(--text-primary, #000);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding-block: 0.5rem;
+  padding-inline: 0.875rem;
+  padding-inline-end: 2.25rem;
+  transition: all 0.2s ease;
+}
+
+.sort-select:hover {
+  border-color: var(--text-secondary, #666);
+}
+
+.sort-select:focus {
+  border-color: var(--focus-color, #06c);
+  box-shadow: 0 0 0 0.1875rem rgb(0 102 204 / 10%);
+  outline: none;
+}
+
+/* Search Results Info */
+.search-results-info {
+  color: var(--text-secondary, #666);
+  font-size: 0.875rem;
+  margin-block-start: 1rem;
+  min-block-size: 1.25rem;
+}
+
+.search-results-info:empty {
+  display: none;
+}
+
+/* Responsive Design */
+
+/* Tablet and up */
+@media (width >= 48rem) {
+  .toolbar-container {
+    margin-block-end: 2.5rem;
+    padding-block-end: 2rem;
+  }
+
+  .toolbar-search-row {
+    margin-block-end: 1.25rem;
+  }
+
+  .search-input {
+    font-size: 1.0625rem;
+    padding-block: 1rem;
+  }
+}
+
+/* Mobile */
+@media (width <= 37.5rem) {
+  .toolbar-search-row {
+    flex-wrap: wrap;
+  }
+
+  .search-bar {
+    flex: 1 1 100%;
+  }
+
+  .view-toggle {
+    flex: 1 1 auto;
+  }
+
+  .toolbar-controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .filter-controls-container,
+  .sort-controls-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .filter-buttons {
+    inline-size: 100%;
+  }
+
+  .filter-button {
+    flex: 1;
+  }
+
+  .sort-select {
+    inline-size: 100%;
+  }
+}
+
+/* Small mobile optimizations */
+@media (width <= 30rem) {
+  .view-toggle {
+    inline-size: 100%;
+  }
+
+  .view-toggle-button {
+    flex: 1;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .search-input,
+  .view-toggle-button,
+  .filter-button,
+  .sort-select {
+    transition: none;
+  }
+}
