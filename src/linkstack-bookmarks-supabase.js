@@ -534,6 +534,30 @@ export class LinkStackBookmarks extends HTMLElement {
     }
   }
 
+  #renderTags(tagsContainer, tags) {
+    if (!tags || tags.length === 0) {
+      return;
+    }
+
+    const maxVisible = 3;
+    const visible = tags.slice(0, maxVisible);
+    const remaining = tags.length - maxVisible;
+
+    visible.forEach((tag) => {
+      const chip = document.createElement("span");
+      chip.className = "tag";
+      chip.textContent = tag;
+      tagsContainer.appendChild(chip);
+    });
+
+    if (remaining > 0) {
+      const overflow = document.createElement("span");
+      overflow.className = "tag-overflow";
+      overflow.textContent = `+${remaining} more`;
+      tagsContainer.appendChild(overflow);
+    }
+  }
+
   async #toggleReadStatus(id, button) {
     const currentStatus = button.dataset.isRead === "true";
     const newStatus = !currentStatus;
@@ -762,6 +786,12 @@ export class LinkStackBookmarks extends HTMLElement {
           entry.querySelector(".bookmark-description").textContent =
             bookmark.meta_description;
 
+          // Handle tags
+          this.#renderTags(
+            entry.querySelector(".bookmark-tags"),
+            bookmark.tags,
+          );
+
           // Handle notes - only show if present
           const notesContainer = entry.querySelector(".bookmark-notes");
           const notesContent = entry.querySelector(".notes-content");
@@ -821,6 +851,12 @@ export class LinkStackBookmarks extends HTMLElement {
 
               childEntry.querySelector(".bookmark-description").textContent =
                 child.meta_description;
+
+              // Handle tags
+              this.#renderTags(
+                childEntry.querySelector(".bookmark-tags"),
+                child.tags,
+              );
 
               // Handle notes - only show if present
               const childNotesContainer =

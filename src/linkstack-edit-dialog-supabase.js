@@ -12,6 +12,7 @@ export class LinkStackEditDialog extends HTMLElement {
     editTitleInput: "#edit-title",
     editDescriptionInput: "#edit-description",
     editNotesInput: "#edit-notes",
+    editTagsInput: "#edit-tags",
     editDialog: "dialog",
     linkstackBookmarks: "linkstack-bookmarks",
     saveButton: "#save-changes-button",
@@ -24,6 +25,7 @@ export class LinkStackEditDialog extends HTMLElement {
     editTitleInput: null,
     editDescriptionInput: null,
     editNotesInput: null,
+    editTagsInput: null,
     editDialog: null,
     linkstackBookmarks: null,
     saveButton: null,
@@ -59,6 +61,9 @@ export class LinkStackEditDialog extends HTMLElement {
     );
     this.#elements.editNotesInput = this.querySelector(
       LinkStackEditDialog.#selectors.editNotesInput,
+    );
+    this.#elements.editTagsInput = this.querySelector(
+      LinkStackEditDialog.#selectors.editTagsInput,
     );
     this.#elements.editDialog = this.querySelector(
       LinkStackEditDialog.#selectors.editDialog,
@@ -152,6 +157,11 @@ export class LinkStackEditDialog extends HTMLElement {
     const page_title = formData.get("title");
     const meta_description = formData.get("description");
     const notes = formData.get("notes");
+    const tagsRaw = formData.get("tags") || "";
+    const tags = tagsRaw
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
 
     // Set loading state
     this.#setSaveButtonLoading(true);
@@ -161,6 +171,7 @@ export class LinkStackEditDialog extends HTMLElement {
         page_title,
         meta_description,
         notes,
+        tags,
       });
 
       // Show success toast
@@ -187,6 +198,7 @@ export class LinkStackEditDialog extends HTMLElement {
       editTitleInput,
       editDescriptionInput,
       editNotesInput,
+      editTagsInput,
     } = this.#elements;
 
     try {
@@ -196,6 +208,9 @@ export class LinkStackEditDialog extends HTMLElement {
       editTitleInput.value = bookmarkData.page_title || "";
       editDescriptionInput.value = bookmarkData.meta_description || "";
       editNotesInput.value = bookmarkData.notes || "";
+      editTagsInput.value = Array.isArray(bookmarkData.tags)
+        ? bookmarkData.tags.join(", ")
+        : "";
 
       editDialog.showModal();
     } catch (error) {

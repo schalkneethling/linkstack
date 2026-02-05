@@ -88,6 +88,12 @@
       href="css/components/context-menu.css"
       media="screen"
     />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="css/components/tags.css"
+      media="screen"
+    />
     <style>
       .hidden {
         display: none;
@@ -435,6 +441,7 @@
                 <h3 class="bookmark-title"></h3>
               </a>
               <p class="bookmark-description"></p>
+              <div class="bookmark-tags"></div>
               <div class="bookmark-notes hidden">
                 <details>
                   <summary>
@@ -557,6 +564,7 @@
                 <h4 class="bookmark-title"></h4>
               </a>
               <p class="bookmark-description"></p>
+              <div class="bookmark-tags"></div>
               <div class="bookmark-notes hidden">
                 <details>
                   <summary>
@@ -706,6 +714,16 @@
                 rows="4"
                 placeholder="Add your thoughts, reminders, or notes about this bookmark..."
               ></textarea>
+            </div>
+            <div class="form-field">
+              <label for="edit-tags">Tags (optional)</label>
+              <input
+                type="text"
+                name="tags"
+                id="edit-tags"
+                placeholder="js, css, web development"
+              />
+              <p class="tags-hint">Separate tags with commas</p>
             </div>
             <input type="hidden" name="id" id="edit-id" />
             <div class="bookmark-actions">
