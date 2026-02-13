@@ -126,11 +126,8 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#setupSort();
     this.#setupFilter();
 
-    // Only render if the main content is visible (user is authenticated)
-    const mainContent = document.querySelector(".main-content");
-    if (mainContent && !mainContent.classList.contains("hidden")) {
-      await this.#renderBookmarks();
-    }
+    // Component is only loaded when authenticated, safe to render
+    await this.#renderBookmarks();
   }
 
   #addEventListeners() {
