@@ -87,6 +87,9 @@ class LinkStackApp {
       this.#authComponent?.setUser(user);
       this.#mainContent?.classList.remove("hidden");
       formDrawer?.classList.remove("hidden");
+
+      // Trigger bookmarks render after sign-in
+      window.dispatchEvent(new CustomEvent("auth-state-changed"));
     } else {
       // User is signed out
       this.#authComponent?.setUser(null);

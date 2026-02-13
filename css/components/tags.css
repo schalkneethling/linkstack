@@ -1,0 +1,39 @@
+/* Tag Display Styles */
+
+.bookmark-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-block-start: 0.5rem;
+}
+
+.bookmark-tags:empty {
+  display: none;
+}
+
+.tag {
+  background-color: var(--color-neutral-10);
+  border-radius: 0.25rem;
+  color: var(--color-neutral-70);
+  font-size: var(--typography-size-small);
+  line-height: 1.4;
+  padding-block: 0.1875rem;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+
+.tag-overflow {
+  color: var(--color-neutral-50);
+  font-size: var(--typography-size-small);
+  line-height: 1.4;
+  padding-block: 0.1875rem;
+  padding-inline: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Edit dialog tag input hint */
+.tags-hint {
+  color: var(--color-neutral-50);
+  font-size: var(--typography-size-small);
+  margin-block-start: 0.25rem;
+}
