@@ -63,6 +63,12 @@ export class LinkStackBookmarks extends HTMLElement {
         this.#boundHandlers.onBookmarkUpdated,
       );
     }
+    if (this.#boundHandlers.onAuthStateChanged) {
+      window.removeEventListener(
+        "auth-state-changed",
+        this.#boundHandlers.onAuthStateChanged,
+      );
+    }
   }
 
   async #init() {
@@ -119,7 +125,12 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#setupSearch();
     this.#setupSort();
     this.#setupFilter();
-    await this.#renderBookmarks();
+
+    // Only render if the main content is visible (user is authenticated)
+    const mainContent = document.querySelector(".main-content");
+    if (mainContent && !mainContent.classList.contains("hidden")) {
+      await this.#renderBookmarks();
+    }
   }
 
   #addEventListeners() {
@@ -134,6 +145,10 @@ export class LinkStackBookmarks extends HTMLElement {
       await this.#renderBookmarks();
     };
 
+    this.#boundHandlers.onAuthStateChanged = async () => {
+      await this.#renderBookmarks();
+    };
+
     // Listen for bookmark-created custom event
     window.addEventListener(
       "bookmark-created",
@@ -144,6 +159,12 @@ export class LinkStackBookmarks extends HTMLElement {
     window.addEventListener(
       "bookmark-updated",
       this.#boundHandlers.onBookmarkUpdated,
+    );
+
+    // Listen for auth state changed
+    window.addEventListener(
+      "auth-state-changed",
+      this.#boundHandlers.onAuthStateChanged,
     );
 
     bookmarksContainer.addEventListener("click", async (event) => {
