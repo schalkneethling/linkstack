@@ -46,7 +46,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.0.0",
+    "globals": "^17.1.0",
     "happy-dom": "^20.3.3",
     "jsdom": "^27.4.0",
     "prettier": "^3.8.0",
