@@ -1,5 +1,7 @@
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
+import { SettingsService } from "./services/settings.service.js";
+import { getRandomEncouragementMessage } from "./utils/encouragement-messages.js";
 import { validateUrl } from "./utils/validation-schemas.js";
 
 /**
@@ -15,6 +17,7 @@ export class LinkStackForm extends HTMLElement {
   };
 
   #bookmarksService = new BookmarksService(supabase);
+  #settingsService = new SettingsService();
   #boundHandlers = {
     onBookmarkCreated: null,
   };
@@ -181,6 +184,70 @@ export class LinkStackForm extends HTMLElement {
   }
 
   /**
+   * Check if adding a bookmark would exceed the unread limit
+   * @private
+   * @returns {Promise<boolean>} - True if limit would be exceeded
+   */
+  async #wouldExceedUnreadLimit() {
+    if (!this.#settingsService.isLimitEnabled()) {
+      return false;
+    }
+
+    try {
+      const allBookmarks = await this.#bookmarksService.fetchAll();
+      const unreadCount = allBookmarks.filter((b) => !b.is_read).length;
+      const limit = this.#settingsService.getUnreadLimit();
+
+      return unreadCount >= limit;
+    } catch (error) {
+      console.error("Error checking unread limit:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Highlight a random unread bookmark to encourage reading
+   * @private
+   */
+  async #highlightRandomUnreadBookmark() {
+    try {
+      const allBookmarks = await this.#bookmarksService.fetchAll();
+      const unreadBookmarks = allBookmarks.filter((b) => !b.is_read);
+
+      if (unreadBookmarks.length === 0) {
+        return;
+      }
+
+      // Pick a random unread bookmark
+      const randomIndex = Math.floor(Math.random() * unreadBookmarks.length);
+      const randomBookmark = unreadBookmarks[randomIndex];
+
+      // Find the DOM element for this bookmark
+      const bookmarkElement = document.getElementById(
+        `bookmark-entry-${randomBookmark.id}`,
+      );
+
+      if (bookmarkElement) {
+        // Add highlight class
+        bookmarkElement.classList.add("bookmark-highlight");
+
+        // Scroll into view
+        bookmarkElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        // Remove highlight after 5 seconds
+        setTimeout(() => {
+          bookmarkElement.classList.remove("bookmark-highlight");
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Error highlighting bookmark:", error);
+    }
+  }
+
+  /**
    * Set loading state on submit button
    * @private
    */
@@ -265,6 +332,27 @@ export class LinkStackForm extends HTMLElement {
           this.#showUrlError(
             "This URL has already been bookmarked. Please enter a different URL.",
           );
+          return;
+        }
+
+        // Check if adding would exceed unread limit
+        const wouldExceedLimit = await this.#wouldExceedUnreadLimit();
+
+        if (wouldExceedLimit) {
+          // Close the form drawer first
+          const formDrawer = document.getElementById("form-drawer");
+          formDrawer?.hidePopover();
+
+          // Show toast after a brief delay to ensure drawer is closed
+          setTimeout(() => {
+            const toast = document.querySelector("linkstack-toast");
+            const message = getRandomEncouragementMessage();
+            toast?.show(message, "warning");
+
+            // Highlight a random unread bookmark
+            this.#highlightRandomUnreadBookmark();
+          }, 150);
+
           return;
         }
 

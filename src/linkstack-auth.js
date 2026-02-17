@@ -1,9 +1,12 @@
+import { SettingsService } from "./services/settings.service.js";
+
 /**
  * Authentication component for LinkStack
  * Handles user sign in/out with Google and GitHub OAuth
  */
 export class LinkStackAuth extends HTMLElement {
   #user = null;
+  #settingsService = new SettingsService();
 
   constructor() {
     super();
@@ -128,6 +131,29 @@ export class LinkStackAuth extends HTMLElement {
               <div class="dropdown-user-name">${displayName}</div>
               <div class="dropdown-user-email">${email}</div>
             </div>
+            <div class="limit-settings">
+              <label class="limit-toggle">
+                <input
+                  type="checkbox"
+                  id="limit-enabled"
+                  aria-label="Enable unread bookmark limit"
+                />
+                <span class="limit-label">Limit unread bookmarks</span>
+              </label>
+              <div class="limit-number-container hidden" id="limit-number-container">
+                <label for="unread-limit" class="limit-number-label">Maximum unread:</label>
+                <input
+                  type="number"
+                  id="unread-limit"
+                  min="1"
+                  max="100"
+                  inputmode="numeric"
+                  aria-label="Unread bookmark limit"
+                  class="limit-input"
+                  title="Maximum number of unread bookmarks"
+                />
+              </div>
+            </div>
             <button
               type="button"
               class="dropdown-item danger"
@@ -143,6 +169,54 @@ export class LinkStackAuth extends HTMLElement {
 
     this.#attachEventListeners();
     this.#setupDropdown();
+    this.#setupSettings();
+  }
+
+  /**
+   * Setup settings UI with current values
+   */
+  #setupSettings() {
+    const limitEnabled = document.getElementById("limit-enabled");
+    const unreadLimit = document.getElementById("unread-limit");
+    const limitContainer = document.getElementById("limit-number-container");
+
+    if (!limitEnabled || !unreadLimit || !limitContainer) return;
+
+    // Load current settings
+    limitEnabled.checked = this.#settingsService.isLimitEnabled();
+    unreadLimit.value = this.#settingsService.getUnreadLimit();
+
+    // Show/hide number input based on checkbox
+    if (limitEnabled.checked) {
+      limitContainer.classList.remove("hidden");
+    }
+
+    // Prevent clicks on settings from closing dropdown
+    const limitSettings = document.querySelector(".limit-settings");
+    if (limitSettings) {
+      limitSettings.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent dropdown from closing
+      });
+    }
+
+    // Handle checkbox toggle
+    limitEnabled.addEventListener("change", (e) => {
+      this.#settingsService.setLimitEnabled(e.target.checked);
+
+      if (e.target.checked) {
+        limitContainer.classList.remove("hidden");
+      } else {
+        limitContainer.classList.add("hidden");
+      }
+    });
+
+    // Handle limit value change
+    unreadLimit.addEventListener("change", (e) => {
+      const value = parseInt(e.target.value, 10);
+      if (value >= 1 && value <= 100) {
+        this.#settingsService.setUnreadLimit(value);
+      }
+    });
   }
 
   /**

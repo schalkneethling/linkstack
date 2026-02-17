@@ -9,6 +9,17 @@ export class AuthService {
   }
 
   /**
+   * Get the redirect URL for OAuth based on current environment
+   * @private
+   * @returns {string} The redirect URL
+   */
+  #getRedirectUrl() {
+    // Use current origin for redirect
+    // This works for both localhost:8888 (Netlify dev) and production
+    return window.location.origin;
+  }
+
+  /**
    * Sign in with Google OAuth
    * @returns {Promise<void>}
    * @throws {Error} If sign in fails
@@ -16,6 +27,9 @@ export class AuthService {
   async signInWithGoogle() {
     const { data, error } = await this.#supabase.auth.signInWithOAuth({
       provider: "google",
+      options: {
+        redirectTo: this.#getRedirectUrl(),
+      },
     });
 
     if (error) {
@@ -33,6 +47,9 @@ export class AuthService {
   async signInWithGitHub() {
     const { data, error } = await this.#supabase.auth.signInWithOAuth({
       provider: "github",
+      options: {
+        redirectTo: this.#getRedirectUrl(),
+      },
     });
 
     if (error) {
