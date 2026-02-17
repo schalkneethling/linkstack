@@ -155,7 +155,6 @@ export class LinkStackAuth extends HTMLElement {
                 />
               </div>
             </div>
-            <div class="dropdown-divider"></div>
             <button
               type="button"
               class="dropdown-item danger"
@@ -195,6 +194,7 @@ export class LinkStackAuth extends HTMLElement {
 
     // Handle checkbox toggle
     limitEnabled.addEventListener("change", (e) => {
+      e.stopPropagation(); // Prevent dropdown from closing
       this.#settingsService.setLimitEnabled(e.target.checked);
 
       if (e.target.checked) {
@@ -206,6 +206,7 @@ export class LinkStackAuth extends HTMLElement {
 
     // Handle limit value change
     unreadLimit.addEventListener("change", (e) => {
+      e.stopPropagation(); // Prevent dropdown from closing
       const value = parseInt(e.target.value, 10);
       if (value >= 1 && value <= 100) {
         this.#settingsService.setUnreadLimit(value);

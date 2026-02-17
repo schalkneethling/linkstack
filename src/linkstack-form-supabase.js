@@ -339,12 +339,20 @@ export class LinkStackForm extends HTMLElement {
         const wouldExceedLimit = await this.#wouldExceedUnreadLimit();
 
         if (wouldExceedLimit) {
-          const toast = document.querySelector("linkstack-toast");
-          const message = getRandomEncouragementMessage();
-          toast?.show(message, "warning");
+          // Close the form drawer first
+          const formDrawer = document.getElementById("form-drawer");
+          formDrawer?.hidePopover();
 
-          // Highlight a random unread bookmark
-          await this.#highlightRandomUnreadBookmark();
+          // Show toast after a brief delay to ensure drawer is closed
+          setTimeout(() => {
+            const toast = document.querySelector("linkstack-toast");
+            const message = getRandomEncouragementMessage();
+            toast?.show(message, "warning");
+
+            // Highlight a random unread bookmark
+            this.#highlightRandomUnreadBookmark();
+          }, 150);
+
           return;
         }
 
