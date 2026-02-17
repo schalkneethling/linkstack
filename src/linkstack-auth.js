@@ -191,9 +191,16 @@ export class LinkStackAuth extends HTMLElement {
       limitContainer.classList.remove("hidden");
     }
 
+    // Prevent clicks on settings from closing dropdown
+    const limitSettings = document.querySelector(".limit-settings");
+    if (limitSettings) {
+      limitSettings.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent dropdown from closing
+      });
+    }
+
     // Handle checkbox toggle
     limitEnabled.addEventListener("change", (e) => {
-      e.stopPropagation(); // Prevent dropdown from closing
       this.#settingsService.setLimitEnabled(e.target.checked);
 
       if (e.target.checked) {
@@ -205,7 +212,6 @@ export class LinkStackAuth extends HTMLElement {
 
     // Handle limit value change
     unreadLimit.addEventListener("change", (e) => {
-      e.stopPropagation(); // Prevent dropdown from closing
       const value = parseInt(e.target.value, 10);
       if (value >= 1 && value <= 100) {
         this.#settingsService.setUnreadLimit(value);
