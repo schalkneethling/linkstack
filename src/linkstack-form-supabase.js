@@ -189,10 +189,7 @@ export class LinkStackForm extends HTMLElement {
    * @returns {Promise<boolean>} - True if limit would be exceeded
    */
   async #wouldExceedUnreadLimit() {
-    const isEnabled = this.#settingsService.isLimitEnabled();
-    console.log("[Limit Check] Feature enabled:", isEnabled);
-
-    if (!isEnabled) {
+    if (!this.#settingsService.isLimitEnabled()) {
       return false;
     }
 
@@ -200,8 +197,6 @@ export class LinkStackForm extends HTMLElement {
       const allBookmarks = await this.#bookmarksService.fetchAll();
       const unreadCount = allBookmarks.filter((b) => !b.is_read).length;
       const limit = this.#settingsService.getUnreadLimit();
-
-      console.log("[Limit Check] Unread count:", unreadCount, "Limit:", limit, "Would exceed:", unreadCount >= limit);
 
       return unreadCount >= limit;
     } catch (error) {
