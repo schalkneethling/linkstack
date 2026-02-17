@@ -131,7 +131,6 @@ export class LinkStackAuth extends HTMLElement {
               <div class="dropdown-user-name">${displayName}</div>
               <div class="dropdown-user-email">${email}</div>
             </div>
-            <div class="dropdown-divider"></div>
             <div class="limit-settings">
               <label class="limit-toggle">
                 <input
