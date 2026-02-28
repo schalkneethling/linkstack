@@ -1,0 +1,29 @@
+/* Bookmark Highlight Animation */
+/* Used when encouraging users to read existing bookmarks */
+
+.bookmark-highlight {
+  animation: pulse-highlight 2s ease-in-out 3;
+  border: 0.1875rem solid hotpink;
+  border-radius: 0.5rem;
+}
+
+@keyframes pulse-highlight {
+  0%,
+  100% {
+    border-color: hotpink;
+    box-shadow: 0 0 0 0 rgb(255 105 180 / 70%);
+  }
+
+  50% {
+    border-color: hotpink;
+    box-shadow: 0 0 0 0.5rem rgb(255 105 180 / 0%);
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .bookmark-highlight {
+    animation: none;
+    border: 0.1875rem solid hotpink;
+  }
+}

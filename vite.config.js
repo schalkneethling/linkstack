@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
   root: ".",
@@ -6,7 +7,26 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: "./index.html",
+      },
+    },
   },
+  plugins: [
+    viteStaticCopy({
+      targets: [
+        {
+          src: "css/**/*",
+          dest: "css",
+        },
+        {
+          src: "assets/**/*",
+          dest: "assets",
+        },
+      ],
+    }),
+  ],
   server: {
     port: 3000,
     open: true,
