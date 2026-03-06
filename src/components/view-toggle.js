@@ -20,6 +20,7 @@ class ViewToggle extends HTMLElement {
     this.#buttons = this.querySelectorAll(ViewToggle.#selectors.button);
     this.#loadViewPreference();
     this.#attachEventListeners();
+    this.#updateButtons();
     this.#applyView();
   }
 
