@@ -1,29 +1,52 @@
 :root {
-  --linkstack-dialog-border-radius: 0.5rem;
-  --linkstack-dialog-box-shadow: 0 0 var(--size-16) rgba(0 0 0 / 30%);
-  --linkstack-dialog-backdrop: rgb(0 0 0 / 70%);
+  --linkstack-dialog-border-radius: var(--ls-radius-lg);
+  --linkstack-dialog-box-shadow: var(--ls-shadow-lg);
+  --linkstack-dialog-backdrop: rgb(0 0 0 / 50%);
 
-  /* Toast notification colors - using minimalist library colors */
+  /* Map new tokens to existing variable names used by components */
+  --bg-primary: var(--ls-surface-card);
+  --bg-secondary: #f5f5f4;
+  --bg-tertiary: #e7e5e4;
+  --text-primary: var(--ls-text-primary);
+  --text-secondary: var(--ls-text-secondary);
+  --border-color: var(--ls-border);
+  --border-hover: var(--ls-border-hover);
+  --focus-color: var(--ls-accent);
+  --accent-color: var(--ls-accent);
+
+  /* Toast notification colors */
   --success-color: var(--color-green-50);
   --error-color: var(--color-red-60);
   --warning-color: var(--color-yellow-50);
-  --info-color: #3b82f6;
-  --focus-color: #0066cc;
+  --info-color: var(--ls-accent);
+
+  /* Button overrides for new accent */
+  --minimalist-button-bg-color: var(--ls-accent);
+  --minimalist-button-solid-border-color: var(--ls-accent);
+  --minimalist-button-hover-bg-color: var(--ls-accent-hover);
+  --minimalist-button-solid-hover-border-color: var(--ls-accent-hover);
 }
 
 body {
-  background: #fff url("../assets/pattern.svg") top left repeat;
-  background-size: 110%;
-  color: #333;
-  padding-block: 2rem;
-  padding-inline: 4rem;
+  background-color: var(--ls-surface-base);
+  background-image: radial-gradient(circle, var(--ls-border) 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+  color: var(--ls-text-primary);
+  padding: 0;
+  margin: 0;
 }
 
 .page-container {
   margin: 0 auto;
-  max-inline-size: 80vw;
+  max-inline-size: 1200px;
+  padding-inline: 2rem;
 }
 
 .page-heading {
   margin-block-end: 2rem;
+}
+
+/* Utility */
+.hidden {
+  display: none !important;
 }

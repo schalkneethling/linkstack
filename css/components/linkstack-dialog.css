@@ -7,12 +7,22 @@
 }
 
 .linkstack-dialog {
-  border-radius: var(--linkstack-dialog-border-radius);
-  box-shadow: var(--linkstack-dialog-box-shadow);
-  inline-size: 35vw;
-  padding: var(--size-16);
+  background: var(--ls-surface-card);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-lg);
+  box-shadow: var(--ls-shadow-lg);
+  inline-size: min(35vw, 500px);
+  padding: 1.5rem;
 }
 
 .linkstack-dialog::backdrop {
-  background: var(--linkstack-dialog-backdrop);
+  background: rgb(0 0 0 / 40%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+@media (width <= 48rem) {
+  .linkstack-dialog {
+    inline-size: 90vw;
+  }
 }

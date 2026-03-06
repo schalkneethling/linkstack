@@ -1,10 +1,7 @@
-/* Toolbar Container - Redesigned for Phase 3 */
+/* Toolbar Container */
 
 .toolbar-container {
-  background-color: var(--bg-primary, #fff);
-  border-block-end: 0.0625rem solid var(--border-color, #e0e0e0);
-  margin-block-end: 2rem;
-  padding-block-end: 1.5rem;
+  padding-block: 1.25rem 1rem;
 }
 
 /* Main Search Row */
@@ -19,31 +16,31 @@
   align-items: center;
   display: flex;
   flex: 1;
-  gap: 0.5rem;
   position: relative;
 }
 
 .search-input {
-  border: 0.0625rem solid var(--border-color, #e0e0e0);
-  border-radius: 0.5rem;
+  background: var(--ls-surface-card);
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-md);
+  color: var(--ls-text-primary);
   flex: 1;
-  font-size: 1rem;
-  padding-block: 0.875rem;
-  padding-inline: 1.25rem;
-  padding-inline-end: 3.5rem;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  font-family: var(--minimalist-typography-body-family);
+  font-size: 0.9375rem;
+  padding-block: 0.625rem;
+  padding-inline: 1rem;
+  padding-inline-end: 3rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .search-input:focus {
-  border-color: var(--focus-color, #06c);
-  box-shadow: 0 0 0 0.1875rem rgb(0 102 204 / 10%);
+  border-color: var(--ls-accent);
+  box-shadow: 0 0 0 3px var(--ls-accent-muted);
   outline: none;
 }
 
 .search-input::placeholder {
-  color: var(--text-secondary, #666);
+  color: var(--ls-text-tertiary);
 }
 
 /* Hide native browser clear button */
@@ -63,26 +60,26 @@
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: 0.25rem;
-  color: var(--text-secondary, #666);
+  border-radius: var(--ls-radius-sm);
+  color: var(--ls-text-tertiary);
   cursor: pointer;
   display: flex;
   inset-block-start: 50%;
-  inset-inline-end: 0.875rem;
+  inset-inline-end: 0.75rem;
   justify-content: center;
   padding: 0.25rem;
   position: absolute;
   transform: translateY(-50%);
-  transition: color 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .clear-search-button:hover {
-  color: var(--text-primary, #000);
+  color: var(--ls-text-primary);
 }
 
 .clear-search-button:focus-visible {
-  outline: 0.125rem solid var(--focus-color, #06c);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--ls-accent);
+  outline-offset: 1px;
 }
 
 .clear-search-button[hidden] {
@@ -92,40 +89,39 @@
 /* View Toggle Buttons */
 .view-toggle {
   align-items: center;
-  background-color: var(--bg-secondary, #f5f5f5);
-  border-radius: 0.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: var(--ls-radius-md);
   display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
+  gap: 2px;
+  padding: 3px;
 }
 
 .view-toggle-button {
   align-items: center;
   background-color: transparent;
   border: none;
-  border-radius: 0.375rem;
-  color: var(--text-secondary, #666);
+  border-radius: var(--ls-radius-sm);
+  color: var(--ls-text-tertiary);
   cursor: pointer;
   display: flex;
   justify-content: center;
-  padding: 0.5rem;
-  transition: all 0.2s ease;
+  padding: 0.375rem;
+  transition: all 0.15s ease;
 }
 
 .view-toggle-button:hover {
-  background-color: var(--bg-tertiary, #e8e8e8);
-  color: var(--text-primary, #333);
+  color: var(--ls-text-secondary);
 }
 
 .view-toggle-button[aria-pressed="true"] {
-  background-color: var(--bg-primary, #fff);
-  color: var(--accent-color, #007bff);
-  box-shadow: 0 0.0625rem 0.1875rem rgb(0 0 0 / 10%);
+  background-color: var(--ls-surface-card);
+  color: var(--ls-accent);
+  box-shadow: var(--ls-shadow-sm);
 }
 
 .view-toggle-button:focus-visible {
-  outline: 0.125rem solid var(--focus-color, #06c);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--ls-accent);
+  outline-offset: 1px;
 }
 
 /* Controls Row - Filter and Sort */
@@ -133,57 +129,54 @@
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 /* Filter Controls */
 .filter-controls-container {
   align-items: center;
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .filter-label {
-  color: var(--text-primary, #333);
-  font-size: 0.875rem;
+  color: var(--ls-text-tertiary);
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 
 .filter-buttons {
-  background-color: var(--bg-secondary, #f5f5f5);
-  border-radius: 0.375rem;
   display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
+  gap: 0;
+  position: relative;
 }
 
 .filter-button {
   background-color: transparent;
   border: none;
-  border-radius: 0.25rem;
-  color: var(--text-secondary, #666);
+  border-bottom: 2px solid transparent;
+  color: var(--ls-text-tertiary);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-family: var(--minimalist-typography-body-family);
+  font-size: 0.8125rem;
   font-weight: 500;
   padding-block: 0.5rem;
-  padding-inline: 1rem;
-  transition: all 0.2s ease;
+  padding-inline: 0.75rem;
+  transition: all 0.15s ease;
 }
 
 .filter-button:hover {
-  background-color: var(--bg-tertiary, #e8e8e8);
-  color: var(--text-primary, #333);
+  color: var(--ls-text-primary);
 }
 
 .filter-button:focus-visible {
-  outline: 0.125rem solid var(--accent-color, #007bff);
-  outline-offset: 0.125rem;
+  outline: 2px solid var(--ls-accent);
+  outline-offset: 1px;
 }
 
 .filter-button.active {
-  background-color: var(--bg-primary, #fff);
-  box-shadow: 0 0.0625rem 0.1875rem rgb(0 0 0 / 10%);
-  color: var(--accent-color, #007bff);
+  border-bottom-color: var(--ls-accent);
+  color: var(--ls-accent);
 }
 
 /* Sort Controls */
@@ -191,70 +184,60 @@
   align-items: center;
   display: flex;
   gap: 0.5rem;
+  margin-inline-start: auto;
 }
 
 .sort-label {
-  color: var(--text-secondary, #666);
-  font-size: 0.875rem;
+  color: var(--ls-text-tertiary);
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 
 .sort-select {
-  background-color: var(--background-color, #fff);
-  border: 0.0625rem solid var(--border-color, #e0e0e0);
-  border-radius: 0.375rem;
-  color: var(--text-primary, #000);
+  background-color: transparent;
+  border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-sm);
+  color: var(--ls-text-secondary);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-family: var(--minimalist-typography-body-family);
+  font-size: 0.8125rem;
   font-weight: 500;
-  padding-block: 0.5rem;
-  padding-inline: 0.875rem;
-  padding-inline-end: 2.25rem;
-  transition: all 0.2s ease;
+  padding-block: 0.375rem;
+  padding-inline: 0.625rem;
+  padding-inline-end: 1.75rem;
+  transition: all 0.15s ease;
 }
 
 .sort-select:hover {
-  border-color: var(--text-secondary, #666);
+  border-color: var(--ls-border-hover);
 }
 
 .sort-select:focus {
-  border-color: var(--focus-color, #06c);
-  box-shadow: 0 0 0 0.1875rem rgb(0 102 204 / 10%);
+  border-color: var(--ls-accent);
+  box-shadow: 0 0 0 3px var(--ls-accent-muted);
   outline: none;
 }
 
 /* Search Results Info */
 .search-results-info {
-  color: var(--text-secondary, #666);
-  font-size: 0.875rem;
-  margin-block-start: 1rem;
-  min-block-size: 1.25rem;
+  color: var(--ls-text-secondary);
+  font-family: var(--minimalist-typography-code-family);
+  font-size: 0.75rem;
+  margin-block-start: 0.75rem;
+  min-block-size: 1rem;
 }
 
 .search-results-info:empty {
   display: none;
 }
 
-/* Responsive Design */
-
-/* Tablet and up */
+/* Responsive */
 @media (width >= 48rem) {
   .toolbar-container {
-    margin-block-end: 2.5rem;
-    padding-block-end: 2rem;
-  }
-
-  .toolbar-search-row {
-    margin-block-end: 1.25rem;
-  }
-
-  .search-input {
-    font-size: 1.0625rem;
-    padding-block: 1rem;
+    padding-block: 1.5rem 1.25rem;
   }
 }
 
-/* Mobile */
 @media (width <= 37.5rem) {
   .toolbar-search-row {
     flex-wrap: wrap;
@@ -271,22 +254,20 @@
   .toolbar-controls-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
-  .filter-controls-container,
-  .sort-controls-container {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .filter-buttons {
-    inline-size: 100%;
+  .filter-controls-container {
+    gap: 0.25rem;
   }
 
   .filter-button {
     flex: 1;
+    text-align: center;
+  }
+
+  .sort-controls-container {
+    margin-inline-start: 0;
   }
 
   .sort-select {
@@ -294,7 +275,6 @@
   }
 }
 
-/* Small mobile optimizations */
 @media (width <= 30rem) {
   .view-toggle {
     inline-size: 100%;
