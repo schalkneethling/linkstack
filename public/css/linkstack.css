@@ -38,8 +38,14 @@ body {
 
 .page-container {
   margin: 0 auto;
-  max-inline-size: 1200px;
-  padding-inline: 2rem;
+  max-inline-size: min(1200px, 100%);
+  padding-inline: 1.5rem;
+}
+
+@media (width >= 48rem) {
+  .page-container {
+    padding-inline: 2rem;
+  }
 }
 
 .page-heading {

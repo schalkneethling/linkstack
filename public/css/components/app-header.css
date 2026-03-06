@@ -11,13 +11,19 @@
 }
 
 .header-container {
-  max-width: 1200px;
+  max-width: min(1200px, 100%);
   margin: 0 auto;
-  padding: 0.75rem 2rem;
+  padding: 0.75rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+}
+
+@media (width >= 48rem) {
+  .header-container {
+    padding-inline: 2rem;
+  }
 }
 
 /* Logo */
@@ -206,13 +212,17 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (width <= 48rem) {
   .header-container {
     padding: 0.625rem 1rem;
   }
 
   .logo-text {
     font-size: 1.125rem;
+  }
+
+  .new-bookmark-btn span {
+    display: none;
   }
 
   .profile-name {
