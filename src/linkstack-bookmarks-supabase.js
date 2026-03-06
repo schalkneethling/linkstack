@@ -180,13 +180,9 @@ export class LinkStackBookmarks extends HTMLElement {
         return;
       }
 
-      // Handle context menu trigger click
+      // Context menu trigger click is handled by popovertarget attribute
       const contextMenuTrigger = event.target.closest(".context-menu-trigger");
       if (contextMenuTrigger) {
-        const contextMenu = contextMenuTrigger.nextElementSibling;
-        if (contextMenu && contextMenu.hasAttribute("popover")) {
-          contextMenu.togglePopover();
-        }
         return;
       }
 
@@ -821,6 +817,13 @@ export class LinkStackBookmarks extends HTMLElement {
           deleteBookmark.dataset.id = bookmark.id;
           editBookmark.dataset.id = bookmark.id;
 
+          // Wire up popovertarget for context menu anchor positioning
+          const contextMenuTrigger = entry.querySelector(".context-menu-trigger");
+          const contextMenu = entry.querySelector(".context-menu");
+          const contextMenuId = `context-menu-${bookmark.id}`;
+          contextMenu.id = contextMenuId;
+          contextMenuTrigger.setAttribute("popovertarget", contextMenuId);
+
           // Setup read/unread toggle
           const readToggle = entry.querySelector("#toggle-read-status");
           readToggle.dataset.id = bookmark.id;
@@ -888,6 +891,13 @@ export class LinkStackBookmarks extends HTMLElement {
 
               childDelete.dataset.id = child.id;
               childEdit.dataset.id = child.id;
+
+              // Wire up popovertarget for context menu anchor positioning
+              const childContextTrigger = childEntry.querySelector(".context-menu-trigger");
+              const childContextMenu = childEntry.querySelector(".context-menu");
+              const childContextMenuId = `context-menu-${child.id}`;
+              childContextMenu.id = childContextMenuId;
+              childContextTrigger.setAttribute("popovertarget", childContextMenuId);
 
               // Setup read/unread toggle for child
               const childReadToggle = childEntry.querySelector(

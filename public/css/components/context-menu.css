@@ -32,11 +32,16 @@
   box-shadow: var(--ls-shadow-lg);
   display: flex;
   flex-direction: column;
+  inset: unset;
   margin: 0;
   min-inline-size: 10rem;
   opacity: 0;
   padding: 0.25rem;
   position: fixed;
+  position-anchor: implicit;
+  inset-block-start: anchor(end);
+  inset-inline-end: anchor(end);
+  position-try-fallbacks: flip-block, flip-inline;
   transform: scale(0.95);
   transition:
     opacity 0.12s ease,
