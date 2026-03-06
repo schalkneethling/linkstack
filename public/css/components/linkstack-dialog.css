@@ -23,6 +23,15 @@
 
 @media (width <= 48rem) {
   .linkstack-dialog {
-    inline-size: 90vw;
+    block-size: 100vh;
+    block-size: 100dvh;
+    border: none;
+    border-radius: 0;
+    inline-size: 100vw;
+    margin: 0;
+    max-block-size: 100vh;
+    max-block-size: 100dvh;
+    max-inline-size: 100vw;
+    overflow-y: auto;
   }
 }
