@@ -144,17 +144,46 @@
   --table-tfoot-padding-block: var(--size-16);
   --table-tfoot-padding-inline: var(--size-8);
 
-  /* typography - https://systemfontstack.com */
+  /* typography */
   --minimalist-typography-heading-family:
-    iowan old style, apple garamond, baskerville, times new roman, droid serif,
-    times, source serif pro, serif, apple color emoji, segoe ui emoji,
-    segoe ui symbol;
+    "Instrument Serif", georgia, "Times New Roman", serif;
   --minimalist-typography-body-family:
-    -apple-system, blinkmacsystemfont, avenir next, avenir, segoe ui,
-    helvetica neue, helvetica, cantarell, ubuntu, roboto, noto, arial,
-    sans-serif;
+    "DM Sans", -apple-system, blinkmacsystemfont, segoe ui, helvetica neue,
+    arial, sans-serif;
   --minimalist-typography-code-family:
-    menlo, consolas, monaco, liberation mono, lucida console, monospace;
+    "JetBrains Mono", menlo, consolas, monaco, monospace;
+  --minimalist-typography-brand-family:
+    "Space Mono", "JetBrains Mono", menlo, consolas, monospace;
+
+  /* LinkStack design tokens */
+  --ls-surface-base: #f8f7f4;
+  --ls-surface-card: #ffffff;
+  --ls-surface-elevated: #ffffff;
+
+  --ls-text-primary: #1a1a19;
+  --ls-text-secondary: #6b6b6a;
+  --ls-text-tertiary: #9c9c9b;
+
+  --ls-accent: #0d9488;
+  --ls-accent-hover: #0f766e;
+  --ls-accent-subtle: #ccfbf1;
+  --ls-accent-muted: rgba(13, 148, 136, 0.08);
+
+  --ls-destructive: #dc2626;
+  --ls-destructive-subtle: #fef2f2;
+
+  --ls-border: #e7e5e4;
+  --ls-border-hover: #d6d3d1;
+  --ls-border-focus: var(--ls-accent);
+
+  --ls-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ls-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --ls-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  --ls-radius-sm: 0.375rem;
+  --ls-radius-md: 0.5rem;
+  --ls-radius-lg: 0.75rem;
+  --ls-radius-xl: 1rem;
 
   --minimalist-typography-scale-mobile: 1.25;
 

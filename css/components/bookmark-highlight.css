@@ -3,20 +3,20 @@
 
 .bookmark-highlight {
   animation: pulse-highlight 2s ease-in-out 3;
-  border: 0.1875rem solid hotpink;
-  border-radius: 0.5rem;
+  border: 2px solid var(--ls-accent);
+  border-radius: var(--ls-radius-lg);
 }
 
 @keyframes pulse-highlight {
   0%,
   100% {
-    border-color: hotpink;
-    box-shadow: 0 0 0 0 rgb(255 105 180 / 70%);
+    border-color: var(--ls-accent);
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4);
   }
 
   50% {
-    border-color: hotpink;
-    box-shadow: 0 0 0 0.5rem rgb(255 105 180 / 0%);
+    border-color: var(--ls-accent);
+    box-shadow: 0 0 0 0.5rem rgba(13, 148, 136, 0);
   }
 }
 
@@ -24,6 +24,6 @@
 @media (prefers-reduced-motion: reduce) {
   .bookmark-highlight {
     animation: none;
-    border: 0.1875rem solid hotpink;
+    border: 2px solid var(--ls-accent);
   }
 }

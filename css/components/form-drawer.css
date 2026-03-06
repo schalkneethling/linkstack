@@ -1,12 +1,11 @@
 /* Form Drawer - Side panel for adding bookmarks */
 
 .form-drawer {
-  /* Positioning - inline-end side drawer */
-  background: var(--bg-primary, #fff);
+  background: var(--ls-surface-card);
   block-size: 100vh;
   border: none;
-  border-inline-start: 0.0625rem solid var(--border-color, #e0e0e0);
-  box-shadow: -0.25rem 0 1.5rem rgb(0 0 0 / 10%);
+  border-inline-start: 1px solid var(--ls-border);
+  box-shadow: -4px 0 24px rgb(0 0 0 / 8%);
   display: flex;
   flex-direction: column;
   inline-size: 95vw;
@@ -14,19 +13,24 @@
   inset-block-start: 0;
   inset-inline-end: 0;
   margin: 0;
-  max-inline-size: 37.5rem;
+  max-inline-size: 28rem;
   opacity: 0;
   overflow: hidden;
   padding: 0;
   position: fixed;
-
-  /* Animation */
   transform: translateX(100%);
   transition:
-    opacity 0.3s ease,
-    transform 0.3s ease,
-    overlay 0.3s allow-discrete,
-    display 0.3s allow-discrete;
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    overlay 0.25s allow-discrete,
+    display 0.25s allow-discrete;
+}
+
+/* Backdrop blur when drawer is open */
+.form-drawer::backdrop {
+  background: rgb(0 0 0 / 20%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* When popover is open */
@@ -46,19 +50,20 @@
 /* Header */
 .form-drawer-header {
   align-items: center;
-  background: var(--bg-primary, #fff);
-  border-block-end: 0.0625rem solid var(--border-color, #e0e0e0);
+  background: var(--ls-surface-card);
+  border-block-end: 1px solid var(--ls-border);
   display: flex;
-  inset-block-start: 0;
   justify-content: space-between;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   position: sticky;
+  inset-block-start: 0;
   z-index: 10;
 }
 
 .form-drawer-header h2 {
-  color: var(--text-primary, #000);
-  font-size: 1.25rem;
+  color: var(--ls-text-primary);
+  font-family: var(--minimalist-typography-body-family);
+  font-size: 1rem;
   font-weight: 600;
   margin: 0;
 }
@@ -68,24 +73,24 @@
   align-items: center;
   background: none;
   border: none;
-  border-radius: 0.25rem;
-  color: var(--text-secondary, #666);
+  border-radius: var(--ls-radius-sm);
+  color: var(--ls-text-tertiary);
   cursor: pointer;
   display: flex;
   justify-content: center;
   margin: -0.5rem;
   padding: 0.5rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .form-drawer-close:hover {
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-primary, #000);
+  background: var(--bg-secondary);
+  color: var(--ls-text-primary);
 }
 
-.form-drawer-close:focus {
-  outline: 0.125rem solid var(--focus-color, #007bff);
-  outline-offset: 0.125rem;
+.form-drawer-close:focus-visible {
+  outline: 2px solid var(--ls-accent);
+  outline-offset: 1px;
 }
 
 /* Content */
@@ -111,30 +116,37 @@
   inline-size: 100%;
 }
 
-/* Make collapsible field expand naturally in drawer - revert to default details behavior */
 .form-drawer-content .form-field-collapsible[open] {
   block-size: auto;
+}
+
+.form-drawer-content .linkstack-form input[type="url"] {
+  font-family: var(--minimalist-typography-code-family);
+  font-size: 0.875rem;
 }
 
 .form-drawer-content .linkstack-form input,
 .form-drawer-content .linkstack-form select,
 .form-drawer-content .linkstack-form textarea {
   inline-size: 100%;
+  border-radius: var(--ls-radius-sm);
 }
 
 .form-drawer-content .linkstack-form button[type="submit"] {
   inline-size: 100%;
-  margin-block-start: 0.5rem;
+  margin-block-start: 0.75rem;
 }
 
-/* New Bookmark Button */
+/* New Bookmark Button in header */
 .new-bookmark-btn {
   align-items: center;
+  border-radius: var(--ls-radius-md);
   display: flex;
-  font-size: 0.875rem;
-  gap: 0.5rem;
-  margin-inline-end: 1rem;
-  padding: 0.625rem 1rem;
+  font-family: var(--minimalist-typography-body-family);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
 }
 
 .new-bookmark-btn svg {
@@ -153,7 +165,7 @@
   }
 
   .new-bookmark-btn {
-    padding: 0.625rem;
+    padding: 0.5rem;
   }
 }
 
