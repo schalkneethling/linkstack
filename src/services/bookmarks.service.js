@@ -1,8 +1,10 @@
 // @ts-check
 import { normalizeUrl } from "../utils/normalize-url.js";
 import {
+  validateAddExistingPublicBookmarkInput,
   getValidationMessage,
   validateCreateBookmarkInput,
+  validateReviewPublicShareInput,
   validateUpdateBookmarkInput,
 } from "../utils/validation-schemas.js";
 
@@ -486,6 +488,21 @@ export class BookmarksService {
     notes = "",
     parentId = null,
   }) {
+    const validationResult = validateAddExistingPublicBookmarkInput({
+      resourceId,
+      publicListingId,
+      notes,
+      parentId,
+    });
+    if (!validationResult.success) {
+      throw new Error(
+        getValidationMessage(
+          validationResult,
+          "Invalid public bookmark input.",
+        ),
+      );
+    }
+
     const user = await this.#requireUser();
     const duplicate = await this.findBookmarkByResourceId(resourceId, user.id);
 
@@ -706,6 +723,20 @@ export class BookmarksService {
   }
 
   async reviewPublicShare(id, { decision, rejectionCode = null, rejectionReason = "" }) {
+    const validationResult = validateReviewPublicShareInput({
+      decision,
+      rejectionCode,
+      rejectionReason,
+    });
+    if (!validationResult.success) {
+      throw new Error(
+        getValidationMessage(
+          validationResult,
+          "Invalid public review input.",
+        ),
+      );
+    }
+
     const reviewer = await this.#requireUser();
     const status =
       decision === "approve"

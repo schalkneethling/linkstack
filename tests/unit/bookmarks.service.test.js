@@ -266,6 +266,16 @@ describe("BookmarksService", () => {
     expect(bookmark.notes).toBe("read later");
   });
 
+  it("rejects addExistingPublicToLibrary input with an invalid resource id", async () => {
+    await expect(
+      service.addExistingPublicToLibrary({
+        resourceId: /** @type {any} */ (null),
+        publicListingId: "listing-1",
+        notes: "read later",
+      }),
+    ).rejects.toThrow("Invalid type");
+  });
+
   it("creates a new resource and bookmark when the URL is unknown", async () => {
     const bookmark = await service.create({
       url: "https://new.example.com/post",
@@ -375,6 +385,16 @@ describe("BookmarksService", () => {
 
     expect(reviewed.status).toBe(PUBLIC_SHARE_STATUS.REJECTED);
     expect(reviewed.rejection_code).toBe("out_of_scope");
+  });
+
+  it("requires a rejection reason when rejecting a public listing", async () => {
+    await expect(
+      service.reviewPublicShare("listing-1", {
+        decision: "reject",
+        rejectionCode: "",
+        rejectionReason: "",
+      }),
+    ).rejects.toThrow("Choose a rejection reason before rejecting a bookmark.");
   });
 
   it("rejects update input with invalid tags", async () => {

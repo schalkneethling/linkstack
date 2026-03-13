@@ -38,6 +38,34 @@ const updateBookmarkSchema = v.object({
   tags: v.optional(v.array(v.string())),
 });
 
+const addExistingPublicBookmarkSchema = v.object({
+  resourceId: v.string(),
+  publicListingId: v.string(),
+  notes: v.optional(v.string()),
+  parentId: v.optional(v.nullable(v.string())),
+});
+
+const reviewDecisionSchema = v.picklist(["approve", "reject"]);
+
+const reviewPublicShareSchema = v.pipe(
+  v.object({
+    decision: reviewDecisionSchema,
+    rejectionCode: v.optional(v.nullable(v.string())),
+    rejectionReason: v.optional(v.string()),
+  }),
+  v.check(
+    (input) =>
+      input.decision === "approve" || Boolean(input.rejectionCode?.trim()),
+    "Choose a rejection reason before rejecting a bookmark.",
+  ),
+);
+
+const bookmarkMetadataSchema = v.object({
+  pageTitle: v.string(),
+  metaDescription: v.string(),
+  previewImg: v.string(),
+});
+
 /**
  * @param {{ issues?: Array<{ message?: string }> } | undefined} result
  * @param {string} fallbackMessage
@@ -65,4 +93,25 @@ export function validateCreateBookmarkInput(input) {
  */
 export function validateUpdateBookmarkInput(input) {
   return v.safeParse(updateBookmarkSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateAddExistingPublicBookmarkInput(input) {
+  return v.safeParse(addExistingPublicBookmarkSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateReviewPublicShareInput(input) {
+  return v.safeParse(reviewPublicShareSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateBookmarkMetadata(input) {
+  return v.safeParse(bookmarkMetadataSchema, input);
 }

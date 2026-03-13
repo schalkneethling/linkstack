@@ -4,6 +4,7 @@ import { BookmarksService } from "./services/bookmarks.service.js";
 import { SettingsService } from "./services/settings.service.js";
 import { getRandomEncouragementMessage } from "./utils/encouragement-messages.js";
 import {
+  validateBookmarkMetadata,
   getValidationMessage,
   validateUrl,
 } from "./utils/validation-schemas.js";
@@ -278,6 +279,24 @@ export class LinkStackForm extends HTMLElement {
     });
   }
 
+  #getFallbackMetadata(url) {
+    const urlObj = new URL(url);
+    return {
+      pageTitle: urlObj.hostname.replace("www.", ""),
+      metaDescription: "",
+      previewImg: "",
+    };
+  }
+
+  #parseMetadataResponse(input, url) {
+    const validationResult = validateBookmarkMetadata(input);
+    if (validationResult.success) {
+      return validationResult.output;
+    }
+
+    return this.#getFallbackMetadata(url);
+  }
+
   async #handlePublicDuplicate({
     inspection,
     notes,
@@ -395,17 +414,12 @@ export class LinkStackForm extends HTMLElement {
         const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
 
         if (!response.ok) {
-          const urlObj = new URL(url);
           await this.#createWithMetadata({
             url,
             notes,
             parentId,
             requestPublic,
-            metadata: {
-              pageTitle: urlObj.hostname.replace("www.", ""),
-              metaDescription: "",
-              previewImg: "",
-            },
+            metadata: this.#getFallbackMetadata(url),
           });
 
           bookmarkForm.reset();
@@ -419,7 +433,7 @@ export class LinkStackForm extends HTMLElement {
           return;
         }
 
-        const metadata = await response.json();
+        const metadata = this.#parseMetadataResponse(await response.json(), url);
         await this.#createWithMetadata({
           url,
           notes,
