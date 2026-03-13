@@ -1,10 +1,16 @@
-// -check
+// @ts-check
 /**
  * View Toggle Component
  * Manages grid/list view switching with localStorage persistence
  */
+const VIEW_MODE = Object.freeze({
+  grid: "grid",
+  list: "list",
+});
+
 class ViewToggle extends HTMLElement {
-  #currentView = "grid";
+  /** @type {"grid" | "list"} */
+  #currentView = VIEW_MODE.grid;
   #buttons = null;
   #storageKey = "linkstack:view-preference";
 
@@ -67,19 +73,19 @@ class ViewToggle extends HTMLElement {
   #saveViewPreference() {
     try {
       localStorage.setItem(this.#storageKey, this.#currentView);
-    } catch (error) {
-      console.info("Failed to save view preference:", error);
+    } catch {
+      // Ignore storage failures; the selected view still applies for the session.
     }
   }
 
   #loadViewPreference() {
     try {
       const savedView = localStorage.getItem(this.#storageKey);
-      if (savedView === "grid" || savedView === "list") {
+      if (savedView === VIEW_MODE.grid || savedView === VIEW_MODE.list) {
         this.#currentView = savedView;
       }
-    } catch (error) {
-      console.info("Failed to load view preference:", error);
+    } catch {
+      // Ignore storage failures and keep the default view.
     }
   }
 
@@ -100,6 +106,8 @@ class ViewToggle extends HTMLElement {
   }
 }
 
-customElements.define("view-toggle", ViewToggle);
+if (!customElements.get("view-toggle")) {
+  customElements.define("view-toggle", ViewToggle);
+}
 
 export { ViewToggle };

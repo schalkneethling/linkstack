@@ -668,9 +668,8 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       await this.#renderBookmarks();
     } catch (error) {
-      console.info("Error deleting bookmark:", error);
       this.#showToast(
-        "Failed to delete bookmark. Please try again.",
+        this.#getErrorMessage(error, "Failed to delete bookmark. Please try again."),
         "error",
       );
     }
@@ -687,9 +686,8 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       await this.#renderBookmarks();
     } catch (error) {
-      console.info("Error toggling read status:", error);
       this.#showToast(
-        "Failed to update read status. Please try again.",
+        this.#getErrorMessage(error, "Failed to update read status. Please try again."),
         "error",
       );
     }
@@ -704,9 +702,8 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       window.dispatchEvent(new CustomEvent("bookmark-created"));
     } catch (error) {
-      console.info("Error saving public bookmark:", error);
       this.#showToast(
-        error.message || "Failed to save bookmark.",
+        this.#getErrorMessage(error, "Failed to save bookmark."),
         "error",
       );
     }
@@ -721,9 +718,8 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
     } catch (error) {
-      console.info("Error requesting public share:", error);
       this.#showToast(
-        error.message || "Failed to submit bookmark for review.",
+        this.#getErrorMessage(error, "Failed to submit bookmark for review."),
         "error",
       );
     }
@@ -846,8 +842,7 @@ export class LinkStackBookmarks extends HTMLElement {
         );
         bookmarksList.append(entry);
       }
-    } catch (error) {
-      console.info("Error rendering bookmarks:", error);
+    } catch {
       bookmarksContainer.innerHTML = `
         <div class="error-message">
           <p>Failed to load bookmarks. Please try refreshing the page.</p>
@@ -866,6 +861,12 @@ export class LinkStackBookmarks extends HTMLElement {
         /** @type {unknown} */ (document.querySelector("linkstack-toast"))
       );
     toast?.show(message, type);
+  }
+
+  #getErrorMessage(error, fallbackMessage) {
+    return error instanceof Error && error.message
+      ? error.message
+      : fallbackMessage;
   }
 }
 

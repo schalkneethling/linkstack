@@ -5,6 +5,27 @@ import { AuthService } from "./services/auth.service.js";
 import "./linkstack-auth.js";
 import "./linkstack-bookmarks-supabase.js";
 
+const AUTH_EVENTS = Object.freeze({
+  authStateChanged: "auth-state-changed",
+  publicReviewPanelOpened: "public-review-panel-opened",
+});
+
+const BOOKMARK_SCOPE = Object.freeze({
+  public: "public",
+  mine: "mine",
+  all: "all",
+});
+
+const SCOPE_OPTIONS = Object.freeze({
+  guest: Object.freeze([
+    { value: BOOKMARK_SCOPE.public, label: "Public bookmarks" },
+  ]),
+  authenticated: Object.freeze([
+    { value: BOOKMARK_SCOPE.mine, label: "My bookmarks" },
+    { value: BOOKMARK_SCOPE.all, label: "All bookmarks" },
+  ]),
+});
+
 class LinkStackApp {
   #authService = new AuthService(supabase);
   #authComponent = null;
@@ -64,8 +85,7 @@ class LinkStackApp {
     this.#authComponent?.addEventListener("sign-in-google", async () => {
       try {
         await this.#authService.signInWithGoogle();
-      } catch (error) {
-        console.info("Google sign in error:", error);
+      } catch {
         this.#showToast(
           "Failed to sign in with Google. Please try again.",
           "error",
@@ -76,8 +96,7 @@ class LinkStackApp {
     this.#authComponent?.addEventListener("sign-in-github", async () => {
       try {
         await this.#authService.signInWithGitHub();
-      } catch (error) {
-        console.info("GitHub sign in error:", error);
+      } catch {
         this.#showToast(
           "Failed to sign in with GitHub. Please try again.",
           "error",
@@ -89,8 +108,7 @@ class LinkStackApp {
       try {
         await this.#authService.signOut();
         await this.#handleAuthChange(null, false);
-      } catch (error) {
-        console.info("Sign out error:", error);
+      } catch {
         this.#showToast("Failed to sign out. Please try again.", "error");
       }
     });
@@ -102,9 +120,10 @@ class LinkStackApp {
     });
 
     this.#scopeSelect?.addEventListener("change", async () => {
-      if (this.#scopeSelect.value === "public") {
-        this.#scopeSelect.value = "mine";
-      }
+      this.#scopeSelect.value = this.#sanitizeScopeValue(
+        this.#scopeSelect.value,
+        Boolean(this.#currentUser),
+      );
       await this.#emitAuthStateChanged();
     });
   }
@@ -117,7 +136,7 @@ class LinkStackApp {
       this.#adminButton?.setAttribute("aria-pressed", String(isHidden));
 
       if (isHidden) {
-        window.dispatchEvent(new CustomEvent("public-review-panel-opened"));
+        window.dispatchEvent(new CustomEvent(AUTH_EVENTS.publicReviewPanelOpened));
       }
     });
   }
@@ -127,8 +146,7 @@ class LinkStackApp {
       const user = await this.#authService.getCurrentUser();
       const isAdmin = user ? await this.#authService.isAdmin() : false;
       await this.#handleAuthChange(user, isAdmin);
-    } catch (error) {
-      console.info("Error checking auth state:", error);
+    } catch {
       await this.#handleAuthChange(null, false);
     }
   }
@@ -140,20 +158,15 @@ class LinkStackApp {
 
     if (isAuthenticated) {
       this.#scopeLabel.textContent = "Library:";
-      this.#scopeSelect.innerHTML = `
-        <option value="mine">My bookmarks</option>
-        <option value="all">All bookmarks</option>
-      `;
-
-      if (![...this.#scopeSelect.options].some((option) => option.value === this.#scopeSelect.value)) {
-        this.#scopeSelect.value = "mine";
-      }
+      this.#replaceScopeOptions(SCOPE_OPTIONS.authenticated);
+      this.#scopeSelect.value = this.#sanitizeScopeValue(
+        this.#scopeSelect.value,
+        true,
+      );
     } else {
       this.#scopeLabel.textContent = "Showing:";
-      this.#scopeSelect.innerHTML = `
-        <option value="public">Public bookmarks</option>
-      `;
-      this.#scopeSelect.value = "public";
+      this.#replaceScopeOptions(SCOPE_OPTIONS.guest);
+      this.#scopeSelect.value = BOOKMARK_SCOPE.public;
     }
   }
 
@@ -169,6 +182,7 @@ class LinkStackApp {
     this.#newBookmarkButton?.classList.toggle("hidden", !user);
     this.#formDrawer?.classList.toggle("hidden", !user);
     this.#adminButton?.classList.toggle("hidden", !(user && isAdmin));
+    this.#adminButton?.setAttribute("aria-pressed", "false");
     this.#adminPanel?.classList.add("hidden");
 
     this.#updateScopeOptions(Boolean(user));
@@ -177,15 +191,49 @@ class LinkStackApp {
 
   async #emitAuthStateChanged() {
     window.dispatchEvent(
-      new CustomEvent("auth-state-changed", {
+      new CustomEvent(AUTH_EVENTS.authStateChanged, {
         detail: {
           user: this.#currentUser,
           isAuthenticated: Boolean(this.#currentUser),
           isAdmin: this.#isAdmin,
-          scope: this.#scopeSelect?.value || "public",
+          scope:
+            this.#scopeSelect?.value ||
+            this.#sanitizeScopeValue("", Boolean(this.#currentUser)),
         },
       }),
     );
+  }
+
+  #replaceScopeOptions(options) {
+    if (!this.#scopeSelect) {
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    options.forEach((option) => {
+      const optionElement = document.createElement("option");
+      optionElement.value = option.value;
+      optionElement.textContent = option.label;
+      fragment.append(optionElement);
+    });
+    this.#scopeSelect.replaceChildren(fragment);
+  }
+
+  /**
+   * @param {string} value
+   * @param {boolean} isAuthenticated
+   * @returns {string}
+   */
+  #sanitizeScopeValue(value, isAuthenticated) {
+    const allowedScopes = /** @type {string[]} */ (isAuthenticated
+      ? SCOPE_OPTIONS.authenticated.map((option) => option.value)
+      : SCOPE_OPTIONS.guest.map((option) => option.value));
+
+    return allowedScopes.includes(value)
+      ? value
+      : isAuthenticated
+        ? BOOKMARK_SCOPE.mine
+        : BOOKMARK_SCOPE.public;
   }
 
   #showToast(message, type) {

@@ -44,10 +44,6 @@ export class LinkStackEditDialog extends HTMLElement {
   #bookmarksService = new BookmarksService(supabase);
   #isSaving = false;
 
-  constructor() {
-    super();
-  }
-
   connectedCallback() {
     this.#initElements();
     this.#addEventListeners();
@@ -163,8 +159,7 @@ export class LinkStackEditDialog extends HTMLElement {
     try {
       return await this.#bookmarksService.getById(id);
     } catch (error) {
-      console.info("Error getting bookmark data:", error);
-      throw new Error(`Error getting bookmark data: ${error.message}`, {
+      throw new Error(this.#getErrorMessage(error, "Failed to load bookmark."), {
         cause: error,
       });
     }
@@ -207,12 +202,10 @@ export class LinkStackEditDialog extends HTMLElement {
       this.#setSaveButtonLoading(false);
       editDialog.close();
     } catch (error) {
-      console.info("Error saving bookmark changes:", error);
-      const toast =
-        /** @type {{ show: (message: string, type: string) => void } | null} */ (
-          /** @type {unknown} */ (document.querySelector("linkstack-toast"))
-        );
-      toast?.show("Failed to save changes. Please try again.", "error");
+      this.#showToast(
+        this.#getErrorMessage(error, "Failed to save changes. Please try again."),
+        "error",
+      );
       this.#setSaveButtonLoading(false);
     }
   }
@@ -251,13 +244,25 @@ export class LinkStackEditDialog extends HTMLElement {
 
       editDialog.showModal();
     } catch (error) {
-      console.info("Error loading bookmark for edit:", error);
-      const toast =
-        /** @type {{ show: (message: string, type: string) => void } | null} */ (
-          /** @type {unknown} */ (document.querySelector("linkstack-toast"))
-        );
-      toast?.show("Failed to load bookmark. Please try again.", "error");
+      this.#showToast(
+        this.#getErrorMessage(error, "Failed to load bookmark. Please try again."),
+        "error",
+      );
     }
+  }
+
+  #showToast(message, type) {
+    const toast =
+      /** @type {{ show: (message: string, type: string) => void } | null} */ (
+        /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+      );
+    toast?.show(message, type);
+  }
+
+  #getErrorMessage(error, fallbackMessage) {
+    return error instanceof Error && error.message
+      ? error.message
+      : fallbackMessage;
   }
 }
 

@@ -60,8 +60,8 @@ export class LinkStackForm extends HTMLElement {
         option.textContent = bookmark.page_title;
         parentSelect.appendChild(option);
       });
-    } catch (error) {
-      console.info("Error loading parent bookmarks:", error);
+    } catch {
+      this.#showToast("Failed to load stack options. Please try again.", "error");
     }
   }
 
@@ -187,8 +187,7 @@ export class LinkStackForm extends HTMLElement {
       const allBookmarks = await this.#bookmarksService.fetchAll();
       const unreadCount = allBookmarks.filter((bookmark) => !bookmark.is_read).length;
       return unreadCount >= this.#settingsService.getUnreadLimit();
-    } catch (error) {
-      console.info("Error checking unread limit:", error);
+    } catch {
       return false;
     }
   }
@@ -218,8 +217,8 @@ export class LinkStackForm extends HTMLElement {
       setTimeout(() => {
         bookmarkElement.classList.remove("bookmark-highlight");
       }, 5000);
-    } catch (error) {
-      console.info("Error highlighting bookmark:", error);
+    } catch {
+      // If the highlight fails, the encouragement message is still enough feedback.
     }
   }
 
@@ -436,15 +435,20 @@ export class LinkStackForm extends HTMLElement {
         );
         this.#dispatchCreated();
       } catch (error) {
-        console.info("Error submitting bookmark:", error);
         this.#showToast(
-          error.message || "Failed to add bookmark. Please try again.",
+          this.#getErrorMessage(error, "Failed to add bookmark. Please try again."),
           "error",
         );
       } finally {
         this.#setSubmitButtonLoading(false);
       }
     });
+  }
+
+  #getErrorMessage(error, fallbackMessage) {
+    return error instanceof Error && error.message
+      ? error.message
+      : fallbackMessage;
   }
 }
 
