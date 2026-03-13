@@ -1,3 +1,4 @@
+// -check
 import * as cheerio from "cheerio";
 
 // CORS configuration - restrict to known origins
@@ -127,7 +128,7 @@ export default async (request) => {
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
   } catch (error) {
-    console.error("Error fetching bookmark data:", error);
+    console.info("Error fetching bookmark data:", error);
     return new Response(
       JSON.stringify({
         error: `Error processing URL: ${error.message}`,

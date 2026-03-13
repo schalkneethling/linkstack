@@ -1,15 +1,15 @@
+// @ts-check
 import { supabase } from "./lib/supabase.js";
-import { BookmarksService } from "./services/bookmarks.service.js";
+import {
+  BookmarksService,
+  PUBLIC_SHARE_STATUS,
+} from "./services/bookmarks.service.js";
 
-/**
- * Bookmarks component that uses Supabase for data storage
- */
 export class LinkStackBookmarks extends HTMLElement {
   static #selectors = {
     bookmarksContainer: "#bookmarks-container",
     bookmarksEntryTmpl: "#bookmarks-entry-tmpl",
     bookmarkChildTmpl: "#bookmark-child-tmpl",
-    linkstackEditDialog: "linkstack-edit-dialog",
     noBookmarksTmpl: "#no-bookmarks-tmpl",
     skeletonLoaderTmpl: "#skeleton-loader-tmpl",
     searchInput: "#search-input",
@@ -17,16 +17,29 @@ export class LinkStackBookmarks extends HTMLElement {
     searchResultsInfo: ".search-results-info",
     sortSelect: "#sort-select",
     filterButtons: ".filter-button",
+    scopeSelect: "#scope-select",
+    filterContainer: ".filter-controls-container",
   };
 
   #elements = {
+    /** @type {HTMLElement | null} */
     bookmarksContainer: null,
+    /** @type {Element | null} */
     linkstackEditDialog: null,
+    /** @type {HTMLInputElement | null} */
     searchInput: null,
+    /** @type {HTMLButtonElement | null} */
     clearSearchButton: null,
+    /** @type {HTMLElement | null} */
     searchResultsInfo: null,
+    /** @type {HTMLSelectElement | null} */
     sortSelect: null,
+    /** @type {NodeListOf<HTMLButtonElement> | null} */
     filterButtons: null,
+    /** @type {HTMLSelectElement | null} */
+    scopeSelect: null,
+    /** @type {HTMLElement | null} */
+    filterContainer: null,
   };
 
   #bookmarksService = new BookmarksService(supabase);
@@ -35,22 +48,20 @@ export class LinkStackBookmarks extends HTMLElement {
   #searchQuery = "";
   #sortBy = "newest";
   #filterBy = "unread";
+  #scope = "public";
+  #isAuthenticated = false;
   #searchDebounceTimer = null;
   #boundHandlers = {
     onBookmarkCreated: null,
     onBookmarkUpdated: null,
+    onAuthStateChanged: null,
   };
-
-  constructor() {
-    super();
-  }
 
   connectedCallback() {
     this.#init();
   }
 
   disconnectedCallback() {
-    // Clean up event listeners to prevent memory leaks
     if (this.#boundHandlers.onBookmarkCreated) {
       window.removeEventListener(
         "bookmark-created",
@@ -76,7 +87,7 @@ export class LinkStackBookmarks extends HTMLElement {
       LinkStackBookmarks.#selectors.bookmarksContainer,
     );
     this.#elements.linkstackEditDialog = document.querySelector(
-      LinkStackBookmarks.#selectors.linkstackEditDialog,
+      "linkstack-edit-dialog",
     );
     this.#elements.searchInput = document.querySelector(
       LinkStackBookmarks.#selectors.searchInput,
@@ -93,47 +104,42 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#elements.filterButtons = document.querySelectorAll(
       LinkStackBookmarks.#selectors.filterButtons,
     );
+    this.#elements.scopeSelect = document.querySelector(
+      LinkStackBookmarks.#selectors.scopeSelect,
+    );
+    this.#elements.filterContainer = document.querySelector(
+      LinkStackBookmarks.#selectors.filterContainer,
+    );
 
-    // Read search query from URL
     const params = new URLSearchParams(window.location.search);
     this.#searchQuery = params.get("search") || "";
+    this.#sortBy = params.get("sort") || localStorage.getItem("linkstack:sortBy") || "newest";
+    this.#filterBy =
+      params.get("filter") || localStorage.getItem("linkstack:filterBy") || "unread";
 
-    if (this.#searchQuery && this.#elements.searchInput) {
+    if (this.#elements.searchInput) {
       this.#elements.searchInput.value = this.#searchQuery;
-      this.#elements.clearSearchButton.hidden = false;
     }
-
-    // Read sort preference: URL takes precedence, localStorage preserves user's own preference
-    // localStorage is for direct navigation (bookmarks, typing URL), not for sharing state
-    const urlSort = params.get("sort");
-    const savedSort = localStorage.getItem("linkstack:sortBy");
-    this.#sortBy = urlSort || savedSort || "newest";
-
+    if (this.#elements.clearSearchButton) {
+      this.#elements.clearSearchButton.hidden = !this.#searchQuery;
+    }
     if (this.#elements.sortSelect) {
       this.#elements.sortSelect.value = this.#sortBy;
     }
 
-    // Read filter preference: URL takes precedence, localStorage preserves user's own preference
-    const urlFilter = params.get("filter");
-    const savedFilter = localStorage.getItem("linkstack:filterBy");
-    this.#filterBy = urlFilter || savedFilter || "unread";
-
-    // Set active filter button
     this.#setActiveFilterButton(this.#filterBy);
-
     this.#addEventListeners();
     this.#setupSearch();
     this.#setupSort();
     this.#setupFilter();
-
-    // Component is only loaded when authenticated, safe to render
+    this.#setupScope();
+    this.#syncFilterVisibility();
     await this.#renderBookmarks();
   }
 
   #addEventListeners() {
     const { bookmarksContainer } = this.#elements;
 
-    // Store bound handlers for cleanup
     this.#boundHandlers.onBookmarkCreated = async () => {
       await this.#renderBookmarks();
     };
@@ -142,103 +148,103 @@ export class LinkStackBookmarks extends HTMLElement {
       await this.#renderBookmarks();
     };
 
-    this.#boundHandlers.onAuthStateChanged = async () => {
+    this.#boundHandlers.onAuthStateChanged = async (event) => {
+      const authEvent =
+        /** @type {CustomEvent<{ isAuthenticated?: boolean, scope?: string }>} */ (
+          event
+        );
+      this.#isAuthenticated = Boolean(authEvent.detail?.isAuthenticated);
+      this.#scope =
+        authEvent.detail?.scope || (this.#isAuthenticated ? "mine" : "public");
+      this.#syncFilterVisibility();
       await this.#renderBookmarks();
     };
 
-    // Listen for bookmark-created custom event
     window.addEventListener(
       "bookmark-created",
       this.#boundHandlers.onBookmarkCreated,
     );
-
-    // Listen for bookmark-updated custom event
     window.addEventListener(
       "bookmark-updated",
       this.#boundHandlers.onBookmarkUpdated,
     );
-
-    // Listen for auth state changed
     window.addEventListener(
       "auth-state-changed",
       this.#boundHandlers.onAuthStateChanged,
     );
 
     bookmarksContainer.addEventListener("click", async (event) => {
-      // Handle stack toggle clicks
-      const stackToggle = event.target.closest(".stack-toggle");
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) {
+        return;
+      }
+
+      const stackToggle = target.closest(".stack-toggle");
       if (stackToggle) {
         this.#toggleStack(stackToggle);
         return;
       }
 
-      // Handle read/unread toggle
-      const readToggle = event.target.closest("#toggle-read-status");
-      if (readToggle) {
-        const { id } = readToggle.dataset;
-        await this.#toggleReadStatus(id, readToggle);
+      const readToggle = /** @type {HTMLButtonElement | null} */ (
+        target.closest("#toggle-read-status")
+      );
+      if (readToggle && !readToggle.classList.contains("hidden")) {
+        await this.#toggleReadStatus(readToggle.dataset.id, readToggle);
         return;
       }
 
-      // Context menu trigger click is handled by popovertarget attribute
-      const contextMenuTrigger = event.target.closest(".context-menu-trigger");
-      if (contextMenuTrigger) {
+      const savePublicCopy = /** @type {HTMLButtonElement | null} */ (
+        target.closest("#save-public-copy")
+      );
+      if (savePublicCopy && !savePublicCopy.classList.contains("hidden")) {
+        await this.#savePublicCopy(savePublicCopy.dataset.publicListingId);
         return;
       }
 
-      if (event.target.id === "delete-bookmark") {
-        const { id } = event.target.dataset;
-        // Close the context menu popover if open
-        const contextMenu = event.target.closest(".context-menu");
-        if (contextMenu) {
-          contextMenu.hidePopover();
-        }
-        await this.#deleteBookmark(id);
+      const requestPublicShare = target.closest("#request-public-share");
+      if (
+        requestPublicShare &&
+        !requestPublicShare.classList.contains("hidden")
+      ) {
+        const contextMenu =
+          /** @type {(HTMLElement & { hidePopover?: () => void }) | null} */ (
+            requestPublicShare.closest(".context-menu")
+          );
+        contextMenu?.hidePopover?.();
+        await this.#requestPublicShare(
+          /** @type {HTMLElement} */ (requestPublicShare).dataset.id,
+        );
+        return;
       }
 
-      if (event.target.id === "edit-bookmark") {
-        const { id } = event.target.dataset;
-        const { linkstackEditDialog } = this.#elements;
+      if (target.closest(".context-menu-trigger")) {
+        return;
+      }
 
-        // Close the context menu popover if open
-        const contextMenu = event.target.closest(".context-menu");
-        if (contextMenu) {
-          contextMenu.hidePopover();
-        }
+      if (target.id === "delete-bookmark") {
+        const contextMenu =
+          /** @type {(HTMLElement & { hidePopover?: () => void }) | null} */ (
+            target.closest(".context-menu")
+          );
+        contextMenu?.hidePopover?.();
+        await this.#deleteBookmark(target.dataset.id);
+      }
 
-        if (!linkstackEditDialog) {
-          throw new Error("Linkstack edit dialog not found");
-        }
-
-        const editBookmarkEvent = new CustomEvent("edit-bookmark", {
-          detail: { id },
-        });
-
-        linkstackEditDialog.dispatchEvent(editBookmarkEvent);
+      if (target.id === "edit-bookmark") {
+        const contextMenu =
+          /** @type {(HTMLElement & { hidePopover?: () => void }) | null} */ (
+            target.closest(".context-menu")
+          );
+        contextMenu?.hidePopover?.();
+        this.#elements.linkstackEditDialog?.dispatchEvent(
+          new CustomEvent("edit-bookmark", {
+            detail: { id: target.dataset.id },
+          }),
+        );
       }
     });
   }
 
-  #toggleStack(toggleButton) {
-    const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
-    const stackChildren = toggleButton.nextElementSibling;
-    const stackLabel = toggleButton.querySelector(".stack-label");
-
-    if (isExpanded) {
-      toggleButton.setAttribute("aria-expanded", "false");
-      stackChildren.classList.add("hidden");
-      stackLabel.textContent = "Show stack";
-    } else {
-      toggleButton.setAttribute("aria-expanded", "true");
-      stackChildren.classList.remove("hidden");
-      stackLabel.textContent = "Hide stack";
-    }
-  }
-
-  /**
-   * Set up search functionality
-   * @private
-   */
   #setupSearch() {
     const { searchInput, clearSearchButton } = this.#elements;
 
@@ -246,458 +252,484 @@ export class LinkStackBookmarks extends HTMLElement {
       return;
     }
 
-    // Search on input with debounce
     searchInput.addEventListener("input", (event) => {
-      const query = event.target.value.trim();
+      const target = /** @type {HTMLInputElement} */ (event.target);
+      const query = target.value.trim();
 
-      // Show/hide clear button
       if (clearSearchButton) {
         clearSearchButton.hidden = !query;
       }
 
-      // Debounce search
       clearTimeout(this.#searchDebounceTimer);
-      this.#searchDebounceTimer = setTimeout(() => {
-        this.#handleSearch(query);
+      this.#searchDebounceTimer = setTimeout(async () => {
+        this.#searchQuery = query;
+        this.#updateUrlParam("search", query);
+        await this.#renderBookmarks();
       }, 300);
     });
 
-    // Clear search button
-    if (clearSearchButton) {
-      clearSearchButton.addEventListener("click", () => {
-        this.#clearSearch();
-      });
-    }
-
-    // Listen for browser back/forward
-    window.addEventListener("popstate", () => {
-      const params = new URLSearchParams(window.location.search);
-      const query = params.get("search") || "";
-      const sort = params.get("sort") || this.#sortBy;
-      const filter = params.get("filter") || "all";
-      this.#applySearch(query);
-      this.#applySort(sort);
-      this.#applyFilter(filter);
+    clearSearchButton?.addEventListener("click", async () => {
+      this.#searchQuery = "";
+      searchInput.value = "";
+      clearSearchButton.hidden = true;
+      this.#updateUrlParam("search", "");
+      await this.#renderBookmarks();
     });
   }
 
-  /**
-   * Setup sort controls
-   * @private
-   */
   #setupSort() {
-    const { sortSelect } = this.#elements;
-
-    if (!sortSelect) {
-      return;
-    }
-
-    // Sort on change
-    sortSelect.addEventListener("change", (event) => {
-      const sortBy = event.target.value;
-      this.#handleSort(sortBy);
+    this.#elements.sortSelect?.addEventListener("change", async (event) => {
+      const target = /** @type {HTMLSelectElement} */ (event.target);
+      this.#sortBy = target.value;
+      localStorage.setItem("linkstack:sortBy", this.#sortBy);
+      this.#updateUrlParam("sort", this.#sortBy === "newest" ? "" : this.#sortBy);
+      await this.#renderBookmarks();
     });
   }
 
-  /**
-   * Setup filter controls
-   * @private
-   */
   #setupFilter() {
-    const { filterButtons } = this.#elements;
-
-    if (!filterButtons || filterButtons.length === 0) {
-      return;
-    }
-
-    // Filter on click
-    filterButtons.forEach((button) => {
-      button.addEventListener("click", (event) => {
-        const filterBy = event.target.dataset.filter;
-        this.#handleFilter(filterBy);
+    this.#elements.filterButtons?.forEach((button) => {
+      button.addEventListener("click", async () => {
+        this.#filterBy = button.dataset.filter;
+        this.#setActiveFilterButton(this.#filterBy);
+        localStorage.setItem("linkstack:filterBy", this.#filterBy);
+        this.#updateUrlParam("filter", this.#filterBy === "all" ? "" : this.#filterBy);
+        await this.#renderBookmarks();
       });
     });
-
-    // Listen for browser back/forward to update filter state
-    window.addEventListener("popstate", () => {
-      const params = new URLSearchParams(window.location.search);
-      const filter = params.get("filter") || this.#filterBy;
-      this.#applyFilter(filter);
-    });
   }
 
-  /**
-   * Set the active filter button
-   * @private
-   */
-  #setActiveFilterButton(filterBy) {
-    const { filterButtons } = this.#elements;
-
-    if (!filterButtons || filterButtons.length === 0) {
-      return;
+  #setupScope() {
+    if (this.#elements.scopeSelect) {
+      this.#scope = this.#elements.scopeSelect.value;
     }
+  }
 
-    filterButtons.forEach((button) => {
+  #setActiveFilterButton(filterBy) {
+    this.#elements.filterButtons?.forEach((button) => {
       const isActive = button.dataset.filter === filterBy;
       button.classList.toggle("active", isActive);
-      button.setAttribute("aria-pressed", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
     });
   }
 
-  /**
-   * Handle search query change
-   * @private
-   */
-  async #handleSearch(query) {
-    this.#searchQuery = query;
-    this.#updateUrlWithSearch(query);
-    await this.#renderBookmarks();
+  #syncFilterVisibility() {
+    const showReadFilters = this.#isAuthenticated && this.#scope === "mine";
+    this.#elements.filterContainer?.classList.toggle("hidden", !showReadFilters);
   }
 
-  /**
-   * Handle sort change from user interaction
-   * Updates URL and persists preference to localStorage
-   * @private
-   */
-  async #handleSort(sortBy) {
-    this.#sortBy = sortBy;
-    this.#updateUrlWithSort(sortBy);
-    // Save to localStorage as fallback when URL has no sort parameter
-    localStorage.setItem("linkstack:sortBy", sortBy);
-    await this.#renderBookmarks();
-  }
+  #updateUrlParam(key, value) {
+    const url = new URL(window.location.href);
 
-  /**
-   * Handle filter change from user interaction
-   * Updates URL and persists preference to localStorage
-   * @private
-   */
-  async #handleFilter(filterBy) {
-    this.#filterBy = filterBy;
-    this.#setActiveFilterButton(filterBy);
-    this.#updateUrlWithFilter(filterBy);
-    // Save to localStorage as fallback when URL has no filter parameter
-    localStorage.setItem("linkstack:filterBy", filterBy);
-    await this.#renderBookmarks();
-  }
-
-  /**
-   * Apply search from URL or history
-   * @private
-   */
-  async #applySearch(query) {
-    this.#searchQuery = query;
-    const { searchInput, clearSearchButton } = this.#elements;
-
-    if (searchInput) {
-      searchInput.value = query;
-    }
-
-    if (clearSearchButton) {
-      clearSearchButton.hidden = !query;
-    }
-
-    await this.#renderBookmarks();
-  }
-
-  /**
-   * Clear search
-   * @private
-   */
-  async #clearSearch() {
-    this.#searchQuery = "";
-    const { searchInput, clearSearchButton } = this.#elements;
-
-    if (searchInput) {
-      searchInput.value = "";
-    }
-
-    if (clearSearchButton) {
-      clearSearchButton.hidden = true;
-    }
-
-    this.#updateUrlWithSearch("");
-    await this.#renderBookmarks();
-  }
-
-  /**
-   * Update URL with search query
-   * @private
-   */
-  #updateUrlWithSearch(query) {
-    const url = new URL(window.location);
-
-    if (query) {
-      url.searchParams.set("search", query);
+    if (value) {
+      url.searchParams.set(key, value);
     } else {
-      url.searchParams.delete("search");
+      url.searchParams.delete(key);
     }
 
     window.history.replaceState({}, "", url);
   }
 
-  /**
-   * Update URL with sort parameter
-   * @private
-   */
-  #updateUrlWithSort(sortBy) {
-    const url = new URL(window.location);
+  #toggleStack(toggleButton) {
+    const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
+    const stackChildren = toggleButton.nextElementSibling;
+    const stackLabel = toggleButton.querySelector(".stack-label");
 
-    if (sortBy && sortBy !== "newest") {
-      url.searchParams.set("sort", sortBy);
-    } else {
-      url.searchParams.delete("sort");
+    toggleButton.setAttribute("aria-expanded", String(!isExpanded));
+    stackChildren?.classList.toggle("hidden", isExpanded);
+
+    if (stackLabel) {
+      stackLabel.textContent = isExpanded ? "Show stack" : "Hide stack";
+    }
+  }
+
+  #showNoBookmarks(message = "Why not add your first?") {
+    const tmpl = /** @type {HTMLTemplateElement | null} */ (
+      this.querySelector(LinkStackBookmarks.#selectors.noBookmarksTmpl)
+    );
+    if (!tmpl || !this.#elements.bookmarksContainer) {
+      return;
+    }
+    const fragment = /** @type {DocumentFragment} */ (tmpl.content.cloneNode(true));
+    const description = fragment.querySelector(".text-medium");
+    if (description) {
+      description.textContent = message;
     }
 
-    window.history.replaceState({}, "", url);
+    this.#elements.bookmarksContainer.innerHTML = "";
+    this.#elements.bookmarksContainer.append(fragment);
   }
 
-  /**
-   * Update URL with filter parameter
-   * @private
-   */
-  #updateUrlWithFilter(filterBy) {
-    const url = new URL(window.location);
-
-    if (filterBy && filterBy !== "all") {
-      url.searchParams.set("filter", filterBy);
-    } else {
-      url.searchParams.delete("filter");
+  #showSkeletonLoader() {
+    const tmpl = /** @type {HTMLTemplateElement | null} */ (
+      this.querySelector(LinkStackBookmarks.#selectors.skeletonLoaderTmpl)
+    );
+    if (!tmpl || !this.#elements.bookmarksContainer) {
+      return;
     }
-
-    window.history.replaceState({}, "", url);
+    const fragment = /** @type {DocumentFragment} */ (tmpl.content.cloneNode(true));
+    this.#elements.bookmarksContainer.innerHTML = "";
+    this.#elements.bookmarksContainer.append(fragment);
   }
 
-  /**
-   * Apply sort state (e.g., from browser navigation or initialization)
-   * Updates UI dropdown and re-renders bookmarks
-   * @private
-   */
-  async #applySort(sortBy) {
-    this.#sortBy = sortBy;
-
-    if (this.#elements.sortSelect) {
-      this.#elements.sortSelect.value = sortBy;
-    }
-
-    await this.#renderBookmarks();
-  }
-
-  /**
-   * Apply filter state (e.g., from browser navigation or initialization)
-   * Updates UI buttons and re-renders bookmarks
-   * @private
-   */
-  async #applyFilter(filterBy) {
-    this.#filterBy = filterBy;
-    this.#setActiveFilterButton(filterBy);
-    await this.#renderBookmarks();
-  }
-
-  /**
-   * Filter bookmarks by search query and read status
-   * @private
-   */
-  #filterBookmarks(bookmarks, query) {
+  #filterBookmarks(bookmarks) {
     let filtered = bookmarks;
 
-    // Apply read status filter
-    if (this.#filterBy === "read") {
-      filtered = filtered.filter((bookmark) => bookmark.is_read === true);
-    } else if (this.#filterBy === "unread") {
-      filtered = filtered.filter((bookmark) => bookmark.is_read !== true);
+    if (this.#scope === "mine") {
+      if (this.#filterBy === "read") {
+        filtered = filtered.filter((bookmark) => bookmark.is_read);
+      } else if (this.#filterBy === "unread") {
+        filtered = filtered.filter((bookmark) => !bookmark.is_read);
+      }
     }
 
-    // Apply search query filter
-    if (!query.trim()) {
+    if (!this.#searchQuery.trim()) {
       return filtered;
     }
 
-    const lowerQuery = query.toLowerCase();
-
+    const lowerQuery = this.#searchQuery.toLowerCase();
     return filtered.filter((bookmark) => {
-      const title = bookmark.page_title?.toLowerCase() || "";
-      const description = bookmark.meta_description?.toLowerCase() || "";
-      const url = bookmark.url?.toLowerCase() || "";
-      const notes = bookmark.notes?.toLowerCase() || "";
+      const haystacks = [
+        bookmark.page_title,
+        bookmark.meta_description,
+        bookmark.url,
+        bookmark.notes,
+        ...(bookmark.tags || []),
+      ];
 
-      return (
-        title.includes(lowerQuery) ||
-        description.includes(lowerQuery) ||
-        url.includes(lowerQuery) ||
-        notes.includes(lowerQuery)
+      return haystacks.some((value) =>
+        (value || "").toLowerCase().includes(lowerQuery),
       );
     });
   }
 
-  /**
-   * Update search results info
-   * @private
-   */
   #updateSearchResultsInfo(filteredCount, totalCount) {
-    const { searchResultsInfo } = this.#elements;
-
-    if (!searchResultsInfo) {
+    if (!this.#elements.searchResultsInfo) {
       return;
     }
 
     if (this.#searchQuery && filteredCount !== totalCount) {
-      searchResultsInfo.textContent = `Showing ${filteredCount} of ${totalCount} bookmarks`;
+      this.#elements.searchResultsInfo.textContent = `Showing ${filteredCount} of ${totalCount} bookmarks`;
     } else {
-      searchResultsInfo.textContent = "";
+      this.#elements.searchResultsInfo.textContent = "";
     }
   }
 
-  #renderTags(tagsContainer, tags) {
-    if (!tags || tags.length === 0) {
+  #renderTags(container, tags) {
+    container.innerHTML = "";
+
+    if (!tags?.length) {
       return;
     }
 
-    const maxVisible = 3;
-    const visible = tags.slice(0, maxVisible);
-    const remaining = tags.length - maxVisible;
-
-    visible.forEach((tag) => {
+    tags.slice(0, 3).forEach((tag) => {
       const chip = document.createElement("span");
       chip.className = "tag";
       chip.textContent = tag;
-      tagsContainer.appendChild(chip);
+      container.appendChild(chip);
     });
 
-    if (remaining > 0) {
+    if (tags.length > 3) {
       const overflow = document.createElement("span");
       overflow.className = "tag-overflow";
-      overflow.textContent = `+${remaining} more`;
-      tagsContainer.appendChild(overflow);
+      overflow.textContent = `+${tags.length - 3} more`;
+      container.appendChild(overflow);
+    }
+  }
+
+  #renderStatus(entry, bookmark) {
+    const statusContainer =
+      /** @type {HTMLElement | null} */ (
+        entry.querySelector(".bookmark-public-status")
+      );
+    const statusTag = statusContainer?.querySelector(".tag");
+    const message =
+      /** @type {HTMLElement | null} */ (
+        entry.querySelector(".bookmark-public-message")
+      );
+
+    if (!statusContainer || !statusTag || !message) {
+      return;
+    }
+
+    statusContainer.classList.add("hidden");
+    message.classList.add("hidden");
+    message.textContent = "";
+
+    if (bookmark.kind !== "bookmark") {
+      return;
+    }
+
+    const status = bookmark.public_share_status;
+    if (status === PUBLIC_SHARE_STATUS.NOT_REQUESTED) {
+      return;
+    }
+
+    const labels = {
+      [PUBLIC_SHARE_STATUS.PENDING]: "Pending review",
+      [PUBLIC_SHARE_STATUS.APPROVED]: bookmark.is_public_listing_owner
+        ? "Publicly listed"
+        : "Already public",
+      [PUBLIC_SHARE_STATUS.REJECTED]: "Public listing rejected",
+    };
+
+    statusTag.textContent = labels[status] || status;
+    statusContainer.classList.remove("hidden");
+
+    if (status === PUBLIC_SHARE_STATUS.REJECTED && bookmark.public_rejection_reason) {
+      message.textContent = bookmark.public_rejection_reason;
+      message.classList.remove("hidden");
+    }
+  }
+
+  #configureActions(entry, bookmark) {
+    const readToggle = /** @type {HTMLButtonElement | null} */ (
+      entry.querySelector("#toggle-read-status")
+    );
+    const savePublicCopy = /** @type {HTMLButtonElement | null} */ (
+      entry.querySelector("#save-public-copy")
+    );
+    const contextMenuTrigger = /** @type {HTMLElement | null} */ (
+      entry.querySelector(".context-menu-trigger")
+    );
+    const contextMenu = /** @type {HTMLElement | null} */ (
+      entry.querySelector(".context-menu")
+    );
+    const requestPublicShare = /** @type {HTMLButtonElement | null} */ (
+      entry.querySelector("#request-public-share")
+    );
+    const deleteButton = /** @type {HTMLButtonElement | null} */ (
+      entry.querySelector("#delete-bookmark")
+    );
+    const editButton = /** @type {HTMLButtonElement | null} */ (
+      entry.querySelector("#edit-bookmark")
+    );
+
+    if (
+      !readToggle ||
+      !savePublicCopy ||
+      !contextMenuTrigger ||
+      !contextMenu ||
+      !requestPublicShare ||
+      !deleteButton ||
+      !editButton
+    ) {
+      return;
+    }
+
+    if (bookmark.kind === "public") {
+      readToggle.classList.add("hidden");
+      contextMenuTrigger.classList.add("hidden");
+      contextMenu.classList.add("hidden");
+      if (this.#isAuthenticated) {
+        savePublicCopy.classList.remove("hidden");
+        savePublicCopy.dataset.publicListingId = bookmark.public_listing_id;
+      } else {
+        savePublicCopy.classList.add("hidden");
+      }
+      return;
+    }
+
+    savePublicCopy.classList.add("hidden");
+    readToggle.dataset.id = bookmark.id;
+    readToggle.dataset.isRead = String(bookmark.is_read);
+    readToggle.querySelector(".read-text").textContent = bookmark.is_read
+      ? "Mark as Unread"
+      : "Mark as Read";
+
+    deleteButton.dataset.id = bookmark.id;
+    editButton.dataset.id = bookmark.id;
+
+    const showRequestPublic =
+      !bookmark.parent_id &&
+      bookmark.public_share_status !== PUBLIC_SHARE_STATUS.PENDING &&
+      !(bookmark.public_share_status === PUBLIC_SHARE_STATUS.APPROVED && !bookmark.is_public_listing_owner);
+
+    requestPublicShare.classList.toggle("hidden", !showRequestPublic);
+    requestPublicShare.dataset.id = bookmark.id;
+
+    if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.REJECTED) {
+      requestPublicShare.textContent = "Resubmit Public Listing";
+    } else if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.APPROVED) {
+      requestPublicShare.textContent = "Update Public Listing";
+    } else {
+      requestPublicShare.textContent = "Request Public Listing";
+    }
+  }
+
+  async #renderEntry(template, bookmark, children = []) {
+    const templateElement = /** @type {HTMLTemplateElement} */ (template);
+    const fragment = /** @type {DocumentFragment} */ (
+      templateElement.content.cloneNode(true)
+    );
+    const img = /** @type {HTMLImageElement | null} */ (
+      fragment.querySelector(".bookmark-img")
+    );
+    const link = /** @type {HTMLAnchorElement | null} */ (
+      fragment.querySelector(".bookmark-link")
+    );
+    const title = /** @type {HTMLElement | null} */ (
+      link?.querySelector(".bookmark-title") || null
+    );
+    const description = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".bookmark-description")
+    );
+    const notesContainer = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".bookmark-notes")
+    );
+    const notesContent = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".notes-content")
+    );
+    const tagsContainer = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".bookmark-tags")
+    );
+    const contextTrigger = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".context-menu-trigger")
+    );
+    const contextMenu = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".context-menu")
+    );
+
+    if (
+      !link ||
+      !title ||
+      !description ||
+      !notesContainer ||
+      !notesContent ||
+      !tagsContainer ||
+      !contextTrigger ||
+      !contextMenu
+    ) {
+      throw new Error("Bookmark template is missing required elements");
+    }
+
+    if (img) {
+      img.src = bookmark.preview_img || "../assets/linkstack-fallback.webp";
+    }
+
+    link.href = bookmark.url;
+    title.textContent = bookmark.page_title;
+    description.textContent = bookmark.meta_description || "";
+    this.#renderTags(tagsContainer, bookmark.tags);
+    this.#renderStatus(fragment, bookmark);
+
+    if (bookmark.notes) {
+      notesContent.textContent = bookmark.notes;
+      notesContainer.classList.remove("hidden");
+    }
+
+    const entry =
+      /** @type {HTMLElement | null} */ (
+        fragment.querySelector(".bookmark-entry") ||
+          fragment.querySelector(".bookmark-child")
+      );
+    if (!entry) {
+      throw new Error("Bookmark entry root not found");
+    }
+    entry.id = `bookmark-entry-${bookmark.id}`;
+
+    if (bookmark.is_read) {
+      entry.classList.add("read");
+    }
+
+    const contextMenuId = `context-menu-${bookmark.id}`;
+    contextMenu.id = contextMenuId;
+    contextTrigger.setAttribute("popovertarget", contextMenuId);
+
+    this.#configureActions(fragment, bookmark);
+
+    if (children.length && fragment.querySelector(".stack-toggle")) {
+      const stackToggle = fragment.querySelector(".stack-toggle");
+      const stackChildren = fragment.querySelector(".stack-children");
+      if (!stackToggle || !stackChildren) {
+        return fragment;
+      }
+      stackToggle.classList.remove("hidden");
+
+      for (const child of children) {
+        const childEntry = await this.#renderEntry(
+          this.querySelector(LinkStackBookmarks.#selectors.bookmarkChildTmpl),
+          child,
+          [],
+        );
+        stackChildren.appendChild(childEntry);
+      }
+    }
+
+    return fragment;
+  }
+
+  async #deleteBookmark(id) {
+    try {
+      await this.#bookmarksService.delete(id);
+      this.#showToast(
+        "Bookmark deleted successfully",
+        "success",
+      );
+      await this.#renderBookmarks();
+    } catch (error) {
+      console.info("Error deleting bookmark:", error);
+      this.#showToast(
+        "Failed to delete bookmark. Please try again.",
+        "error",
+      );
     }
   }
 
   async #toggleReadStatus(id, button) {
-    const currentStatus = button.dataset.isRead === "true";
-    const newStatus = !currentStatus;
-
-    // Set loading state
-    const originalText = button.querySelector(".read-text").textContent;
-    button.disabled = true;
-    button.querySelector(".read-text").textContent = "Updating...";
+    const newStatus = button.dataset.isRead !== "true";
 
     try {
       await this.#bookmarksService.toggleReadStatus(id, newStatus);
-
-      // Update button state
-      button.dataset.isRead = newStatus;
-      button.querySelector(".read-text").textContent = newStatus
-        ? "Mark as Unread"
-        : "Mark as Read";
-      button.setAttribute(
-        "aria-label",
-        newStatus ? "Mark as unread" : "Mark as read",
+      this.#showToast(
+        `Marked as ${newStatus ? "read" : "unread"}`,
+        "success",
       );
-
-      // Add visual indicator
-      const bookmarkEntry = this.querySelector(`#bookmark-entry-${id}`);
-      if (bookmarkEntry) {
-        if (newStatus) {
-          bookmarkEntry.classList.add("read");
-        } else {
-          bookmarkEntry.classList.remove("read");
-        }
-      }
-
-      // Show success toast
-      const toast = document.querySelector("linkstack-toast");
-      toast.show(`Marked as ${newStatus ? "read" : "unread"}`, "success");
+      await this.#renderBookmarks();
     } catch (error) {
-      console.error("Error toggling read status:", error);
-      const toast = document.querySelector("linkstack-toast");
-      toast.show("Failed to update read status. Please try again.", "error");
-
-      // Reset button state on error
-      button.querySelector(".read-text").textContent = originalText;
-    } finally {
-      button.disabled = false;
+      console.info("Error toggling read status:", error);
+      this.#showToast(
+        "Failed to update read status. Please try again.",
+        "error",
+      );
     }
   }
 
-  async #deleteBookmark(id) {
-    const deleteButton = this.querySelector(
-      `#bookmark-entry-${id} #delete-bookmark`,
-    );
-
-    // Set loading state on button
-    if (deleteButton) {
-      deleteButton.disabled = true;
-      deleteButton.setAttribute("aria-busy", "true");
-      deleteButton.textContent = "Deleting...";
-    }
-
+  async #savePublicCopy(publicListingId) {
     try {
-      await this.#bookmarksService.delete(id);
-
-      // Remove from DOM
-      this.querySelector(`#bookmark-entry-${id}`)?.remove();
-
-      // Show success toast
-      const toast = document.querySelector("linkstack-toast");
-      toast.show("Bookmark deleted successfully", "success");
-
-      // Check if we need to show empty state
-      const bookmarksList = this.querySelector("#bookmarks-list");
-      if (!bookmarksList || bookmarksList.children.length === 0) {
-        this.#showNoBookmarks();
-      }
+      await this.#bookmarksService.savePublicCopy(publicListingId);
+      this.#showToast(
+        "Bookmark added to your library",
+        "success",
+      );
+      window.dispatchEvent(new CustomEvent("bookmark-created"));
     } catch (error) {
-      console.error("Error deleting bookmark:", error);
-      const toast = document.querySelector("linkstack-toast");
-      toast.show("Failed to delete bookmark. Please try again.", "error");
-
-      // Reset button state on error
-      if (deleteButton) {
-        deleteButton.disabled = false;
-        deleteButton.removeAttribute("aria-busy");
-        deleteButton.textContent = "Remove Bookmark";
-      }
+      console.info("Error saving public bookmark:", error);
+      this.#showToast(
+        error.message || "Failed to save bookmark.",
+        "error",
+      );
     }
   }
 
-  #showNoBookmarks() {
-    const { bookmarksContainer } = this.#elements;
-    const noBookmarksTmpl = this.querySelector(
-      LinkStackBookmarks.#selectors.noBookmarksTmpl,
-    );
-    const noBookmarks = noBookmarksTmpl.content.cloneNode(true);
-
-    bookmarksContainer.innerHTML = "";
-    bookmarksContainer.append(noBookmarks);
-  }
-
-  #showSkeletonLoader() {
-    const { bookmarksContainer } = this.#elements;
-    const skeletonTmpl = this.querySelector(
-      LinkStackBookmarks.#selectors.skeletonLoaderTmpl,
-    );
-
-    if (!skeletonTmpl) {
-      return;
-    }
-
-    const skeleton = skeletonTmpl.content.cloneNode(true);
-    bookmarksContainer.innerHTML = "";
-    bookmarksContainer.append(skeleton);
-  }
-
-  #hideSkeletonLoader() {
-    const { bookmarksContainer } = this.#elements;
-    const skeletonLoader = bookmarksContainer.querySelector(".skeleton-loader");
-
-    if (skeletonLoader) {
-      skeletonLoader.remove();
+  async #requestPublicShare(id) {
+    try {
+      await this.#bookmarksService.requestPublicShare(id);
+      this.#showToast(
+        "Bookmark submitted for public review",
+        "success",
+      );
+      window.dispatchEvent(new CustomEvent("bookmark-updated"));
+    } catch (error) {
+      console.info("Error requesting public share:", error);
+      this.#showToast(
+        error.message || "Failed to submit bookmark for review.",
+        "error",
+      );
     }
   }
 
   async #renderBookmarks() {
-    // Serialize render calls to prevent race conditions
-    // If a render is in-flight, chain the next one after it completes
     const previousRender = this.#renderPromise;
 
     this.#renderPromise = (async () => {
@@ -711,250 +743,111 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   async #doRender() {
-    const { bookmarksContainer } = this.#elements;
-    const entryTmpl = this.querySelector(
-      LinkStackBookmarks.#selectors.bookmarksEntryTmpl,
-    );
-    const childTmpl = this.querySelector(
-      LinkStackBookmarks.#selectors.bookmarkChildTmpl,
-    );
+    const bookmarksContainer = this.#elements.bookmarksContainer;
+    const entryTmpl = this.querySelector(LinkStackBookmarks.#selectors.bookmarksEntryTmpl);
 
-    if (!bookmarksContainer) {
+    if (!bookmarksContainer || !entryTmpl) {
       return;
     }
 
-    // Show skeleton loader only on initial load
     if (this.#isInitialLoad) {
       this.#showSkeletonLoader();
     }
 
     try {
-      // Get only top-level bookmarks with sorting
-      const allBookmarks = await this.#bookmarksService.getTopLevel(
-        this.#sortBy,
-      );
+      let topLevel = [];
+      let children = new Map();
 
-      // Hide skeleton loader
+      if (!this.#isAuthenticated || this.#scope === "public") {
+        topLevel = await this.#bookmarksService.getPublicCatalog(this.#sortBy);
+      } else {
+        const myBookmarks = await this.#bookmarksService.getMyBookmarks(this.#sortBy);
+        children = myBookmarks.reduce((map, bookmark) => {
+          if (bookmark.parent_id) {
+            if (!map.has(bookmark.parent_id)) {
+              map.set(bookmark.parent_id, []);
+            }
+            map.get(bookmark.parent_id).push(bookmark);
+          }
+          return map;
+        }, /** @type {Map<string, Array<any>>} */ (new Map()));
+
+        const topLevelBookmarks = myBookmarks.filter((bookmark) => !bookmark.parent_id);
+
+        if (this.#scope === "all") {
+          const publicCatalog = await this.#bookmarksService.getPublicCatalog(this.#sortBy);
+          const ownedResourceIds = new Set(
+            myBookmarks.map((bookmark) => bookmark.resource_id),
+          );
+          const publicOnly = publicCatalog.filter(
+            (bookmark) => !ownedResourceIds.has(bookmark.resource_id),
+          );
+          topLevel = [...topLevelBookmarks, ...publicOnly].sort((left, right) => {
+            if (this.#sortBy === "oldest") {
+              return (
+                new Date(left.created_at).getTime() -
+                new Date(right.created_at).getTime()
+              );
+            }
+
+            if (this.#sortBy === "alpha-asc") {
+              return left.page_title.localeCompare(right.page_title);
+            }
+
+            if (this.#sortBy === "alpha-desc") {
+              return right.page_title.localeCompare(left.page_title);
+            }
+
+            return (
+              new Date(right.created_at).getTime() -
+              new Date(left.created_at).getTime()
+            );
+          });
+        } else {
+          topLevel = topLevelBookmarks;
+        }
+      }
+
+      const filteredBookmarks = this.#filterBookmarks(topLevel);
+
       if (this.#isInitialLoad) {
-        this.#hideSkeletonLoader();
         this.#isInitialLoad = false;
       }
 
-      if (!allBookmarks || allBookmarks.length === 0) {
-        this.#showNoBookmarks();
-        this.#updateSearchResultsInfo(0, 0);
+      this.#updateSearchResultsInfo(filteredBookmarks.length, topLevel.length);
+
+      if (!filteredBookmarks.length) {
+        this.#showNoBookmarks(
+          this.#scope === "public"
+            ? "No public bookmarks have been approved yet."
+            : "Why not add your first?",
+        );
         return;
       }
-
-      // Apply search filter
-      const bookmarks = this.#filterBookmarks(allBookmarks, this.#searchQuery);
-
-      // Update search results info
-      this.#updateSearchResultsInfo(bookmarks.length, allBookmarks.length);
-
-      // Handle empty search results
-      if (bookmarks.length === 0 && this.#searchQuery) {
-        // Create empty state DOM safely to prevent XSS
-        const wrapper = document.createElement("div");
-        wrapper.className = "no-bookmarks-wrapper";
-
-        const container = document.createElement("div");
-        container.className = "no-bookmarks";
-
-        const heading = document.createElement("h2");
-        heading.textContent = "No results found";
-
-        const message = document.createElement("p");
-        message.className = "text-medium";
-        message.textContent = `No bookmarks match your search query "${this.#searchQuery}"`;
-
-        container.appendChild(heading);
-        container.appendChild(message);
-        wrapper.appendChild(container);
-
-        bookmarksContainer.innerHTML = "";
-        bookmarksContainer.appendChild(wrapper);
-        return;
-      }
-
-      if (bookmarks.length === 0) {
-        this.#showNoBookmarks();
-        return;
-      }
-
-      const bookmarkElements = await Promise.all(
-        bookmarks.map(async (bookmark) => {
-          const entry = entryTmpl.content.cloneNode(true);
-          const bookmarkLink = entry.querySelector(".bookmark-link");
-          const deleteBookmark = entry.querySelector("#delete-bookmark");
-          const editBookmark = entry.querySelector("#edit-bookmark");
-          const stackToggle = entry.querySelector(".stack-toggle");
-          const stackChildren = entry.querySelector(".stack-children");
-
-          entry.querySelector(".bookmark-img").src = bookmark.preview_img;
-
-          bookmarkLink.href = bookmark.url;
-          bookmarkLink.querySelector(".bookmark-title").textContent =
-            bookmark.page_title;
-
-          entry.querySelector(".bookmark-description").textContent =
-            bookmark.meta_description;
-
-          // Handle tags
-          this.#renderTags(
-            entry.querySelector(".bookmark-tags"),
-            bookmark.tags,
-          );
-
-          // Handle notes - only show if present
-          const notesContainer = entry.querySelector(".bookmark-notes");
-          const notesContent = entry.querySelector(".notes-content");
-          if (bookmark.notes && bookmark.notes.trim()) {
-            notesContent.textContent = bookmark.notes;
-            notesContainer.classList.remove("hidden");
-          }
-
-          deleteBookmark.dataset.id = bookmark.id;
-          editBookmark.dataset.id = bookmark.id;
-
-          // Wire up popovertarget for context menu anchor positioning
-          const contextMenuTrigger = entry.querySelector(".context-menu-trigger");
-          const contextMenu = entry.querySelector(".context-menu");
-          const contextMenuId = `context-menu-${bookmark.id}`;
-          contextMenu.id = contextMenuId;
-          contextMenuTrigger.setAttribute("popovertarget", contextMenuId);
-
-          // Setup read/unread toggle
-          const readToggle = entry.querySelector("#toggle-read-status");
-          readToggle.dataset.id = bookmark.id;
-          readToggle.dataset.isRead = bookmark.is_read || false;
-
-          if (bookmark.is_read) {
-            readToggle.querySelector(".read-text").textContent =
-              "Mark as Unread";
-            readToggle.setAttribute("aria-label", "Mark as unread");
-          }
-
-          const bookmarkEntry = entry.querySelector(".bookmark-entry");
-          bookmarkEntry.id = `bookmark-entry-${bookmark.id}`;
-
-          if (bookmark.is_read) {
-            bookmarkEntry.classList.add("read");
-          }
-
-          // Load children for this bookmark with sorting
-          const allChildren = await this.#bookmarksService.getChildren(
-            bookmark.id,
-            this.#sortBy,
-          );
-
-          // Apply search filter to children as well
-          const children = this.#filterBookmarks(
-            allChildren,
-            this.#searchQuery,
-          );
-
-          if (children && children.length > 0) {
-            // Show stack toggle
-            stackToggle.classList.remove("hidden");
-            stackToggle.dataset.id = bookmark.id;
-
-            // Render children
-            children.forEach((child) => {
-              const childEntry = childTmpl.content.cloneNode(true);
-              const childLink = childEntry.querySelector(".bookmark-link");
-              const childDelete = childEntry.querySelector("#delete-bookmark");
-              const childEdit = childEntry.querySelector("#edit-bookmark");
-
-              childLink.href = child.url;
-              childLink.querySelector(".bookmark-title").textContent =
-                child.page_title;
-
-              childEntry.querySelector(".bookmark-description").textContent =
-                child.meta_description;
-
-              // Handle tags
-              this.#renderTags(
-                childEntry.querySelector(".bookmark-tags"),
-                child.tags,
-              );
-
-              // Handle notes - only show if present
-              const childNotesContainer =
-                childEntry.querySelector(".bookmark-notes");
-              const childNotesContent =
-                childEntry.querySelector(".notes-content");
-              if (child.notes && child.notes.trim()) {
-                childNotesContent.textContent = child.notes;
-                childNotesContainer.classList.remove("hidden");
-              }
-
-              childDelete.dataset.id = child.id;
-              childEdit.dataset.id = child.id;
-
-              // Wire up popovertarget for context menu anchor positioning
-              const childContextTrigger = childEntry.querySelector(".context-menu-trigger");
-              const childContextMenu = childEntry.querySelector(".context-menu");
-              const childContextMenuId = `context-menu-${child.id}`;
-              childContextMenu.id = childContextMenuId;
-              childContextTrigger.setAttribute("popovertarget", childContextMenuId);
-
-              // Setup read/unread toggle for child
-              const childReadToggle = childEntry.querySelector(
-                "#toggle-read-status",
-              );
-              childReadToggle.dataset.id = child.id;
-              childReadToggle.dataset.isRead = child.is_read || false;
-
-              if (child.is_read) {
-                childReadToggle.querySelector(".read-text").textContent =
-                  "Mark as Unread";
-                childReadToggle.setAttribute("aria-label", "Mark as unread");
-              }
-
-              const bookmarkChild = childEntry.querySelector(".bookmark-child");
-              bookmarkChild.id = `bookmark-entry-${child.id}`;
-
-              if (child.is_read) {
-                bookmarkChild.classList.add("read");
-              }
-
-              stackChildren.appendChild(childEntry);
-            });
-          }
-
-          return entry;
-        }),
-      );
 
       let bookmarksList = this.querySelector("#bookmarks-list");
-
-      if (bookmarksList) {
-        bookmarksList.classList.remove("multiple");
-        bookmarksList.innerHTML = "";
-      } else {
+      if (!bookmarksList) {
         bookmarksList = document.createElement("ul");
-        bookmarksList.classList.add("reset-list", "bookmarks-list");
+        bookmarksList.className = "reset-list bookmarks-list";
         bookmarksList.id = "bookmarks-list";
-
         bookmarksContainer.innerHTML = "";
         bookmarksContainer.append(bookmarksList);
+      } else {
+        bookmarksList.innerHTML = "";
       }
 
-      if (bookmarks.length > 1) {
-        bookmarksList.classList.add("multiple");
-      }
+      bookmarksList.classList.toggle("multiple", filteredBookmarks.length > 1);
 
-      bookmarksList.append(...bookmarkElements);
+      for (const bookmark of filteredBookmarks) {
+        const entry = await this.#renderEntry(
+          entryTmpl,
+          bookmark,
+          children.get(bookmark.id) || [],
+        );
+        bookmarksList.append(entry);
+      }
     } catch (error) {
-      console.error("Error rendering bookmarks:", error);
-
-      // Hide skeleton loader on error
-      if (this.#isInitialLoad) {
-        this.#hideSkeletonLoader();
-        this.#isInitialLoad = false;
-      }
-
+      console.info("Error rendering bookmarks:", error);
       bookmarksContainer.innerHTML = `
         <div class="error-message">
           <p>Failed to load bookmarks. Please try refreshing the page.</p>
@@ -963,12 +856,19 @@ export class LinkStackBookmarks extends HTMLElement {
     }
   }
 
-  /**
-   * Public method to refresh bookmarks (called after updates)
-   */
   async refresh() {
     await this.#renderBookmarks();
   }
+
+  #showToast(message, type) {
+    const toast =
+      /** @type {{ show: (message: string, type: string) => void } | null} */ (
+        /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+      );
+    toast?.show(message, type);
+  }
 }
 
-customElements.define("linkstack-bookmarks", LinkStackBookmarks);
+if (!customElements.get("linkstack-bookmarks")) {
+  customElements.define("linkstack-bookmarks", LinkStackBookmarks);
+}

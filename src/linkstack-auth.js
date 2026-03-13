@@ -1,324 +1,236 @@
+// @ts-check
 import { SettingsService } from "./services/settings.service.js";
 
-/**
- * Authentication component for LinkStack
- * Handles user sign in/out with Google and GitHub OAuth
- */
 export class LinkStackAuth extends HTMLElement {
   #user = null;
+  #isAdmin = false;
   #settingsService = new SettingsService();
-
-  constructor() {
-    super();
-  }
+  #documentClickHandler = null;
 
   connectedCallback() {
     this.#render();
   }
 
-  /**
-   * Set the current user and re-render
-   * @param {Object|null} user - User object from Supabase auth
-   */
-  setUser(user) {
+  setUser(user, { isAdmin = false } = {}) {
     this.#user = user;
+    this.#isAdmin = isAdmin;
     this.#render();
   }
 
-  /**
-   * Promise that resolves when render is complete (for testing)
-   */
   get updateComplete() {
     return Promise.resolve();
   }
 
   #render() {
-    if (this.#user) {
-      this.#renderAuthenticatedView();
-    } else {
-      this.#renderSignInView();
-    }
-  }
-
-  #renderSignInView() {
-    // Show the auth component
-    this.style.display = "";
-
-    // Hide the header
-    const header = document.getElementById("app-header");
-    if (header) {
-      header.classList.add("hidden");
-    }
-
-    this.innerHTML = `
-      <div class="auth-container">
-        <div class="auth-brand">
-          <h1 class="logo-text">LinkStack<span class="logo-cursor">_</span></h1>
-          <p class="auth-tagline">Your personal curated reading stack</p>
-        </div>
-
-        <div class="auth-card">
-          <h2>Sign in</h2>
-          <p class="auth-description">Save and organize your reading list across devices</p>
-
-          <div class="auth-buttons">
-            <button
-              type="button"
-              class="button auth-button google-btn"
-              data-testid="google-signin"
-              id="google-signin"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-                <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
-                <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-                <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
-              </svg>
-              Continue with Google
-            </button>
-
-            <button
-              type="button"
-              class="button auth-button github-btn"
-              data-testid="github-signin"
-              id="github-signin"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-              </svg>
-              Continue with GitHub
-            </button>
-          </div>
-        </div>
-
-        <p class="auth-footer">Built for developers who read</p>
-      </div>
-    `;
+    this.innerHTML = this.#user
+      ? this.#getAuthenticatedMarkup()
+      : this.#getGuestMarkup();
 
     this.#attachEventListeners();
+
+    if (this.#user) {
+      this.#setupDropdown();
+      this.#setupSettings();
+    }
   }
 
-  #renderAuthenticatedView() {
+  #getGuestMarkup() {
+    return `
+      <div class="guest-auth">
+        <button
+          type="button"
+          class="button solid"
+          id="guest-signin-trigger"
+          popovertarget="guest-signin-menu"
+          data-testid="signin-trigger"
+        >
+          Sign In
+        </button>
+        <div class="profile-dropdown guest-signin-menu" id="guest-signin-menu" popover>
+          <button
+            type="button"
+            class="dropdown-item"
+            data-testid="google-signin"
+            id="google-signin"
+          >
+            Continue with Google
+          </button>
+          <button
+            type="button"
+            class="dropdown-item"
+            data-testid="github-signin"
+            id="github-signin"
+          >
+            Continue with GitHub
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  #getAuthenticatedMarkup() {
     const displayName = this.#user.user_metadata?.full_name || this.#user.email;
     const email = this.#user.email;
     const avatar = this.#user.user_metadata?.avatar_url;
     const initials = this.#getInitials(displayName || email);
 
-    // Hide the auth component (sign-in view)
-    this.innerHTML = "";
-    this.style.display = "none";
-
-    // Show the header
-    const header = document.getElementById("app-header");
-    if (header) {
-      header.classList.remove("hidden");
-    }
-
-    // Render profile in header
-    const headerProfile = document.getElementById("header-profile");
-    if (headerProfile) {
-      headerProfile.innerHTML = `
-        <div class="user-profile">
+    return `
+      <div class="user-profile" data-testid="user-info">
+        <button
+          type="button"
+          class="profile-trigger"
+          aria-expanded="false"
+          aria-haspopup="true"
+          data-testid="profile-trigger"
+          id="profile-trigger"
+        >
+          <div class="profile-avatar">
+            ${avatar ? `<img src="${avatar}" alt="${displayName}" />` : initials}
+          </div>
+          <span class="profile-name">${displayName}</span>
+          ${
+            this.#isAdmin
+              ? '<span class="profile-role-badge" aria-label="Admin">Admin</span>'
+              : ""
+          }
+          <svg class="profile-arrow" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+            <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="profile-dropdown" id="profile-dropdown">
+          <div class="dropdown-user-info">
+            <div class="dropdown-user-name">${displayName}</div>
+            <div class="dropdown-user-email">${email}</div>
+          </div>
+          <div class="limit-settings">
+            <label class="limit-toggle">
+              <input
+                type="checkbox"
+                id="limit-enabled"
+                aria-label="Enable unread bookmark limit"
+              />
+              <span class="limit-label">Limit unread bookmarks</span>
+            </label>
+            <div class="limit-number-container hidden" id="limit-number-container">
+              <label for="unread-limit" class="limit-number-label">Maximum unread:</label>
+              <input
+                type="number"
+                id="unread-limit"
+                min="1"
+                max="100"
+                inputmode="numeric"
+                aria-label="Unread bookmark limit"
+                class="limit-input"
+                title="Maximum number of unread bookmarks"
+              />
+            </div>
+          </div>
           <button
             type="button"
-            class="profile-trigger"
-            aria-expanded="false"
-            aria-haspopup="true"
-            data-testid="profile-trigger"
-            id="profile-trigger"
+            class="dropdown-item danger"
+            data-testid="signout-btn"
+            id="signout-btn"
           >
-            <div class="profile-avatar">
-              ${avatar ? `<img src="${avatar}" alt="${displayName}" />` : initials}
-            </div>
-            <span class="profile-name">${displayName}</span>
-            <svg class="profile-arrow" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-              <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            Sign Out
           </button>
-          <div class="profile-dropdown" id="profile-dropdown">
-            <div class="dropdown-user-info">
-              <div class="dropdown-user-name">${displayName}</div>
-              <div class="dropdown-user-email">${email}</div>
-            </div>
-            <div class="limit-settings">
-              <label class="limit-toggle">
-                <input
-                  type="checkbox"
-                  id="limit-enabled"
-                  aria-label="Enable unread bookmark limit"
-                />
-                <span class="limit-label">Limit unread bookmarks</span>
-              </label>
-              <div class="limit-number-container hidden" id="limit-number-container">
-                <label for="unread-limit" class="limit-number-label">Maximum unread:</label>
-                <input
-                  type="number"
-                  id="unread-limit"
-                  min="1"
-                  max="100"
-                  inputmode="numeric"
-                  aria-label="Unread bookmark limit"
-                  class="limit-input"
-                  title="Maximum number of unread bookmarks"
-                />
-              </div>
-            </div>
-            <button
-              type="button"
-              class="dropdown-item danger"
-              data-testid="signout-btn"
-              id="signout-btn"
-            >
-              Sign Out
-            </button>
-          </div>
         </div>
-      `;
-    }
-
-    this.#attachEventListeners();
-    this.#setupDropdown();
-    this.#setupSettings();
+      </div>
+    `;
   }
 
-  /**
-   * Setup settings UI with current values
-   */
-  #setupSettings() {
-    const limitEnabled = document.getElementById("limit-enabled");
-    const unreadLimit = document.getElementById("unread-limit");
-    const limitContainer = document.getElementById("limit-number-container");
-
-    if (!limitEnabled || !unreadLimit || !limitContainer) return;
-
-    // Load current settings
-    limitEnabled.checked = this.#settingsService.isLimitEnabled();
-    unreadLimit.value = this.#settingsService.getUnreadLimit();
-
-    // Show/hide number input based on checkbox
-    if (limitEnabled.checked) {
-      limitContainer.classList.remove("hidden");
-    }
-
-    // Prevent clicks on settings from closing dropdown
-    const limitSettings = document.querySelector(".limit-settings");
-    if (limitSettings) {
-      limitSettings.addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent dropdown from closing
-      });
-    }
-
-    // Handle checkbox toggle
-    limitEnabled.addEventListener("change", (e) => {
-      this.#settingsService.setLimitEnabled(e.target.checked);
-
-      if (e.target.checked) {
-        limitContainer.classList.remove("hidden");
-      } else {
-        limitContainer.classList.add("hidden");
-      }
+  #attachEventListeners() {
+    this.querySelector("#google-signin")?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("sign-in-google"));
     });
 
-    // Handle limit value change
-    unreadLimit.addEventListener("change", (e) => {
-      const value = parseInt(e.target.value, 10);
+    this.querySelector("#github-signin")?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("sign-in-github"));
+    });
+
+    this.querySelector("#signout-btn")?.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("sign-out"));
+    });
+  }
+
+  #setupDropdown() {
+    const trigger = this.querySelector("#profile-trigger");
+    const dropdown = this.querySelector("#profile-dropdown");
+
+    if (!trigger || !dropdown) {
+      return;
+    }
+
+    trigger.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const isExpanded = trigger.getAttribute("aria-expanded") === "true";
+      trigger.setAttribute("aria-expanded", String(!isExpanded));
+      dropdown.classList.toggle("active", !isExpanded);
+    });
+
+    if (this.#documentClickHandler) {
+      document.removeEventListener("click", this.#documentClickHandler);
+    }
+
+    this.#documentClickHandler = (event) => {
+      if (!this.contains(event.target)) {
+        trigger.setAttribute("aria-expanded", "false");
+        dropdown.classList.remove("active");
+      }
+    };
+
+    document.addEventListener("click", this.#documentClickHandler);
+  }
+
+  #setupSettings() {
+    const limitEnabled = /** @type {HTMLInputElement | null} */ (
+      this.querySelector("#limit-enabled")
+    );
+    const unreadLimit = /** @type {HTMLInputElement | null} */ (
+      this.querySelector("#unread-limit")
+    );
+    const limitContainer = this.querySelector("#limit-number-container");
+
+    if (!limitEnabled || !unreadLimit || !limitContainer) {
+      return;
+    }
+
+    limitEnabled.checked = this.#settingsService.isLimitEnabled();
+    unreadLimit.value = String(this.#settingsService.getUnreadLimit());
+    limitContainer.classList.toggle("hidden", !limitEnabled.checked);
+
+    this.querySelector(".limit-settings")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    limitEnabled.addEventListener("change", (event) => {
+      const target = /** @type {HTMLInputElement} */ (event.target);
+      this.#settingsService.setLimitEnabled(target.checked);
+      limitContainer.classList.toggle("hidden", !target.checked);
+    });
+
+    unreadLimit.addEventListener("change", (event) => {
+      const target = /** @type {HTMLInputElement} */ (event.target);
+      const value = parseInt(target.value, 10);
       if (value >= 1 && value <= 100) {
         this.#settingsService.setUnreadLimit(value);
       }
     });
   }
 
-  /**
-   * Get initials from name for avatar
-   */
   #getInitials(name) {
-    if (!name) return "U";
+    if (!name) {
+      return "U";
+    }
+
     const parts = name.split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  }
-
-  /**
-   * Setup dropdown toggle functionality
-   */
-  #setupDropdown() {
-    const trigger = document.getElementById("profile-trigger");
-    const dropdown = document.getElementById("profile-dropdown");
-
-    if (!trigger || !dropdown) return;
-
-    trigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isExpanded = trigger.getAttribute("aria-expanded") === "true";
-
-      if (isExpanded) {
-        this.#closeDropdown();
-      } else {
-        this.#openDropdown();
-      }
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!trigger.contains(e.target) && !dropdown.contains(e.target)) {
-        this.#closeDropdown();
-      }
-    });
-
-    // Close dropdown on ESC key
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        this.#closeDropdown();
-      }
-    });
-  }
-
-  #openDropdown() {
-    const trigger = document.getElementById("profile-trigger");
-    const dropdown = document.getElementById("profile-dropdown");
-
-    if (trigger && dropdown) {
-      trigger.setAttribute("aria-expanded", "true");
-      dropdown.classList.add("active");
-    }
-  }
-
-  #closeDropdown() {
-    const trigger = document.getElementById("profile-trigger");
-    const dropdown = document.getElementById("profile-dropdown");
-
-    if (trigger && dropdown) {
-      trigger.setAttribute("aria-expanded", "false");
-      dropdown.classList.remove("active");
-    }
-  }
-
-  #attachEventListeners() {
-    const googleBtn = this.querySelector("#google-signin");
-    const githubBtn = this.querySelector("#github-signin");
-    // Sign out button is now in header dropdown, use document instead of this
-    const signOutBtn = document.getElementById("signout-btn");
-
-    if (googleBtn) {
-      googleBtn.addEventListener("click", () => {
-        this.dispatchEvent(new CustomEvent("sign-in-google"));
-      });
+    if (parts.length > 1) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
 
-    if (githubBtn) {
-      githubBtn.addEventListener("click", () => {
-        this.dispatchEvent(new CustomEvent("sign-in-github"));
-      });
-    }
-
-    if (signOutBtn) {
-      signOutBtn.addEventListener("click", () => {
-        this.dispatchEvent(new CustomEvent("sign-out"));
-      });
-    }
+    return name.slice(0, 2).toUpperCase();
   }
 }
 
-customElements.define("linkstack-auth", LinkStackAuth);
+if (!customElements.get("linkstack-auth")) {
+  customElements.define("linkstack-auth", LinkStackAuth);
+}

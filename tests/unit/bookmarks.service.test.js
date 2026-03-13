@@ -1,204 +1,366 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { BookmarksService } from "../../src/services/bookmarks.service.js";
+// -check
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  BookmarksService,
+  PUBLIC_SHARE_STATUS,
+} from "../../src/services/bookmarks.service.js";
+
+class MockQueryBuilder {
+  constructor(store, table) {
+    this.store = store;
+    this.table = table;
+    this.operation = "select";
+    this.filters = [];
+    this.sortField = null;
+    this.sortAscending = true;
+    this.payload = null;
+  }
+
+  select() {
+    return this;
+  }
+
+  insert(payload) {
+    this.operation = "insert";
+    this.payload = payload;
+    return this;
+  }
+
+  update(payload) {
+    this.operation = "update";
+    this.payload = payload;
+    return this;
+  }
+
+  delete() {
+    this.operation = "delete";
+    return this;
+  }
+
+  eq(field, value) {
+    this.filters.push((row) => row[field] === value);
+    return this;
+  }
+
+  in(field, values) {
+    this.filters.push((row) => values.includes(row[field]));
+    return this;
+  }
+
+  order(field, { ascending }) {
+    this.sortField = field;
+    this.sortAscending = ascending;
+    return this;
+  }
+
+  maybeSingle() {
+    const result = this.#execute();
+    return Promise.resolve({
+      data: result.data[0] ?? null,
+      error: null,
+    });
+  }
+
+  single() {
+    const result = this.#execute();
+    return Promise.resolve({
+      data: result.data[0] ?? null,
+      error: result.data.length ? null : new Error("No rows"),
+    });
+  }
+
+  then(resolve, reject) {
+    try {
+      resolve(this.#execute());
+    } catch (error) {
+      reject?.(error);
+    }
+  }
+
+  #getTable() {
+    return this.store[this.table];
+  }
+
+  #filteredRows() {
+    let rows = [...this.#getTable()];
+    this.filters.forEach((filter) => {
+      rows = rows.filter(filter);
+    });
+
+    if (this.sortField) {
+      rows.sort((left, right) => {
+        const leftValue = left[this.sortField];
+        const rightValue = right[this.sortField];
+        if (leftValue === rightValue) {
+          return 0;
+        }
+        if (this.sortAscending) {
+          return leftValue > rightValue ? 1 : -1;
+        }
+        return leftValue < rightValue ? 1 : -1;
+      });
+    }
+
+    return rows;
+  }
+
+  #execute() {
+    if (this.operation === "insert") {
+      const rows = Array.isArray(this.payload) ? this.payload : [this.payload];
+      const inserted = rows.map((row) => {
+        const nextRow = {
+          id: row.id || `${this.table}-${this.#getTable().length + 1}`,
+          created_at: row.created_at || "2026-03-07T08:00:00Z",
+          updated_at: row.updated_at || "2026-03-07T08:00:00Z",
+          ...row,
+        };
+        this.#getTable().push(nextRow);
+        return nextRow;
+      });
+      return { data: inserted, error: null };
+    }
+
+    if (this.operation === "update") {
+      const updated = [];
+      this.store[this.table] = this.#getTable().map((row) => {
+        if (this.filters.every((filter) => filter(row))) {
+          const nextRow = {
+            ...row,
+            ...this.payload,
+            updated_at: "2026-03-07T09:00:00Z",
+          };
+          updated.push(nextRow);
+          return nextRow;
+        }
+        return row;
+      });
+      return { data: updated, error: null };
+    }
+
+    if (this.operation === "delete") {
+      const remaining = [];
+      let deleted = false;
+      this.#getTable().forEach((row) => {
+        if (this.filters.every((filter) => filter(row))) {
+          deleted = true;
+          return;
+        }
+        remaining.push(row);
+      });
+      this.store[this.table] = remaining;
+      return { data: [], error: deleted ? null : new Error("Delete failed") };
+    }
+
+    return {
+      data: this.#filteredRows(),
+      error: null,
+    };
+  }
+}
 
 describe("BookmarksService", () => {
-  let bookmarksService;
+  let service;
+  let store;
   let mockSupabase;
 
   beforeEach(() => {
-    // Mock Supabase client
-    mockSupabase = {
-      from: vi.fn(() => mockSupabase),
-      select: vi.fn(() => mockSupabase),
-      insert: vi.fn(() => mockSupabase),
-      update: vi.fn(() => mockSupabase),
-      delete: vi.fn(() => mockSupabase),
-      eq: vi.fn(() => mockSupabase),
-      order: vi.fn(() => mockSupabase),
-      single: vi.fn(() => mockSupabase),
+    store = {
+      resources: [
+        {
+          id: "resource-1",
+          normalized_url: "https://example.com/article",
+          canonical_url: "https://example.com/article",
+          page_title: "Existing article",
+          meta_description: "Existing description",
+          preview_img: "https://example.com/image.jpg",
+          created_at: "2026-03-06T08:00:00Z",
+          updated_at: "2026-03-06T08:00:00Z",
+        },
+      ],
+      bookmarks: [
+        {
+          id: "bookmark-1",
+          user_id: "user-1",
+          resource_id: "resource-1",
+          parent_id: null,
+          title_override: null,
+          description_override: null,
+          notes: "",
+          tags: ["web"],
+          is_read: false,
+          read_at: null,
+          created_at: "2026-03-06T09:00:00Z",
+          updated_at: "2026-03-06T09:00:00Z",
+        },
+      ],
+      public_listings: [
+        {
+          id: "listing-1",
+          resource_id: "resource-1",
+          submitted_by_user_id: "user-1",
+          submitted_by_bookmark_id: "bookmark-1",
+          status: "approved",
+          page_title: "Existing article",
+          meta_description: "Existing description",
+          preview_img: "https://example.com/image.jpg",
+          tags: ["web"],
+          rejection_code: null,
+          rejection_reason: null,
+          reviewed_at: "2026-03-06T10:00:00Z",
+          reviewed_by: "user-admin",
+          created_at: "2026-03-06T09:30:00Z",
+          updated_at: "2026-03-06T10:00:00Z",
+        },
+      ],
+      user_roles: [{ id: "role-1", user_id: "user-admin", role: "admin" }],
     };
 
-    bookmarksService = new BookmarksService(mockSupabase);
+    mockSupabase = {
+      auth: {
+        getUser: async () => ({
+          data: { user: { id: "user-2", email: "person@example.com" } },
+          error: null,
+        }),
+      },
+      from(table) {
+        return new MockQueryBuilder(store, table);
+      },
+    };
+
+    service = new BookmarksService(mockSupabase);
   });
 
-  describe("getAll", () => {
-    it("should fetch all bookmarks ordered by created_at desc", async () => {
-      const mockBookmarks = [
-        { id: "1", page_title: "Test 1", created_at: "2024-01-02" },
-        { id: "2", page_title: "Test 2", created_at: "2024-01-01" },
-      ];
-
-      mockSupabase.order.mockResolvedValue({
-        data: mockBookmarks,
-        error: null,
-      });
-
-      const result = await bookmarksService.getAll();
-
-      expect(mockSupabase.from).toHaveBeenCalledWith("bookmarks");
-      expect(mockSupabase.select).toHaveBeenCalledWith("*");
-      expect(mockSupabase.order).toHaveBeenCalledWith("created_at", {
-        ascending: false,
-      });
-      expect(result).toEqual(mockBookmarks);
+  it("inspects a URL for both personal and public duplicates", async () => {
+    store.bookmarks.push({
+      id: "bookmark-2",
+      user_id: "user-2",
+      resource_id: "resource-1",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: [],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-06T11:00:00Z",
+      updated_at: "2026-03-06T11:00:00Z",
     });
 
-    it("should throw error if fetch fails", async () => {
-      const error = new Error("Database error");
-      mockSupabase.order.mockResolvedValue({
-        data: null,
-        error,
-      });
+    const inspection = await service.inspectUrl("https://example.com/article#fragment");
 
-      await expect(bookmarksService.getAll()).rejects.toThrow("Database error");
-    });
+    expect(inspection.resource?.id).toBe("resource-1");
+    expect(inspection.personal_duplicate?.id).toBe("bookmark-2");
+    expect(inspection.public_duplicate?.id).toBe("listing-1");
   });
 
-  describe("getById", () => {
-    it("should fetch a single bookmark by id", async () => {
-      const mockBookmark = { id: "1", page_title: "Test" };
-
-      mockSupabase.single.mockResolvedValue({
-        data: mockBookmark,
-        error: null,
-      });
-
-      const result = await bookmarksService.getById("1");
-
-      expect(mockSupabase.from).toHaveBeenCalledWith("bookmarks");
-      expect(mockSupabase.select).toHaveBeenCalledWith("*");
-      expect(mockSupabase.eq).toHaveBeenCalledWith("id", "1");
-      expect(mockSupabase.single).toHaveBeenCalled();
-      expect(result).toEqual(mockBookmark);
+  it("creates a bookmark against an existing public resource without creating a new resource", async () => {
+    const bookmark = await service.addExistingPublicToLibrary({
+      resourceId: "resource-1",
+      publicListingId: "listing-1",
+      notes: "read later",
     });
 
-    it("should throw error if bookmark not found", async () => {
-      const error = new Error("Not found");
-      mockSupabase.single.mockResolvedValue({
-        data: null,
-        error,
-      });
-
-      await expect(bookmarksService.getById("999")).rejects.toThrow(
-        "Not found",
-      );
-    });
+    expect(store.resources).toHaveLength(1);
+    expect(store.bookmarks).toHaveLength(2);
+    expect(bookmark.resource_id).toBe("resource-1");
+    expect(bookmark.notes).toBe("read later");
   });
 
-  describe("create", () => {
-    it("should create a new bookmark", async () => {
-      const newBookmark = {
-        url: "https://example.com",
-        page_title: "Example",
-        meta_description: "Test description",
-        preview_img: "https://example.com/image.jpg",
-      };
-
-      const createdBookmark = {
-        id: "123",
-        ...newBookmark,
-        created_at: "2024-01-01T00:00:00Z",
-      };
-
-      mockSupabase.select.mockResolvedValue({
-        data: [createdBookmark],
-        error: null,
-      });
-
-      const result = await bookmarksService.create(newBookmark);
-
-      expect(mockSupabase.from).toHaveBeenCalledWith("bookmarks");
-      expect(mockSupabase.insert).toHaveBeenCalledWith(newBookmark);
-      expect(mockSupabase.select).toHaveBeenCalled();
-      expect(result).toEqual(createdBookmark);
+  it("creates a new resource and bookmark when the URL is unknown", async () => {
+    const bookmark = await service.create({
+      url: "https://new.example.com/post",
+      page_title: "A new article",
+      meta_description: "Fresh description",
+      preview_img: "",
+      notes: "todo",
+      request_public: false,
     });
 
-    it("should throw error if create fails", async () => {
-      const error = new Error("Insert failed");
-      mockSupabase.select.mockResolvedValue({
-        data: null,
-        error,
-      });
-
-      await expect(bookmarksService.create({ url: "test" })).rejects.toThrow(
-        "Insert failed",
-      );
-    });
+    expect(store.resources).toHaveLength(2);
+    expect(store.bookmarks).toHaveLength(2);
+    expect(bookmark.page_title).toBe("A new article");
+    expect(bookmark.public_share_status).toBe(PUBLIC_SHARE_STATUS.NOT_REQUESTED);
   });
 
-  describe("update", () => {
-    it("should update an existing bookmark", async () => {
-      const updates = {
-        page_title: "Updated Title",
-        meta_description: "Updated Description",
-      };
-
-      const updatedBookmark = {
-        id: "1",
-        ...updates,
-        updated_at: "2024-01-01T00:00:00Z",
-      };
-
-      mockSupabase.select.mockResolvedValue({
-        data: [updatedBookmark],
-        error: null,
-      });
-
-      const result = await bookmarksService.update("1", updates);
-
-      expect(mockSupabase.from).toHaveBeenCalledWith("bookmarks");
-      expect(mockSupabase.update).toHaveBeenCalledWith(updates);
-      expect(mockSupabase.eq).toHaveBeenCalledWith("id", "1");
-      expect(mockSupabase.select).toHaveBeenCalled();
-      expect(result).toEqual(updatedBookmark);
+  it("prevents requesting public share when the resource is already public", async () => {
+    store.bookmarks.push({
+      id: "bookmark-2",
+      user_id: "user-2",
+      resource_id: "resource-1",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: [],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-06T11:00:00Z",
+      updated_at: "2026-03-06T11:00:00Z",
     });
 
-    it("should throw error if update fails", async () => {
-      const error = new Error("Update failed");
-      mockSupabase.select.mockResolvedValue({
-        data: null,
-        error,
-      });
-
-      await expect(bookmarksService.update("1", {})).rejects.toThrow(
-        "Update failed",
-      );
-    });
-
-    it("should throw error if bookmark not found", async () => {
-      mockSupabase.select.mockResolvedValue({
-        data: [],
-        error: null,
-      });
-
-      await expect(bookmarksService.update("999", {})).rejects.toThrow(
-        "Bookmark with id 999 not found",
-      );
-    });
+    await expect(service.requestPublicShare("bookmark-2")).rejects.toThrow(
+      "This link is already in the public catalog",
+    );
   });
 
-  describe("delete", () => {
-    it("should delete a bookmark", async () => {
-      mockSupabase.eq.mockResolvedValue({
-        error: null,
-      });
-
-      await bookmarksService.delete("1");
-
-      expect(mockSupabase.from).toHaveBeenCalledWith("bookmarks");
-      expect(mockSupabase.delete).toHaveBeenCalled();
-      expect(mockSupabase.eq).toHaveBeenCalledWith("id", "1");
+  it("creates a pending public listing for a private top-level bookmark", async () => {
+    store.resources.push({
+      id: "resource-2",
+      normalized_url: "https://another.example.com/post",
+      canonical_url: "https://another.example.com/post",
+      page_title: "Another article",
+      meta_description: "",
+      preview_img: "",
+      created_at: "2026-03-07T07:00:00Z",
+      updated_at: "2026-03-07T07:00:00Z",
+    });
+    store.bookmarks.push({
+      id: "bookmark-2",
+      user_id: "user-2",
+      resource_id: "resource-2",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: ["news"],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:10:00Z",
+      updated_at: "2026-03-07T07:10:00Z",
     });
 
-    it("should throw error if delete fails", async () => {
-      const error = new Error("Delete failed");
-      mockSupabase.eq.mockResolvedValue({
-        error,
-      });
+    const listing = await service.requestPublicShare("bookmark-2");
 
-      await expect(bookmarksService.delete("1")).rejects.toThrow(
-        "Delete failed",
-      );
+    expect(listing.status).toBe(PUBLIC_SHARE_STATUS.PENDING);
+    expect(store.public_listings).toHaveLength(2);
+  });
+
+  it("reviews a pending public listing", async () => {
+    store.public_listings.push({
+      id: "listing-2",
+      resource_id: "resource-1",
+      submitted_by_user_id: "user-2",
+      submitted_by_bookmark_id: "bookmark-1",
+      status: "pending",
+      page_title: "Existing article",
+      meta_description: "Existing description",
+      preview_img: "https://example.com/image.jpg",
+      tags: ["web"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: null,
+      reviewed_by: null,
+      created_at: "2026-03-07T09:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
     });
+
+    const reviewed = await service.reviewPublicShare("listing-2", {
+      decision: "reject",
+      rejectionCode: "out_of_scope",
+      rejectionReason: "This link does not fit the catalog.",
+    });
+
+    expect(reviewed.status).toBe(PUBLIC_SHARE_STATUS.REJECTED);
+    expect(reviewed.rejection_code).toBe("out_of_scope");
   });
 });

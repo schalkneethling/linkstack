@@ -1,3 +1,4 @@
+// @ts-check
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 
@@ -19,15 +20,24 @@ export class LinkStackEditDialog extends HTMLElement {
   };
 
   #elements = {
+    /** @type {HTMLButtonElement | null} */
     buttonCloseDialog: null,
+    /** @type {HTMLFormElement | null} */
     editBookmarkForm: null,
+    /** @type {HTMLInputElement | null} */
     editId: null,
+    /** @type {HTMLInputElement | null} */
     editTitleInput: null,
+    /** @type {HTMLTextAreaElement | null} */
     editDescriptionInput: null,
+    /** @type {HTMLTextAreaElement | null} */
     editNotesInput: null,
+    /** @type {HTMLInputElement | null} */
     editTagsInput: null,
+    /** @type {HTMLDialogElement | null} */
     editDialog: null,
     linkstackBookmarks: null,
+    /** @type {HTMLButtonElement | null} */
     saveButton: null,
   };
 
@@ -79,8 +89,13 @@ export class LinkStackEditDialog extends HTMLElement {
   #addEventListeners() {
     const { buttonCloseDialog, editBookmarkForm, editDialog } = this.#elements;
 
+    if (!buttonCloseDialog || !editBookmarkForm || !editDialog) {
+      return;
+    }
+
     this.addEventListener("edit-bookmark", async (event) => {
-      await this.#editBookmark(event.detail.id);
+      const editEvent = /** @type {CustomEvent<{ id: string }>} */ (event);
+      await this.#editBookmark(editEvent.detail.id);
     });
 
     buttonCloseDialog.addEventListener("click", () => {
@@ -102,7 +117,6 @@ export class LinkStackEditDialog extends HTMLElement {
 
   /**
    * Set loading state on save button
-   * @private
    */
   #setSaveButtonLoading(isLoading) {
     const { saveButton } = this.#elements;
@@ -111,8 +125,12 @@ export class LinkStackEditDialog extends HTMLElement {
       return;
     }
 
-    const buttonText = saveButton.querySelector(".button-text");
-    const buttonLoading = saveButton.querySelector(".button-loading");
+    const buttonText = /** @type {HTMLElement | null} */ (
+      saveButton.querySelector(".button-text")
+    );
+    const buttonLoading = /** @type {HTMLElement | null} */ (
+      saveButton.querySelector(".button-loading")
+    );
 
     if (isLoading) {
       this.#isSaving = true;
@@ -145,8 +163,10 @@ export class LinkStackEditDialog extends HTMLElement {
     try {
       return await this.#bookmarksService.getById(id);
     } catch (error) {
-      console.error("Error getting bookmark data:", error);
-      throw new Error(`Error getting bookmark data: ${error.message}`);
+      console.info("Error getting bookmark data:", error);
+      throw new Error(`Error getting bookmark data: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 
@@ -175,8 +195,11 @@ export class LinkStackEditDialog extends HTMLElement {
       });
 
       // Show success toast
-      const toast = document.querySelector("linkstack-toast");
-      toast.show("Bookmark updated successfully!", "success");
+      const toast =
+        /** @type {{ show: (message: string, type: string) => void } | null} */ (
+          /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+        );
+      toast?.show("Bookmark updated successfully!", "success");
 
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
@@ -184,9 +207,12 @@ export class LinkStackEditDialog extends HTMLElement {
       this.#setSaveButtonLoading(false);
       editDialog.close();
     } catch (error) {
-      console.error("Error saving bookmark changes:", error);
-      const toast = document.querySelector("linkstack-toast");
-      toast.show("Failed to save changes. Please try again.", "error");
+      console.info("Error saving bookmark changes:", error);
+      const toast =
+        /** @type {{ show: (message: string, type: string) => void } | null} */ (
+          /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+        );
+      toast?.show("Failed to save changes. Please try again.", "error");
       this.#setSaveButtonLoading(false);
     }
   }
@@ -201,6 +227,17 @@ export class LinkStackEditDialog extends HTMLElement {
       editTagsInput,
     } = this.#elements;
 
+    if (
+      !editDialog ||
+      !editId ||
+      !editTitleInput ||
+      !editDescriptionInput ||
+      !editNotesInput ||
+      !editTagsInput
+    ) {
+      return;
+    }
+
     try {
       const bookmarkData = await this.#getBookmarkData(id);
 
@@ -214,11 +251,16 @@ export class LinkStackEditDialog extends HTMLElement {
 
       editDialog.showModal();
     } catch (error) {
-      console.error("Error loading bookmark for edit:", error);
-      const toast = document.querySelector("linkstack-toast");
-      toast.show("Failed to load bookmark. Please try again.", "error");
+      console.info("Error loading bookmark for edit:", error);
+      const toast =
+        /** @type {{ show: (message: string, type: string) => void } | null} */ (
+          /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+        );
+      toast?.show("Failed to load bookmark. Please try again.", "error");
     }
   }
 }
 
-customElements.define("linkstack-edit-dialog", LinkStackEditDialog);
+if (!customElements.get("linkstack-edit-dialog")) {
+  customElements.define("linkstack-edit-dialog", LinkStackEditDialog);
+}

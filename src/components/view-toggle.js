@@ -1,3 +1,4 @@
+// -check
 /**
  * View Toggle Component
  * Manages grid/list view switching with localStorage persistence
@@ -67,7 +68,7 @@ class ViewToggle extends HTMLElement {
     try {
       localStorage.setItem(this.#storageKey, this.#currentView);
     } catch (error) {
-      console.warn("Failed to save view preference:", error);
+      console.info("Failed to save view preference:", error);
     }
   }
 
@@ -78,7 +79,7 @@ class ViewToggle extends HTMLElement {
         this.#currentView = savedView;
       }
     } catch (error) {
-      console.warn("Failed to load view preference:", error);
+      console.info("Failed to load view preference:", error);
     }
   }
 

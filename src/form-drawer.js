@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Form Drawer Web Component
  * Manages opening/closing the bookmark form popover with keyboard shortcuts
@@ -32,7 +33,7 @@ class FormDrawer extends HTMLElement {
         if (urlInput) {
           // Small delay to ensure popover animation has started
           setTimeout(() => {
-            urlInput.focus();
+            /** @type {HTMLInputElement} */ (urlInput).focus();
           }, 100);
         }
       }
@@ -54,6 +55,8 @@ class FormDrawer extends HTMLElement {
   }
 }
 
-customElements.define("form-drawer", FormDrawer);
+if (!customElements.get("form-drawer")) {
+  customElements.define("form-drawer", FormDrawer);
+}
 
 export { FormDrawer };

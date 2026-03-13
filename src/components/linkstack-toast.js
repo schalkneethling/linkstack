@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * LinkStack Toast Notification Component
  *
@@ -85,16 +86,29 @@ class LinkStackToast extends HTMLElement {
 
   /**
    * Create a toast element
-   * @private
    */
   #createToast(message, type) {
     const id = crypto.randomUUID();
 
     // Clone template
-    const template = this.querySelector(
-      LinkStackToast.#selectors.toastTemplate,
+    const template = /** @type {HTMLTemplateElement | null} */ (
+      this.querySelector(LinkStackToast.#selectors.toastTemplate)
     );
-    const element = template.content.cloneNode(true).querySelector(".toast");
+
+    if (!template) {
+      throw new Error("Toast template not found");
+    }
+
+    const fragment = /** @type {DocumentFragment} */ (
+      template.content.cloneNode(true)
+    );
+    const element = /** @type {HTMLElement | null} */ (
+      fragment.querySelector(".toast")
+    );
+
+    if (!element) {
+      throw new Error("Toast element not found");
+    }
 
     // Set attributes
     element.className = `toast toast-${type}`;
@@ -155,7 +169,6 @@ class LinkStackToast extends HTMLElement {
 
   /**
    * Dismiss the oldest toast (FIFO)
-   * @private
    */
   #dismissOldest() {
     if (this.#toasts.length > 0) {
@@ -174,7 +187,6 @@ class LinkStackToast extends HTMLElement {
 
   /**
    * Get icon SVG for toast type
-   * @private
    */
   #getIcon(type) {
     const icons = {
@@ -203,4 +215,6 @@ class LinkStackToast extends HTMLElement {
   }
 }
 
-customElements.define("linkstack-toast", LinkStackToast);
+if (!customElements.get("linkstack-toast")) {
+  customElements.define("linkstack-toast", LinkStackToast);
+}

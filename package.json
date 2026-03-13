@@ -13,6 +13,7 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "typecheck": "tsc --noEmit",
     "prettier:lint": "prettier .",
     "prettier:format": "prettier --write .",
     "lint:js": "eslint .",
@@ -53,6 +54,7 @@
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^37.0.0",
     "stylelint-order": "^7.0.1",
+    "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-static-copy": "^3.2.0",
     "vitest": "^4.0.17"

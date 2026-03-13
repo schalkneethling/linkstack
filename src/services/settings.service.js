@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Settings service for managing user preferences
  */
@@ -50,7 +51,10 @@ export class SettingsService {
    */
   setUnreadLimit(limit) {
     const numericLimit = Math.max(1, parseInt(limit, 10));
-    localStorage.setItem(SettingsService.KEYS.UNREAD_LIMIT, numericLimit);
+    localStorage.setItem(
+      SettingsService.KEYS.UNREAD_LIMIT,
+      String(numericLimit),
+    );
     window.dispatchEvent(
       new CustomEvent("settings-changed", {
         detail: { key: "unreadLimit", value: numericLimit },

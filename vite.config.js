@@ -1,4 +1,5 @@
-import { defineConfig } from "vite";
+// @ts-check
+import { defineConfig } from "vitest/config";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
