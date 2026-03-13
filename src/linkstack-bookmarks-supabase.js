@@ -5,6 +5,25 @@ import {
   PUBLIC_SHARE_STATUS,
 } from "./services/bookmarks.service.js";
 
+const BOOKMARK_SCOPE = Object.freeze({
+  public: "public",
+  mine: "mine",
+  all: "all",
+});
+
+const BOOKMARK_SORT = Object.freeze({
+  newest: "newest",
+  oldest: "oldest",
+  alphaAsc: "alpha-asc",
+  alphaDesc: "alpha-desc",
+});
+
+const BOOKMARK_FILTER = Object.freeze({
+  all: "all",
+  read: "read",
+  unread: "unread",
+});
+
 export class LinkStackBookmarks extends HTMLElement {
   static #selectors = {
     bookmarksContainer: "#bookmarks-container",
@@ -46,9 +65,12 @@ export class LinkStackBookmarks extends HTMLElement {
   #renderPromise = null;
   #isInitialLoad = true;
   #searchQuery = "";
-  #sortBy = "newest";
-  #filterBy = "unread";
-  #scope = "public";
+  /** @type {"newest" | "oldest" | "alpha-asc" | "alpha-desc"} */
+  #sortBy = BOOKMARK_SORT.newest;
+  /** @type {"all" | "read" | "unread"} */
+  #filterBy = BOOKMARK_FILTER.unread;
+  /** @type {"public" | "mine" | "all"} */
+  #scope = BOOKMARK_SCOPE.public;
   #isAuthenticated = false;
   #searchDebounceTimer = null;
   #boundHandlers = {
@@ -113,9 +135,14 @@ export class LinkStackBookmarks extends HTMLElement {
 
     const params = new URLSearchParams(window.location.search);
     this.#searchQuery = params.get("search") || "";
-    this.#sortBy = params.get("sort") || localStorage.getItem("linkstack:sortBy") || "newest";
+    this.#sortBy =
+      this.#normalizeSort(
+        params.get("sort") || localStorage.getItem("linkstack:sortBy"),
+      );
     this.#filterBy =
-      params.get("filter") || localStorage.getItem("linkstack:filterBy") || "unread";
+      this.#normalizeFilter(
+        params.get("filter") || localStorage.getItem("linkstack:filterBy"),
+      );
 
     if (this.#elements.searchInput) {
       this.#elements.searchInput.value = this.#searchQuery;
@@ -154,8 +181,10 @@ export class LinkStackBookmarks extends HTMLElement {
           event
         );
       this.#isAuthenticated = Boolean(authEvent.detail?.isAuthenticated);
-      this.#scope =
-        authEvent.detail?.scope || (this.#isAuthenticated ? "mine" : "public");
+      this.#scope = this.#normalizeScope(
+        authEvent.detail?.scope,
+        this.#isAuthenticated,
+      );
       this.#syncFilterVisibility();
       await this.#renderBookmarks();
     };
@@ -280,9 +309,13 @@ export class LinkStackBookmarks extends HTMLElement {
   #setupSort() {
     this.#elements.sortSelect?.addEventListener("change", async (event) => {
       const target = /** @type {HTMLSelectElement} */ (event.target);
-      this.#sortBy = target.value;
+      this.#sortBy = this.#normalizeSort(target.value);
+      target.value = this.#sortBy;
       localStorage.setItem("linkstack:sortBy", this.#sortBy);
-      this.#updateUrlParam("sort", this.#sortBy === "newest" ? "" : this.#sortBy);
+      this.#updateUrlParam(
+        "sort",
+        this.#sortBy === BOOKMARK_SORT.newest ? "" : this.#sortBy,
+      );
       await this.#renderBookmarks();
     });
   }
@@ -290,10 +323,13 @@ export class LinkStackBookmarks extends HTMLElement {
   #setupFilter() {
     this.#elements.filterButtons?.forEach((button) => {
       button.addEventListener("click", async () => {
-        this.#filterBy = button.dataset.filter;
+        this.#filterBy = this.#normalizeFilter(button.dataset.filter);
         this.#setActiveFilterButton(this.#filterBy);
         localStorage.setItem("linkstack:filterBy", this.#filterBy);
-        this.#updateUrlParam("filter", this.#filterBy === "all" ? "" : this.#filterBy);
+        this.#updateUrlParam(
+          "filter",
+          this.#filterBy === BOOKMARK_FILTER.all ? "" : this.#filterBy,
+        );
         await this.#renderBookmarks();
       });
     });
@@ -301,7 +337,10 @@ export class LinkStackBookmarks extends HTMLElement {
 
   #setupScope() {
     if (this.#elements.scopeSelect) {
-      this.#scope = this.#elements.scopeSelect.value;
+      this.#scope = this.#normalizeScope(
+        this.#elements.scopeSelect.value,
+        this.#isAuthenticated,
+      );
     }
   }
 
@@ -314,7 +353,8 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   #syncFilterVisibility() {
-    const showReadFilters = this.#isAuthenticated && this.#scope === "mine";
+    const showReadFilters =
+      this.#isAuthenticated && this.#scope === BOOKMARK_SCOPE.mine;
     this.#elements.filterContainer?.classList.toggle("hidden", !showReadFilters);
   }
 
@@ -373,10 +413,10 @@ export class LinkStackBookmarks extends HTMLElement {
   #filterBookmarks(bookmarks) {
     let filtered = bookmarks;
 
-    if (this.#scope === "mine") {
-      if (this.#filterBy === "read") {
+    if (this.#scope === BOOKMARK_SCOPE.mine) {
+      if (this.#filterBy === BOOKMARK_FILTER.read) {
         filtered = filtered.filter((bookmark) => bookmark.is_read);
-      } else if (this.#filterBy === "unread") {
+      } else if (this.#filterBy === BOOKMARK_FILTER.unread) {
         filtered = filtered.filter((bookmark) => !bookmark.is_read);
       }
     }
@@ -585,6 +625,61 @@ export class LinkStackBookmarks extends HTMLElement {
     return wrapper;
   }
 
+  #normalizeSort(value) {
+    switch (value) {
+      case BOOKMARK_SORT.oldest:
+      case BOOKMARK_SORT.alphaAsc:
+      case BOOKMARK_SORT.alphaDesc:
+      case BOOKMARK_SORT.newest:
+        return value;
+      default:
+        return BOOKMARK_SORT.newest;
+    }
+  }
+
+  #normalizeFilter(value) {
+    switch (value) {
+      case BOOKMARK_FILTER.all:
+      case BOOKMARK_FILTER.read:
+      case BOOKMARK_FILTER.unread:
+        return value;
+      default:
+        return BOOKMARK_FILTER.unread;
+    }
+  }
+
+  #normalizeScope(value, isAuthenticated) {
+    if (!isAuthenticated) {
+      return BOOKMARK_SCOPE.public;
+    }
+
+    switch (value) {
+      case BOOKMARK_SCOPE.all:
+      case BOOKMARK_SCOPE.mine:
+        return value;
+      default:
+        return BOOKMARK_SCOPE.mine;
+    }
+  }
+
+  #sortBookmarks(items) {
+    return [...items].sort((left, right) => {
+      if (this.#sortBy === BOOKMARK_SORT.oldest) {
+        return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+      }
+
+      if (this.#sortBy === BOOKMARK_SORT.alphaAsc) {
+        return left.page_title.localeCompare(right.page_title);
+      }
+
+      if (this.#sortBy === BOOKMARK_SORT.alphaDesc) {
+        return right.page_title.localeCompare(left.page_title);
+      }
+
+      return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+    });
+  }
+
   async #renderEntry(template, bookmark, children = []) {
     const templateElement = /** @type {HTMLTemplateElement} */ (template);
     const fragment = /** @type {DocumentFragment} */ (
@@ -782,7 +877,7 @@ export class LinkStackBookmarks extends HTMLElement {
       let topLevel = [];
       let children = new Map();
 
-      if (!this.#isAuthenticated || this.#scope === "public") {
+      if (!this.#isAuthenticated || this.#scope === BOOKMARK_SCOPE.public) {
         topLevel = await this.#bookmarksService.getPublicCatalog(this.#sortBy);
       } else {
         const myBookmarks = await this.#bookmarksService.getMyBookmarks(this.#sortBy);
@@ -798,7 +893,7 @@ export class LinkStackBookmarks extends HTMLElement {
 
         const topLevelBookmarks = myBookmarks.filter((bookmark) => !bookmark.parent_id);
 
-        if (this.#scope === "all") {
+        if (this.#scope === BOOKMARK_SCOPE.all) {
           const publicCatalog = await this.#bookmarksService.getPublicCatalog(this.#sortBy);
           const ownedResourceIds = new Set(
             myBookmarks.map((bookmark) => bookmark.resource_id),
@@ -806,27 +901,7 @@ export class LinkStackBookmarks extends HTMLElement {
           const publicOnly = publicCatalog.filter(
             (bookmark) => !ownedResourceIds.has(bookmark.resource_id),
           );
-          topLevel = [...topLevelBookmarks, ...publicOnly].sort((left, right) => {
-            if (this.#sortBy === "oldest") {
-              return (
-                new Date(left.created_at).getTime() -
-                new Date(right.created_at).getTime()
-              );
-            }
-
-            if (this.#sortBy === "alpha-asc") {
-              return left.page_title.localeCompare(right.page_title);
-            }
-
-            if (this.#sortBy === "alpha-desc") {
-              return right.page_title.localeCompare(left.page_title);
-            }
-
-            return (
-              new Date(right.created_at).getTime() -
-              new Date(left.created_at).getTime()
-            );
-          });
+          topLevel = this.#sortBookmarks([...topLevelBookmarks, ...publicOnly]);
         } else {
           topLevel = topLevelBookmarks;
         }
@@ -842,7 +917,7 @@ export class LinkStackBookmarks extends HTMLElement {
 
       if (!filteredBookmarks.length) {
         this.#showNoBookmarks(
-          this.#scope === "public"
+          this.#scope === BOOKMARK_SCOPE.public
             ? "No public bookmarks have been approved yet."
             : "Why not add your first?",
         );
