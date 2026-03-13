@@ -2,7 +2,12 @@
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 
-const REJECTION_OPTIONS = [
+const REVIEW_DECISIONS = Object.freeze({
+  approve: "approve",
+  reject: "reject",
+});
+
+const REJECTION_OPTIONS = Object.freeze([
   { value: "", label: "Select a reason" },
   { value: "broken_link", label: "Broken link" },
   { value: "duplicate_public_entry", label: "Duplicate public entry" },
@@ -10,97 +15,180 @@ const REJECTION_OPTIONS = [
   { value: "unsafe_or_inappropriate", label: "Unsafe or inappropriate" },
   { value: "out_of_scope", label: "Out of scope" },
   { value: "other", label: "Other" },
-];
+]);
+
+const reviewCardTemplate = document.createElement("template");
+reviewCardTemplate.innerHTML = `
+  <li class="bookmark-entry review-card">
+    <div class="bookmark-info">
+      <a class="bookmark-link" target="_blank" rel="noopener noreferrer">
+        <h3 class="bookmark-title"></h3>
+      </a>
+      <p class="bookmark-description"></p>
+      <div class="bookmark-tags"></div>
+      <div class="form-field">
+        <label class="review-reason-label">Rejection reason</label>
+        <select class="review-reason"></select>
+      </div>
+      <div class="form-field">
+        <label class="review-note-label">Reviewer note (optional)</label>
+        <input
+          type="text"
+          class="review-note"
+          placeholder="Add context for the submitter"
+        />
+      </div>
+      <div class="bookmark-actions">
+        <button
+          type="button"
+          class="button solid"
+          data-review-action="approve"
+        >
+          Approve
+        </button>
+        <button
+          type="button"
+          class="button solid critical"
+          data-review-action="reject"
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  </li>
+`;
+
+/**
+ * @typedef {{
+ *   public_listing_id: string;
+ *   url: string;
+ *   page_title: string;
+ *   meta_description?: string | null;
+ *   tags?: string[] | null;
+ * }} PendingReview
+ */
 
 export class LinkStackPublicReviews extends HTMLElement {
   #bookmarksService = new BookmarksService(supabase);
   #container = null;
   #summary = null;
   #isAdmin = false;
+  #authStateChangedHandler = null;
+  #panelOpenedHandler = null;
+  #reviewClickHandler = null;
 
   connectedCallback() {
     this.#container = this.querySelector("#public-review-container");
     this.#summary = this.querySelector("#public-review-summary");
 
-    window.addEventListener("auth-state-changed", async (event) => {
-      const authEvent = /** @type {CustomEvent<{ isAdmin?: boolean }>} */ (event);
-      this.#isAdmin = Boolean(authEvent.detail?.isAdmin);
-      if (this.#isAdmin && !this.closest("#admin-panel")?.classList.contains("hidden")) {
-        await this.render();
-      }
-    });
+    if (!this.#authStateChangedHandler) {
+      this.#authStateChangedHandler = async (event) => {
+        const authEvent = /** @type {CustomEvent<{ isAdmin?: boolean }>} */ (event);
+        this.#isAdmin = Boolean(authEvent.detail?.isAdmin);
+        if (this.#isAdmin && !this.closest("#admin-panel")?.classList.contains("hidden")) {
+          await this.render();
+        }
+      };
+      window.addEventListener("auth-state-changed", this.#authStateChangedHandler);
+    }
 
-    window.addEventListener("public-review-panel-opened", async () => {
-      if (this.#isAdmin) {
-        await this.render();
-      }
-    });
+    if (!this.#panelOpenedHandler) {
+      this.#panelOpenedHandler = async () => {
+        if (this.#isAdmin) {
+          await this.render();
+        }
+      };
+      window.addEventListener("public-review-panel-opened", this.#panelOpenedHandler);
+    }
 
-    this.#container?.addEventListener("click", async (event) => {
-      const actionButton = event.target.closest("[data-review-action]");
-      if (!actionButton) {
-        return;
-      }
+    if (this.#container && !this.#reviewClickHandler) {
+      this.#reviewClickHandler = async (event) => {
+        await this.#handleReviewClick(event);
+      };
+      this.#container.addEventListener("click", this.#reviewClickHandler);
+    }
+  }
 
-      const card = actionButton.closest(".review-card");
-      const reasonSelect = card?.querySelector(".review-reason");
-      const noteInput = card?.querySelector(".review-note");
-      const action = actionButton.dataset.reviewAction;
+  disconnectedCallback() {
+    if (this.#authStateChangedHandler) {
+      window.removeEventListener("auth-state-changed", this.#authStateChangedHandler);
+      this.#authStateChangedHandler = null;
+    }
 
-        if (action === "reject" && !reasonSelect?.value) {
-        const toast =
-          /** @type {{ show: (message: string, type: string) => void } | null} */ (
-            /** @type {unknown} */ (document.querySelector("linkstack-toast"))
-          );
-        toast?.show(
-          "Choose a rejection reason before rejecting this bookmark.",
-          "warning",
-        );
-        return;
-      }
+    if (this.#panelOpenedHandler) {
+      window.removeEventListener("public-review-panel-opened", this.#panelOpenedHandler);
+      this.#panelOpenedHandler = null;
+    }
 
-      try {
-        await this.#bookmarksService.reviewPublicShare(actionButton.dataset.id, {
-          decision: action,
-          rejectionCode: action === "reject" ? reasonSelect.value : null,
-          rejectionReason: action === "reject" ? noteInput?.value?.trim() || "" : "",
-        });
+    if (this.#container && this.#reviewClickHandler) {
+      this.#container.removeEventListener("click", this.#reviewClickHandler);
+      this.#reviewClickHandler = null;
+    }
+  }
 
-        const toast =
-          /** @type {{ show: (message: string, type: string) => void } | null} */ (
-            /** @type {unknown} */ (document.querySelector("linkstack-toast"))
-          );
-        toast?.show(
-          action === "approve"
-            ? "Bookmark approved for the public catalog."
-            : "Public listing rejected.",
-          "success",
-        );
+  async #handleReviewClick(event) {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const actionButton = target?.closest("[data-review-action]");
+    if (!(actionButton instanceof HTMLButtonElement)) {
+      return;
+    }
 
-        window.dispatchEvent(new CustomEvent("bookmark-updated"));
-        await this.render();
-      } catch (error) {
-        console.info("Error reviewing public share:", error);
-        const toast =
-          /** @type {{ show: (message: string, type: string) => void } | null} */ (
-            /** @type {unknown} */ (document.querySelector("linkstack-toast"))
-          );
-        toast?.show(
-          error.message || "Failed to review bookmark.",
-          "error",
-        );
-      }
-    });
+    const card = actionButton.closest(".review-card");
+    if (!card) {
+      return;
+    }
+
+    const reasonSelect = card.querySelector(".review-reason");
+    const noteInput = card.querySelector(".review-note");
+    const action = actionButton.dataset.reviewAction;
+
+    if (
+      action === REVIEW_DECISIONS.reject &&
+      !(reasonSelect instanceof HTMLSelectElement && reasonSelect.value)
+    ) {
+      this.#showToast(
+        "Choose a rejection reason before rejecting this bookmark.",
+        "warning",
+      );
+      return;
+    }
+
+    try {
+      await this.#bookmarksService.reviewPublicShare(actionButton.dataset.id, {
+        decision: action,
+        rejectionCode:
+          action === REVIEW_DECISIONS.reject && reasonSelect instanceof HTMLSelectElement
+            ? reasonSelect.value
+            : null,
+        rejectionReason:
+          action === REVIEW_DECISIONS.reject && noteInput instanceof HTMLInputElement
+            ? noteInput.value.trim()
+            : "",
+      });
+
+      this.#showToast(
+        action === REVIEW_DECISIONS.approve
+          ? "Bookmark approved for the public catalog."
+          : "Public listing rejected.",
+        "success",
+      );
+
+      window.dispatchEvent(new CustomEvent("bookmark-updated"));
+      await this.render();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to review bookmark.";
+      this.#showToast(message, "error");
+    }
   }
 
   async render() {
-    if (!this.#container) {
+    if (!this.#container || !this.#summary) {
       return;
     }
 
     try {
       const reviews = await this.#bookmarksService.getPendingPublicListings();
-      this.#container.innerHTML = "";
+      this.#container.replaceChildren();
 
       if (!reviews.length) {
         this.#summary.textContent = "No bookmarks are waiting for review.";
@@ -113,70 +201,86 @@ export class LinkStackPublicReviews extends HTMLElement {
       list.className = "reset-list bookmarks-list multiple";
 
       reviews.forEach((review) => {
-        const item = document.createElement("li");
-        item.className = "bookmark-entry review-card";
-        item.innerHTML = `
-          <div class="bookmark-info">
-            <a class="bookmark-link" href="${review.url}" target="_blank" rel="noopener noreferrer">
-              <h3 class="bookmark-title">${review.page_title}</h3>
-            </a>
-            <p class="bookmark-description">${review.meta_description || ""}</p>
-            <div class="bookmark-tags"></div>
-            <div class="form-field">
-              <label for="review-reason-${review.public_listing_id}">Rejection reason</label>
-              <select class="review-reason" id="review-reason-${review.public_listing_id}">
-                ${REJECTION_OPTIONS.map(
-                  (option) =>
-                    `<option value="${option.value}">${option.label}</option>`,
-                ).join("")}
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="review-note-${review.public_listing_id}">Reviewer note (optional)</label>
-              <input
-                type="text"
-                class="review-note"
-                id="review-note-${review.public_listing_id}"
-                placeholder="Add context for the submitter"
-              />
-            </div>
-            <div class="bookmark-actions">
-              <button
-                type="button"
-                class="button solid"
-                data-review-action="approve"
-                data-id="${review.public_listing_id}"
-              >
-                Approve
-              </button>
-              <button
-                type="button"
-                class="button solid critical"
-                data-review-action="reject"
-                data-id="${review.public_listing_id}"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        `;
-
-        const tagsContainer = item.querySelector(".bookmark-tags");
-        (review.tags || []).forEach((tag) => {
-          const chip = document.createElement("span");
-          chip.className = "tag";
-          chip.textContent = tag;
-          tagsContainer.appendChild(chip);
-        });
-
-        list.appendChild(item);
+        list.append(this.#createReviewCard(review));
       });
 
-      this.#container.appendChild(list);
-    } catch (error) {
-      console.info("Error rendering moderation queue:", error);
+      this.#container.append(list);
+    } catch {
       this.#summary.textContent = "Failed to load moderation queue.";
     }
+  }
+
+  /**
+   * @param {PendingReview} review
+   */
+  #createReviewCard(review) {
+    const fragment =
+      /** @type {DocumentFragment} */ (reviewCardTemplate.content.cloneNode(true));
+    const item = fragment.firstElementChild;
+    const link = fragment.querySelector(".bookmark-link");
+    const title = fragment.querySelector(".bookmark-title");
+    const description = fragment.querySelector(".bookmark-description");
+    const tagsContainer = fragment.querySelector(".bookmark-tags");
+    const reasonLabel = fragment.querySelector(".review-reason-label");
+    const reasonSelect = fragment.querySelector(".review-reason");
+    const noteLabel = fragment.querySelector(".review-note-label");
+    const noteInput = fragment.querySelector(".review-note");
+    const approveButton = fragment.querySelector('[data-review-action="approve"]');
+    const rejectButton = fragment.querySelector('[data-review-action="reject"]');
+
+    if (
+      !(item instanceof HTMLLIElement) ||
+      !(link instanceof HTMLAnchorElement) ||
+      !(title instanceof HTMLElement) ||
+      !(description instanceof HTMLElement) ||
+      !(tagsContainer instanceof HTMLElement) ||
+      !(reasonLabel instanceof HTMLLabelElement) ||
+      !(reasonSelect instanceof HTMLSelectElement) ||
+      !(noteLabel instanceof HTMLLabelElement) ||
+      !(noteInput instanceof HTMLInputElement) ||
+      !(approveButton instanceof HTMLButtonElement) ||
+      !(rejectButton instanceof HTMLButtonElement)
+    ) {
+      throw new Error("Public review template is missing required elements.");
+    }
+
+    const listingId = review.public_listing_id;
+    const reasonSelectId = `review-reason-${listingId}`;
+    const noteInputId = `review-note-${listingId}`;
+
+    link.href = review.url;
+    title.textContent = review.page_title;
+    description.textContent = review.meta_description || "";
+    reasonLabel.htmlFor = reasonSelectId;
+    reasonSelect.id = reasonSelectId;
+    noteLabel.htmlFor = noteInputId;
+    noteInput.id = noteInputId;
+    approveButton.dataset.id = listingId;
+    rejectButton.dataset.id = listingId;
+
+    REJECTION_OPTIONS.forEach((option) => {
+      const optionElement = document.createElement("option");
+      optionElement.value = option.value;
+      optionElement.textContent = option.label;
+      reasonSelect.append(optionElement);
+    });
+
+    (review.tags || []).forEach((tag) => {
+      const chip = document.createElement("span");
+      chip.className = "tag";
+      chip.textContent = tag;
+      tagsContainer.append(chip);
+    });
+
+    return item;
+  }
+
+  #showToast(message, type) {
+    const toast =
+      /** @type {{ show: (message: string, type: string) => void } | null} */ (
+        /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+      );
+    toast?.show(message, type);
   }
 }
 
