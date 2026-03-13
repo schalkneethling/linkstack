@@ -85,7 +85,8 @@ export class LinkStackPublicReviews extends HTMLElement {
       this.#authStateChangedHandler = async (event) => {
         const authEvent = /** @type {CustomEvent<{ isAdmin?: boolean }>} */ (event);
         this.#isAdmin = Boolean(authEvent.detail?.isAdmin);
-        if (this.#isAdmin && !this.closest("#admin-panel")?.classList.contains("hidden")) {
+        const adminPanel = this.closest("#admin-panel");
+        if (this.#isAdmin && adminPanel instanceof HTMLElement && !adminPanel.hidden) {
           await this.render();
         }
       };
@@ -96,6 +97,7 @@ export class LinkStackPublicReviews extends HTMLElement {
       this.#panelOpenedHandler = async () => {
         if (this.#isAdmin) {
           await this.render();
+          this.#focusSummary();
         }
       };
       window.addEventListener("public-review-panel-opened", this.#panelOpenedHandler);
@@ -107,6 +109,15 @@ export class LinkStackPublicReviews extends HTMLElement {
       };
       this.#container.addEventListener("click", this.#reviewClickHandler);
     }
+  }
+
+  #focusSummary() {
+    if (!(this.#summary instanceof HTMLElement)) {
+      return;
+    }
+
+    this.#summary.tabIndex = -1;
+    this.#summary.focus();
   }
 
   disconnectedCallback() {

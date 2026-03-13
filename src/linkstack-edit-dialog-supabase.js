@@ -43,6 +43,7 @@ export class LinkStackEditDialog extends HTMLElement {
 
   #bookmarksService = new BookmarksService(supabase);
   #isSaving = false;
+  #lastFocusedElement = null;
 
   connectedCallback() {
     this.#initElements();
@@ -91,6 +92,8 @@ export class LinkStackEditDialog extends HTMLElement {
 
     this.addEventListener("edit-bookmark", async (event) => {
       const editEvent = /** @type {CustomEvent<{ id: string }>} */ (event);
+      this.#lastFocusedElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
       await this.#editBookmark(editEvent.detail.id);
     });
 
@@ -108,6 +111,13 @@ export class LinkStackEditDialog extends HTMLElement {
 
       const formData = new FormData(editBookmarkForm);
       await this.#saveBookmarkChanges(formData);
+    });
+
+    editDialog.addEventListener("close", () => {
+      if (this.#lastFocusedElement instanceof HTMLElement) {
+        this.#lastFocusedElement.focus();
+        this.#lastFocusedElement = null;
+      }
     });
   }
 
@@ -243,6 +253,7 @@ export class LinkStackEditDialog extends HTMLElement {
         : "";
 
       editDialog.showModal();
+      editTitleInput.focus();
     } catch (error) {
       this.#showToast(
         this.#getErrorMessage(error, "Failed to load bookmark. Please try again."),

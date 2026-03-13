@@ -119,6 +119,7 @@
             type="button"
             class="button solid new-bookmark-btn hidden"
             id="new-bookmark-btn"
+            hidden
             popovertarget="form-drawer"
             aria-label="Add new bookmark"
             title="Add new bookmark (Ctrl+N)"
@@ -133,6 +134,7 @@
             class="button hidden"
             id="admin-review-toggle"
             aria-pressed="false"
+            hidden
           >
             Moderation
           </button>
@@ -142,7 +144,7 @@
     </header>
 
     <!-- Form Drawer Popover (hidden until authenticated) -->
-    <form-drawer class="form-drawer hidden" id="form-drawer" popover anchor="new-bookmark-btn">
+    <form-drawer class="form-drawer hidden" id="form-drawer" popover anchor="new-bookmark-btn" hidden>
       <div class="form-drawer-header">
         <h2 id="form-drawer-title">Add New Bookmark</h2>
         <button
@@ -216,7 +218,7 @@
     </form-drawer>
 
     <div class="page-container main-content">
-      <section class="hidden" id="admin-panel">
+      <section class="hidden" id="admin-panel" hidden>
         <linkstack-public-reviews>
           <div class="toolbar-container">
             <div class="toolbar-search-row">

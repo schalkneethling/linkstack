@@ -130,13 +130,15 @@ class LinkStackApp {
 
   #setupAdminToggle() {
     this.#adminButton?.addEventListener("click", () => {
-      const isHidden = this.#adminPanel?.classList.contains("hidden");
+      const isHidden = Boolean(this.#adminPanel?.hidden);
 
-      this.#adminPanel?.classList.toggle("hidden", !isHidden);
+      this.#setElementHidden(this.#adminPanel, !isHidden);
       this.#adminButton?.setAttribute("aria-pressed", String(isHidden));
 
       if (isHidden) {
         window.dispatchEvent(new CustomEvent(AUTH_EVENTS.publicReviewPanelOpened));
+      } else {
+        this.#adminButton?.focus();
       }
     });
   }
@@ -179,11 +181,11 @@ class LinkStackApp {
     }
 
     this.#authComponent?.setUser(user, { isAdmin });
-    this.#newBookmarkButton?.classList.toggle("hidden", !user);
-    this.#formDrawer?.classList.toggle("hidden", !user);
-    this.#adminButton?.classList.toggle("hidden", !(user && isAdmin));
+    this.#setElementHidden(this.#newBookmarkButton, !user);
+    this.#setElementHidden(this.#formDrawer, !user);
+    this.#setElementHidden(this.#adminButton, !(user && isAdmin));
     this.#adminButton?.setAttribute("aria-pressed", "false");
-    this.#adminPanel?.classList.add("hidden");
+    this.#setElementHidden(this.#adminPanel, true);
 
     this.#updateScopeOptions(Boolean(user));
     await this.#emitAuthStateChanged();
@@ -242,6 +244,15 @@ class LinkStackApp {
         /** @type {unknown} */ (document.querySelector("linkstack-toast"))
       );
     toast?.show(message, type);
+  }
+
+  #setElementHidden(element, isHidden) {
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+
+    element.hidden = isHidden;
+    element.classList.toggle("hidden", isHidden);
   }
 }
 
