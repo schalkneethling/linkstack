@@ -202,6 +202,30 @@ export class LinkStackBookmarks extends HTMLElement {
       this.#boundHandlers.onAuthStateChanged,
     );
 
+    bookmarksContainer.addEventListener("toggle", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !target.classList.contains("context-menu")) {
+        return;
+      }
+
+      const triggerId = target.getAttribute("id");
+      const trigger = triggerId
+        ? bookmarksContainer.querySelector(`[popovertarget="${triggerId}"]`)
+        : null;
+
+      if (trigger instanceof HTMLButtonElement) {
+        const isOpen = /** @type {ToggleEvent} */ (event).newState === "open";
+        trigger.setAttribute("aria-expanded", String(isOpen));
+
+        if (isOpen) {
+          const firstAction = target.querySelector("button:not([hidden])");
+          if (firstAction instanceof HTMLButtonElement) {
+            firstAction.focus();
+          }
+        }
+      }
+    });
+
     bookmarksContainer.addEventListener("click", async (event) => {
       const target = event.target instanceof HTMLElement ? event.target : null;
       if (!target) {
@@ -376,7 +400,7 @@ export class LinkStackBookmarks extends HTMLElement {
     const stackLabel = toggleButton.querySelector(".stack-label");
 
     toggleButton.setAttribute("aria-expanded", String(!isExpanded));
-    stackChildren?.classList.toggle("hidden", isExpanded);
+    this.#setElementHidden(stackChildren, isExpanded);
 
     if (stackLabel) {
       stackLabel.textContent = isExpanded ? "Show stack" : "Hide stack";
@@ -490,8 +514,8 @@ export class LinkStackBookmarks extends HTMLElement {
       return;
     }
 
-    statusContainer.classList.add("hidden");
-    message.classList.add("hidden");
+    this.#setElementHidden(statusContainer, true);
+    this.#setElementHidden(message, true);
     message.textContent = "";
 
     if (bookmark.kind !== "bookmark") {
@@ -512,11 +536,11 @@ export class LinkStackBookmarks extends HTMLElement {
     };
 
     statusTag.textContent = labels[status] || status;
-    statusContainer.classList.remove("hidden");
+    this.#setElementHidden(statusContainer, false);
 
     if (status === PUBLIC_SHARE_STATUS.REJECTED && bookmark.public_rejection_reason) {
       message.textContent = bookmark.public_rejection_reason;
-      message.classList.remove("hidden");
+      this.#setElementHidden(message, false);
     }
   }
 
@@ -556,19 +580,24 @@ export class LinkStackBookmarks extends HTMLElement {
     }
 
     if (bookmark.kind === "public") {
-      readToggle.classList.add("hidden");
-      contextMenuTrigger.classList.add("hidden");
-      contextMenu.classList.add("hidden");
+      this.#setElementHidden(readToggle, true);
+      this.#setElementHidden(contextMenuTrigger, true);
+      this.#setElementHidden(contextMenu, true);
+      contextMenuTrigger.setAttribute("aria-expanded", "false");
       if (this.#isAuthenticated) {
-        savePublicCopy.classList.remove("hidden");
+        this.#setElementHidden(savePublicCopy, false);
         savePublicCopy.dataset.publicListingId = bookmark.public_listing_id;
       } else {
-        savePublicCopy.classList.add("hidden");
+        this.#setElementHidden(savePublicCopy, true);
       }
       return;
     }
 
-    savePublicCopy.classList.add("hidden");
+    this.#setElementHidden(savePublicCopy, true);
+    this.#setElementHidden(readToggle, false);
+    this.#setElementHidden(contextMenuTrigger, false);
+    this.#setElementHidden(contextMenu, false);
+    contextMenuTrigger.setAttribute("aria-expanded", "false");
     readToggle.dataset.id = bookmark.id;
     readToggle.dataset.isRead = String(bookmark.is_read);
     readToggle.querySelector(".read-text").textContent = bookmark.is_read
@@ -583,7 +612,7 @@ export class LinkStackBookmarks extends HTMLElement {
       bookmark.public_share_status !== PUBLIC_SHARE_STATUS.PENDING &&
       !(bookmark.public_share_status === PUBLIC_SHARE_STATUS.APPROVED && !bookmark.is_public_listing_owner);
 
-    requestPublicShare.classList.toggle("hidden", !showRequestPublic);
+    this.#setElementHidden(requestPublicShare, !showRequestPublic);
     requestPublicShare.dataset.id = bookmark.id;
 
     if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.REJECTED) {
@@ -623,6 +652,15 @@ export class LinkStackBookmarks extends HTMLElement {
     wrapper.append(message);
 
     return wrapper;
+  }
+
+  #setElementHidden(element, isHidden) {
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+
+    element.hidden = isHidden;
+    element.classList.toggle("hidden", isHidden);
   }
 
   #normalizeSort(value) {
@@ -738,7 +776,9 @@ export class LinkStackBookmarks extends HTMLElement {
 
     if (bookmark.notes) {
       notesContent.textContent = bookmark.notes;
-      notesContainer.classList.remove("hidden");
+      this.#setElementHidden(notesContainer, false);
+    } else {
+      this.#setElementHidden(notesContainer, true);
     }
 
     const entry =
@@ -767,7 +807,14 @@ export class LinkStackBookmarks extends HTMLElement {
       if (!stackToggle || !stackChildren) {
         return fragment;
       }
-      stackToggle.classList.remove("hidden");
+      this.#setElementHidden(stackToggle, false);
+      this.#setElementHidden(stackChildren, true);
+      stackToggle.setAttribute("aria-expanded", "false");
+
+      if (!stackChildren.id) {
+        stackChildren.id = `stack-children-${bookmark.id}`;
+      }
+      stackToggle.setAttribute("aria-controls", stackChildren.id);
 
       for (const child of children) {
         const childEntry = await this.#renderEntry(
