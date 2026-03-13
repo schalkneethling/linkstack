@@ -61,6 +61,8 @@ function createBookmarksFixture() {
       <option value="all">All</option>
     </select>
     <div class="filter-controls-container"></div>
+    <linkstack-confirm-dialog></linkstack-confirm-dialog>
+    <linkstack-toast></linkstack-toast>
     <linkstack-bookmarks>
       <section id="bookmarks-container"></section>
       <template id="bookmarks-entry-tmpl">
@@ -161,6 +163,17 @@ describe("linkstack-bookmarks", () => {
       },
     });
     createBookmarksFixture();
+
+    const confirmDialog = /** @type {HTMLElement & { confirm?: ReturnType<typeof vi.fn> }} */ (
+      document.querySelector("linkstack-confirm-dialog")
+    );
+    confirmDialog.confirm = /** @type {typeof confirmDialog.confirm} */ (vi.fn());
+
+    const toast = /** @type {HTMLElement & { show?: ReturnType<typeof vi.fn> }} */ (
+      document.querySelector("linkstack-toast")
+    );
+    toast.show = /** @type {typeof toast.show} */ (vi.fn());
+
     await import("../../src/linkstack-bookmarks-supabase.js");
   });
 
@@ -243,5 +256,121 @@ describe("linkstack-bookmarks", () => {
 
     expect(saveButton.hidden).toBe(false);
     expect(saveButton.dataset.publicListingId).toBe("listing-1");
+  });
+
+  it("confirms bookmark removal before deleting", async () => {
+    serviceState.getMyBookmarks.mockResolvedValue([
+      {
+        id: "bookmark-1",
+        resource_id: "resource-1",
+        parent_id: null,
+        url: "https://example.com/article",
+        page_title: "Example article",
+        meta_description: "Example description",
+        preview_img: "",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+      },
+    ]);
+    serviceState.delete.mockResolvedValue(undefined);
+
+    const confirmDialog = /** @type {{ confirm: ReturnType<typeof vi.fn> }} */ (
+      /** @type {unknown} */ (document.querySelector("linkstack-confirm-dialog"))
+    );
+    confirmDialog.confirm.mockResolvedValue(true);
+
+    const toast = /** @type {{ show: ReturnType<typeof vi.fn> }} */ (
+      /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+    );
+
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: true, scope: "mine" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await element.refresh();
+
+    const deleteButton = /** @type {HTMLButtonElement} */ (
+      document.querySelector("#delete-bookmark")
+    );
+    deleteButton.dataset.id = "bookmark-1";
+    deleteButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(confirmDialog.confirm).toHaveBeenCalledWith({
+        title: "Remove bookmark",
+        message: "Remove this bookmark from your library?",
+        confirmLabel: "Remove",
+        cancelLabel: "Cancel",
+      });
+    });
+    await vi.waitFor(() => {
+      expect(serviceState.delete).toHaveBeenCalledWith("bookmark-1");
+    });
+    expect(toast.show).toHaveBeenCalledWith(
+      "Bookmark deleted successfully",
+      "success",
+    );
+  });
+
+  it("does not delete a bookmark when removal is cancelled", async () => {
+    serviceState.getMyBookmarks.mockResolvedValue([
+      {
+        id: "bookmark-1",
+        resource_id: "resource-1",
+        parent_id: null,
+        url: "https://example.com/article",
+        page_title: "Example article",
+        meta_description: "Example description",
+        preview_img: "",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+      },
+    ]);
+
+    const confirmDialog = /** @type {{ confirm: ReturnType<typeof vi.fn> }} */ (
+      /** @type {unknown} */ (document.querySelector("linkstack-confirm-dialog"))
+    );
+    confirmDialog.confirm.mockResolvedValue(false);
+
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: true, scope: "mine" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await element.refresh();
+
+    const deleteButton = /** @type {HTMLButtonElement} */ (
+      document.querySelector("#delete-bookmark")
+    );
+    deleteButton.dataset.id = "bookmark-1";
+    deleteButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(confirmDialog.confirm).toHaveBeenCalledTimes(1);
+    });
+    expect(serviceState.delete).not.toHaveBeenCalled();
   });
 });

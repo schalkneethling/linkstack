@@ -24,6 +24,7 @@ export class LinkStackBookmarks extends HTMLElement {
     bookmarkChildTmpl: "#bookmark-child-tmpl",
     noBookmarksTmpl: "#no-bookmarks-tmpl",
     skeletonLoaderTmpl: "#skeleton-loader-tmpl",
+    confirmDialog: "linkstack-confirm-dialog",
     searchInput: "#search-input",
     clearSearchButton: "#clear-search",
     searchResultsInfo: ".search-results-info",
@@ -823,10 +824,21 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   async #deleteBookmark(id) {
+    const confirmed = await this.#confirmAction({
+      title: BOOKMARK_UI_MESSAGES.deleteConfirmTitle,
+      message: BOOKMARK_UI_MESSAGES.deleteConfirmMessage,
+      confirmLabel: BOOKMARK_UI_MESSAGES.deleteConfirmAction,
+      cancelLabel: BOOKMARK_UI_MESSAGES.deleteCancelAction,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await this.#bookmarksService.delete(id);
       this.#showToast(
-        "Bookmark deleted successfully",
+        BOOKMARK_UI_MESSAGES.bookmarkDeleted,
         "success",
       );
       await this.#renderBookmarks();
@@ -997,6 +1009,32 @@ export class LinkStackBookmarks extends HTMLElement {
         /** @type {unknown} */ (document.querySelector("linkstack-toast"))
       );
     toast?.show(message, type);
+  }
+
+  async #confirmAction({
+    title,
+    message,
+    confirmLabel,
+    cancelLabel,
+  }) {
+    const confirmDialog =
+      /** @type {{ confirm: (options: {
+       *   title: string,
+       *   message: string,
+       *   confirmLabel?: string,
+       *   cancelLabel?: string,
+       * }) => Promise<boolean> } | null} */ (
+        /** @type {unknown} */ (
+          document.querySelector(LinkStackBookmarks.#selectors.confirmDialog)
+        )
+      );
+
+    return confirmDialog?.confirm({
+      title,
+      message,
+      confirmLabel,
+      cancelLabel,
+    }) ?? false;
   }
 
   #getErrorMessage(error, fallbackMessage) {
