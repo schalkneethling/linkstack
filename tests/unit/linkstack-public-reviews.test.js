@@ -100,4 +100,29 @@ describe("linkstack-public-reviews", () => {
       "warning",
     );
   });
+
+  it("moves focus to the review summary when the panel opens", async () => {
+    serviceState.getPendingPublicListings.mockResolvedValue([]);
+
+    const summary = /** @type {HTMLElement} */ (
+      document.querySelector("#public-review-summary")
+    );
+    const focusSpy = vi.fn();
+    summary.focus = focusSpy;
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAdmin: true },
+      }),
+    );
+
+    await Promise.resolve();
+    await Promise.resolve();
+    window.dispatchEvent(new CustomEvent("public-review-panel-opened"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(summary.tabIndex).toBe(-1);
+    expect(focusSpy).toHaveBeenCalledTimes(1);
+  });
 });
