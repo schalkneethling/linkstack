@@ -17,7 +17,7 @@
     "prettier:lint": "prettier .",
     "prettier:format": "prettier --write .",
     "lint:js": "eslint .",
-    "lint:css": "stylelint **/*.css"
+    "lint:css": "stylelint \"public/**/*.css\""
   },
   "repository": {
     "type": "git",

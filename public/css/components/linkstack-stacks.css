@@ -1,19 +1,19 @@
 /* Stack toggle button */
 .stack-toggle {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  align-items: center;
   background: var(--ls-surface-card);
   border: 1px solid var(--ls-border);
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  display: flex;
+  height: 32px;
+  justify-content: center;
   padding: 0;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  transition: all 0.15s ease;
+  width: 32px;
 }
 
 .stack-toggle:hover {
@@ -27,8 +27,8 @@
 }
 
 .stack-toggle svg {
-  transition: transform 0.2s ease;
   color: var(--text-primary, #333);
+  transition: transform 0.2s ease;
 }
 
 .stack-toggle[aria-expanded="true"] svg {
@@ -43,11 +43,11 @@
 
 /* Child bookmark styling - compact, no thumbnail */
 .bookmark-child {
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
   background: var(--bg-secondary);
-  border-radius: var(--ls-radius-sm);
   border: 1px solid var(--ls-border);
+  border-radius: var(--ls-radius-sm);
+  margin-bottom: 0.5rem;
+  padding: 0.75rem;
 }
 
 .bookmark-child-info {
@@ -66,17 +66,17 @@
 }
 
 .bookmark-child .bookmark-title {
+  color: var(--text-primary, #333);
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
-  color: var(--text-primary, #333);
 }
 
 .bookmark-child .bookmark-description {
-  font-size: 0.875rem;
   color: var(--text-secondary, #666);
-  margin: 0;
+  font-size: 0.875rem;
   line-height: 1.4;
+  margin: 0;
 }
 
 .bookmark-child .bookmark-actions {
@@ -96,18 +96,18 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .stack-children {
     padding-left: 1rem;
   }
 
   .stack-toggle {
-    width: 36px;
     height: 36px;
+    width: 36px;
   }
 
   .stack-toggle svg {
-    width: 20px;
     height: 20px;
+    width: 20px;
   }
 }

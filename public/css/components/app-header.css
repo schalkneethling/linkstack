@@ -1,9 +1,14 @@
 /* App Header */
 
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 .app-header {
-  background-color: rgba(248, 247, 244, 0.85);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: rgb(248 247 244 / 85%);
   border-bottom: 1px solid var(--ls-border);
   position: sticky;
   top: 0;
@@ -11,13 +16,13 @@
 }
 
 .header-container {
-  max-width: min(1200px, 100%);
-  margin: 0 auto;
-  padding: 0.75rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  display: flex;
   gap: 1rem;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: min(1200px, 100%);
+  padding: 0.75rem 1.5rem;
 }
 
 @media (width >= 48rem) {
@@ -28,52 +33,53 @@
 
 /* Logo */
 .header-logo {
-  display: flex;
   align-items: center;
+  display: flex;
   flex-shrink: 0;
 }
 
 .logo-text {
+  color: var(--ls-text-primary);
   font-family: var(--minimalist-typography-brand-family);
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--ls-text-primary);
-  margin: 0;
   letter-spacing: -0.03em;
+  margin: 0;
 }
 
 .logo-text .logo-cursor {
+  animation: blink 1s step-end infinite;
   color: var(--ls-accent);
 }
 
 /* Navigation */
 .header-nav {
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 0.75rem;
 }
 
 /* User Profile Dropdown */
 .user-profile {
-  position: relative;
-  display: flex;
   align-items: center;
+  display: flex;
+  position: relative;
 }
 
 .profile-trigger {
-  display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
   background: transparent;
   border: 1px solid var(--ls-border);
   border-radius: 2rem;
+  color: var(--ls-text-primary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  display: flex;
   font-family: var(--minimalist-typography-body-family);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--ls-text-primary);
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  transition: all 0.15s ease;
 }
 
 .profile-trigger:hover {
@@ -88,24 +94,24 @@
 
 /* Avatar */
 .profile-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  align-items: center;
   background: var(--ls-accent);
+  border-radius: 50%;
   color: white;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.75rem;
   flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
 }
 
 .profile-avatar img {
-  width: 100%;
-  height: 100%;
   border-radius: 50%;
+  height: 100%;
   object-fit: cover;
+  width: 100%;
 }
 
 .profile-name {
@@ -117,10 +123,10 @@
 
 /* Dropdown arrow */
 .profile-arrow {
-  width: 12px;
   height: 12px;
-  transition: transform 0.15s ease;
   opacity: 0.5;
+  transition: transform 0.15s ease;
+  width: 12px;
 }
 
 .profile-trigger[aria-expanded="true"] .profile-arrow {
@@ -129,43 +135,47 @@
 
 /* Dropdown Menu */
 .profile-dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
   background: var(--ls-surface-elevated);
   border: 1px solid var(--ls-border);
   border-radius: var(--ls-radius-lg);
   box-shadow: var(--ls-shadow-lg);
   min-width: 240px;
-  padding: 0.375rem;
   opacity: 0;
-  visibility: hidden;
+  padding: 0.375rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
   transform: translateY(-4px);
   transition: all 0.15s ease;
+  visibility: hidden;
   z-index: 1000;
+}
+
+.guest-signin-menu {
+  min-width: 13rem;
 }
 
 .profile-dropdown.active {
   opacity: 1;
-  visibility: visible;
   transform: translateY(0);
+  visibility: visible;
 }
 
 .dropdown-item {
-  display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.625rem 0.75rem;
-  width: 100%;
-  text-align: left;
   background: none;
   border: none;
   border-radius: var(--ls-radius-sm);
+  color: var(--ls-text-primary);
   cursor: pointer;
+  display: flex;
   font-family: var(--minimalist-typography-body-family);
   font-size: 0.8125rem;
-  color: var(--ls-text-primary);
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
   transition: background 0.1s ease;
+  width: 100%;
 }
 
 .dropdown-item:hover {
@@ -186,29 +196,40 @@
 }
 
 .dropdown-divider {
-  height: 1px;
   background: var(--ls-border);
+  height: 1px;
   margin: 0.375rem 0;
 }
 
 /* User info in dropdown */
 .dropdown-user-info {
-  padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--ls-border);
   margin-bottom: 0.375rem;
+  padding: 0.625rem 0.75rem;
 }
 
 .dropdown-user-name {
-  font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 0.125rem;
   color: var(--ls-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
 }
 
 .dropdown-user-email {
+  color: var(--ls-text-tertiary);
   font-family: var(--minimalist-typography-code-family);
   font-size: 0.6875rem;
-  color: var(--ls-text-tertiary);
+}
+
+.profile-role-badge {
+  align-items: center;
+  border: 1px solid var(--ls-border);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  text-transform: uppercase;
 }
 
 /* Responsive */
@@ -230,8 +251,8 @@
   }
 
   .profile-trigger {
-    padding: 0.375rem;
     border-color: transparent;
+    padding: 0.375rem;
   }
 }
 
@@ -241,17 +262,17 @@
 }
 
 .limit-toggle {
+  align-items: center;
   cursor: pointer;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-size: 0.8125rem;
+  gap: 0.5rem;
 }
 
 .limit-toggle input[type="checkbox"] {
+  accent-color: var(--ls-accent);
   cursor: pointer;
   margin: 0;
-  accent-color: var(--ls-accent);
 }
 
 .limit-label {
@@ -259,30 +280,30 @@
 }
 
 .limit-number-container {
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 0.5rem;
   margin-block-start: 0.625rem;
   padding-inline-start: 1.375rem;
 }
 
 .limit-number-label {
-  font-size: 0.75rem;
   color: var(--ls-text-secondary);
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
 .limit-input {
-  inline-size: 3.5rem;
-  padding: 0.25rem 0.375rem;
   border: 1px solid var(--ls-border);
   border-radius: var(--ls-radius-sm);
   font-family: var(--minimalist-typography-code-family);
   font-size: 0.8125rem;
+  inline-size: 3.5rem;
+  padding: 0.25rem 0.375rem;
 }
 
 .limit-input:focus {
+  border-color: var(--ls-accent);
   outline: 2px solid var(--ls-accent);
   outline-offset: 1px;
-  border-color: var(--ls-accent);
 }
