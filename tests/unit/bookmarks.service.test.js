@@ -282,6 +282,19 @@ describe("BookmarksService", () => {
     expect(bookmark.public_share_status).toBe(PUBLIC_SHARE_STATUS.NOT_REQUESTED);
   });
 
+  it("rejects create input with an invalid URL", async () => {
+    await expect(
+      service.create({
+        url: "javascript:alert(1)",
+        page_title: "Bad URL",
+        meta_description: "",
+        preview_img: "",
+        notes: "",
+        request_public: false,
+      }),
+    ).rejects.toThrow("URL must use http:// or https:// protocol");
+  });
+
   it("prevents requesting public share when the resource is already public", async () => {
     store.bookmarks.push({
       id: "bookmark-2",
@@ -362,5 +375,16 @@ describe("BookmarksService", () => {
 
     expect(reviewed.status).toBe(PUBLIC_SHARE_STATUS.REJECTED);
     expect(reviewed.rejection_code).toBe("out_of_scope");
+  });
+
+  it("rejects update input with invalid tags", async () => {
+    await expect(
+      service.update("bookmark-1", {
+        page_title: "Updated title",
+        meta_description: "Updated description",
+        notes: "",
+        tags: /** @type {any} */ ("not-an-array"),
+      }),
+    ).rejects.toThrow("Invalid type");
   });
 });

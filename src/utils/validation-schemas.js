@@ -1,73 +1,68 @@
-// -check
-/**
- * Zod Validation Schemas for LinkStack
- *
- * Provides client-side validation for bookmark data to ensure
- * data integrity before network calls and provide helpful user feedback.
- */
+// @ts-check
+import * as v from "valibot";
 
-import { z } from "zod";
+const HTTP_URL_MESSAGE = "URL must use http:// or https:// protocol";
 
-/**
- * Bookmark validation schema
- *
- * Validates:
- * - URL must be a valid HTTP/HTTPS URL (prevents javascript:, data:, file: etc.)
- * - Notes are optional and can be any string
- */
-export const bookmarkSchema = z.object({
-  url: z
-    .string()
-    .min(1, "URL is required")
-    .url("Please enter a valid URL (must start with http:// or https://)")
-    .refine(
-      (url) => {
-        try {
-          const parsed = new URL(url);
-          return parsed.protocol === "http:" || parsed.protocol === "https:";
-        } catch {
-          return false;
-        }
-      },
-      {
-        message: "URL must use http:// or https:// protocol",
-      },
-    ),
-  notes: z.string().optional(),
+const httpUrlSchema = v.pipe(
+  v.string(),
+  v.minLength(1, "URL is required"),
+  v.url("Please enter a valid URL (must start with http:// or https://)"),
+  v.check(
+    (url) => {
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
+    HTTP_URL_MESSAGE,
+  ),
+);
+
+const createBookmarkSchema = v.object({
+  url: httpUrlSchema,
+  page_title: v.string(),
+  meta_description: v.optional(v.string()),
+  preview_img: v.optional(v.string()),
+  notes: v.optional(v.string()),
+  parent_id: v.optional(v.nullable(v.string())),
+  request_public: v.optional(v.boolean()),
+  tags: v.optional(v.array(v.string())),
+});
+
+const updateBookmarkSchema = v.object({
+  page_title: v.optional(v.string()),
+  meta_description: v.optional(v.string()),
+  notes: v.optional(v.string()),
+  tags: v.optional(v.array(v.string())),
 });
 
 /**
- * Validate a bookmark object
- * @param {Object} data - The bookmark data to validate
- * @returns {Object} - { success: boolean, error?: ZodError, data?: ValidatedData }
+ * @param {{ issues?: Array<{ message?: string }> } | undefined} result
+ * @param {string} fallbackMessage
  */
-export function validateBookmark(data) {
-  return bookmarkSchema.safeParse(data);
+export function getValidationMessage(result, fallbackMessage = "Invalid input") {
+  return result?.issues?.[0]?.message || fallbackMessage;
 }
 
 /**
- * Validate just the URL field
- * @param {string} url - The URL to validate
- * @returns {Object} - { success: boolean, error?: ZodError }
+ * @param {string} url
  */
 export function validateUrl(url) {
-  const urlSchema = z
-    .string()
-    .min(1, "URL is required")
-    .url("Please enter a valid URL (must start with http:// or https://)")
-    .refine(
-      (url) => {
-        try {
-          const parsed = new URL(url);
-          return parsed.protocol === "http:" || parsed.protocol === "https:";
-        } catch {
-          return false;
-        }
-      },
-      {
-        message: "URL must use http:// or https:// protocol",
-      },
-    );
+  return v.safeParse(httpUrlSchema, url);
+}
 
-  return urlSchema.safeParse(url);
+/**
+ * @param {unknown} input
+ */
+export function validateCreateBookmarkInput(input) {
+  return v.safeParse(createBookmarkSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateUpdateBookmarkInput(input) {
+  return v.safeParse(updateBookmarkSchema, input);
 }

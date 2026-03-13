@@ -1,5 +1,10 @@
-// -check
+// @ts-check
 import { normalizeUrl } from "../utils/normalize-url.js";
+import {
+  getValidationMessage,
+  validateCreateBookmarkInput,
+  validateUpdateBookmarkInput,
+} from "../utils/validation-schemas.js";
 
 export const PUBLIC_SHARE_STATUS = {
   NOT_REQUESTED: "not_requested",
@@ -442,6 +447,13 @@ export class BookmarksService {
   }
 
   async create(bookmark) {
+    const validationResult = validateCreateBookmarkInput(bookmark);
+    if (!validationResult.success) {
+      throw new Error(
+        getValidationMessage(validationResult, "Invalid bookmark input."),
+      );
+    }
+
     const user = await this.#requireUser();
     const inspection = await this.inspectUrl(bookmark.url);
 
@@ -527,6 +539,13 @@ export class BookmarksService {
   }
 
   async update(id, updates) {
+    const validationResult = validateUpdateBookmarkInput(updates);
+    if (!validationResult.success) {
+      throw new Error(
+        getValidationMessage(validationResult, "Invalid bookmark update input."),
+      );
+    }
+
     const existing = await this.getById(id);
 
     const payload = {

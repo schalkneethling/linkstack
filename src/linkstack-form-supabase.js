@@ -3,7 +3,10 @@ import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { SettingsService } from "./services/settings.service.js";
 import { getRandomEncouragementMessage } from "./utils/encouragement-messages.js";
-import { validateUrl } from "./utils/validation-schemas.js";
+import {
+  getValidationMessage,
+  validateUrl,
+} from "./utils/validation-schemas.js";
 
 export class LinkStackForm extends HTMLElement {
   static #selectors = {
@@ -131,7 +134,7 @@ export class LinkStackForm extends HTMLElement {
     const result = validateUrl(url);
 
     if (!result.success) {
-      const errorMessage = result.error.errors[0]?.message || "Invalid URL";
+      const errorMessage = getValidationMessage(result, "Invalid URL");
       this.#showUrlError(errorMessage);
       return false;
     }
