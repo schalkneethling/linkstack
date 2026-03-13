@@ -1,5 +1,29 @@
-// -check
+// @ts-check
 import * as cheerio from "cheerio";
+import {
+  getValidationMessage,
+  validateBookmarkMetadata,
+  validateUrl,
+} from "../../../src/utils/validation-schemas.js";
+
+const JSON_HEADERS = {
+  "content-type": "application/json",
+};
+
+const REQUEST_HEADERS = Object.freeze({
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Cache-Control": "no-cache",
+  Pragma: "no-cache",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  "Upgrade-Insecure-Requests": "1",
+});
 
 // CORS configuration - restrict to known origins
 const getAllowedOrigin = (requestOrigin) => {
@@ -12,6 +36,26 @@ const getAllowedOrigin = (requestOrigin) => {
   return allowedOrigins.includes(requestOrigin)
     ? requestOrigin
     : allowedOrigins[0];
+};
+
+const createJsonResponse = (payload, corsHeaders, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, ...JSON_HEADERS },
+  });
+
+const sanitizeMetadata = (input, fallbackTitle) => {
+  const validationResult = validateBookmarkMetadata(input);
+
+  if (validationResult.success) {
+    return validationResult.output;
+  }
+
+  return {
+    pageTitle: fallbackTitle,
+    metaDescription: "",
+    previewImg: "",
+  };
 };
 
 // Docs on request and context https://docs.netlify.com/functions/build/#code-your-function-2
@@ -36,41 +80,38 @@ export default async (request) => {
     const bookmark = url.searchParams.get("url");
 
     if (!bookmark) {
-      return new Response(
-        JSON.stringify({ error: "URL parameter is required" }),
+      return createJsonResponse(
+        { error: "URL parameter is required" },
+        corsHeaders,
+        400,
+      );
+    }
+
+    const validationResult = validateUrl(bookmark);
+    if (!validationResult.success) {
+      return createJsonResponse(
         {
-          status: 400,
-          headers: { ...corsHeaders, "content-type": "application/json" },
+          error: getValidationMessage(
+            validationResult,
+            "Please enter a valid URL.",
+          ),
         },
+        corsHeaders,
+        400,
       );
     }
 
     const response = await fetch(bookmark, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-      },
+      headers: REQUEST_HEADERS,
     });
 
     if (!response.ok) {
-      return new Response(
-        JSON.stringify({
-          error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
-        }),
+      return createJsonResponse(
         {
-          status: 500,
-          headers: { ...corsHeaders, "content-type": "application/json" },
+          error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
         },
+        corsHeaders,
+        500,
       );
     }
 
@@ -118,25 +159,23 @@ export default async (request) => {
     );
     const previewImg = ogImage || twitterImg || "";
 
-    const jsonResponse = JSON.stringify({
+    const metadata = sanitizeMetadata({
       pageTitle,
       metaDescription,
       previewImg,
-    });
+    }, bookmark);
 
-    return new Response(jsonResponse, {
-      headers: { ...corsHeaders, "content-type": "application/json" },
-    });
+    return createJsonResponse(metadata, corsHeaders);
   } catch (error) {
-    console.info("Error fetching bookmark data:", error);
-    return new Response(
-      JSON.stringify({
-        error: `Error processing URL: ${error.message}`,
-      }),
+    return createJsonResponse(
       {
-        status: 500,
-        headers: { ...corsHeaders, "content-type": "application/json" },
+        error:
+          error instanceof Error
+            ? `Error processing URL: ${error.message}`
+            : "Error processing URL.",
       },
+      corsHeaders,
+      500,
     );
   }
 };
