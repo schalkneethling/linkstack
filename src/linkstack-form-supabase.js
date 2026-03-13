@@ -17,6 +17,7 @@ export class LinkStackForm extends HTMLElement {
     parentSelect: "#parent-bookmark",
     requestPublic: "#request-public",
     requestPublicHelp: "#request-public-help",
+    confirmDialog: "linkstack-confirm-dialog",
     urlInput: "#url",
     urlError: "#url-error",
     submitButton: "#submit-bookmark",
@@ -305,9 +306,24 @@ export class LinkStackForm extends HTMLElement {
     parentId,
     requestPublic,
   }) {
-    const confirmed = window.confirm(
-      FORM_UI_MESSAGES.duplicatePublicPrompt,
-    );
+    const confirmDialog =
+      /** @type {{ confirm: (options: {
+       *   title: string,
+       *   message: string,
+       *   confirmLabel?: string,
+       *   cancelLabel?: string,
+       * }) => Promise<boolean> } | null} */ (
+        /** @type {unknown} */ (
+          document.querySelector(LinkStackForm.#selectors.confirmDialog)
+        )
+      );
+
+    const confirmed = await confirmDialog?.confirm({
+      title: FORM_UI_MESSAGES.duplicatePublicTitle,
+      message: FORM_UI_MESSAGES.duplicatePublicPrompt,
+      confirmLabel: FORM_UI_MESSAGES.duplicatePublicConfirmAction,
+      cancelLabel: FORM_UI_MESSAGES.duplicatePublicCancelAction,
+    }) ?? false;
 
     if (!confirmed) {
       return null;

@@ -43,12 +43,20 @@ export const FORM_UI_MESSAGES = Object.freeze({
   bookmarkAddedWithReview: "Bookmark added and submitted for public review.",
   metadataUnavailable: "Bookmark saved (metadata unavailable for this site)",
   addBookmarkFailed: "Failed to add bookmark. Please try again.",
+  duplicatePublicTitle: "Link already public",
   duplicatePublicPrompt: "This link is already public. Add it to your private bookmarks instead?",
+  duplicatePublicConfirmAction: "Add to my bookmarks",
+  duplicatePublicCancelAction: "Skip",
   addedPrivateInstead: "This link is already public. It was added to your private bookmarks instead.",
   addedPrivateBookmark: "Bookmark added to your private bookmarks.",
   publicTopLevelOnly: "Only top-level bookmarks can be submitted to the public catalog.",
   publicRequiresApproval:
     "Public submissions remain private in your library and require moderator approval before they appear publicly.",
+});
+
+export const CONFIRM_DIALOG_MESSAGES = Object.freeze({
+  confirm: "Confirm",
+  cancel: "Cancel",
 });
 
 export const EDIT_DIALOG_MESSAGES = Object.freeze({

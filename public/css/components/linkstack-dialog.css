@@ -20,6 +20,10 @@
   background: rgb(0 0 0 / 40%);
 }
 
+.confirmation-dialog-message {
+  margin-block: 1rem 1.5rem;
+}
+
 @media (width <= 48rem) {
   .linkstack-dialog {
     block-size: 100vh;

@@ -779,6 +779,36 @@
           </form>
         </dialog>
       </linkstack-edit-dialog>
+
+      <linkstack-confirm-dialog>
+        <dialog
+          aria-labelledby="dialog-confirm-title"
+          aria-describedby="dialog-confirm-message"
+          class="linkstack-dialog"
+          id="dialog-confirm-action"
+        >
+          <h3 id="dialog-confirm-title">Confirm action</h3>
+          <p class="confirmation-dialog-message" id="dialog-confirm-message">
+            Are you sure you want to continue?
+          </p>
+          <div class="bookmark-actions">
+            <button
+              id="confirm-dialog-cancel"
+              class="button solid critical"
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              id="confirm-dialog-confirm"
+              class="button solid"
+              type="button"
+            >
+              Confirm
+            </button>
+          </div>
+        </dialog>
+      </linkstack-confirm-dialog>
     </div>
 
     <!-- Toast notifications -->
@@ -786,6 +816,7 @@
 
     <!-- Load main app coordinator -->
     <script type="module" src="src/app.js"></script>
+    <script type="module" src="src/linkstack-confirm-dialog.js"></script>
     <script type="module" src="src/components/linkstack-toast.js"></script>
     <script type="module" src="src/components/view-toggle.js"></script>
   </body>
