@@ -2,6 +2,7 @@
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { SettingsService } from "./services/settings.service.js";
+import { APP_EVENTS } from "./constants/app-events.js";
 import { getRandomEncouragementMessage } from "./utils/encouragement-messages.js";
 import { FORM_UI_MESSAGES } from "./constants/ui-strings.js";
 import {
@@ -38,7 +39,7 @@ export class LinkStackForm extends HTMLElement {
   disconnectedCallback() {
     if (this.#boundHandlers.onBookmarkCreated) {
       window.removeEventListener(
-        "bookmark-created",
+        APP_EVENTS.bookmarkCreated,
         this.#boundHandlers.onBookmarkCreated,
       );
     }
@@ -265,7 +266,7 @@ export class LinkStackForm extends HTMLElement {
   }
 
   #dispatchCreated() {
-    window.dispatchEvent(new CustomEvent("bookmark-created"));
+    window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkCreated));
   }
 
   async #createWithMetadata({ url, notes, parentId, requestPublic, metadata }) {
@@ -339,7 +340,7 @@ export class LinkStackForm extends HTMLElement {
     };
 
     window.addEventListener(
-      "bookmark-created",
+      APP_EVENTS.bookmarkCreated,
       this.#boundHandlers.onBookmarkCreated,
     );
 

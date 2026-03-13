@@ -1,20 +1,11 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
 import { AuthService } from "./services/auth.service.js";
+import { APP_EVENTS } from "./constants/app-events.js";
+import { BOOKMARK_SCOPE } from "./constants/bookmark-ui-state.js";
 
 import "./linkstack-auth.js";
 import "./linkstack-bookmarks-supabase.js";
-
-const AUTH_EVENTS = Object.freeze({
-  authStateChanged: "auth-state-changed",
-  publicReviewPanelOpened: "public-review-panel-opened",
-});
-
-const BOOKMARK_SCOPE = Object.freeze({
-  public: "public",
-  mine: "mine",
-  all: "all",
-});
 
 const SCOPE_OPTIONS = Object.freeze({
   guest: Object.freeze([
@@ -136,7 +127,7 @@ class LinkStackApp {
       this.#adminButton?.setAttribute("aria-pressed", String(isHidden));
 
       if (isHidden) {
-        window.dispatchEvent(new CustomEvent(AUTH_EVENTS.publicReviewPanelOpened));
+        window.dispatchEvent(new CustomEvent(APP_EVENTS.publicReviewPanelOpened));
       } else {
         this.#adminButton?.focus();
       }
@@ -193,7 +184,7 @@ class LinkStackApp {
 
   async #emitAuthStateChanged() {
     window.dispatchEvent(
-      new CustomEvent(AUTH_EVENTS.authStateChanged, {
+      new CustomEvent(APP_EVENTS.authStateChanged, {
         detail: {
           user: this.#currentUser,
           isAuthenticated: Boolean(this.#currentUser),

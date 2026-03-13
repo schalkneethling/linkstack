@@ -1,18 +1,16 @@
 // @ts-check
+import { APP_EVENTS } from "../constants/app-events.js";
+import { STORAGE_KEYS } from "../constants/storage-keys.js";
+import { VIEW_MODE } from "../constants/bookmark-ui-state.js";
+
 /**
  * View Toggle Component
  * Manages grid/list view switching with localStorage persistence
  */
-const VIEW_MODE = Object.freeze({
-  grid: "grid",
-  list: "list",
-});
-
 class ViewToggle extends HTMLElement {
   /** @type {"grid" | "list"} */
   #currentView = VIEW_MODE.grid;
   #buttons = null;
-  #storageKey = "linkstack:view-preference";
 
   static #selectors = {
     button: ".view-toggle-button",
@@ -72,7 +70,7 @@ class ViewToggle extends HTMLElement {
 
   #saveViewPreference() {
     try {
-      localStorage.setItem(this.#storageKey, this.#currentView);
+      localStorage.setItem(STORAGE_KEYS.viewPreference, this.#currentView);
     } catch {
       // Ignore storage failures; the selected view still applies for the session.
     }
@@ -80,7 +78,7 @@ class ViewToggle extends HTMLElement {
 
   #loadViewPreference() {
     try {
-      const savedView = localStorage.getItem(this.#storageKey);
+      const savedView = localStorage.getItem(STORAGE_KEYS.viewPreference);
       if (savedView === VIEW_MODE.grid || savedView === VIEW_MODE.list) {
         this.#currentView = savedView;
       }
@@ -90,7 +88,7 @@ class ViewToggle extends HTMLElement {
   }
 
   #dispatchViewChange() {
-    const event = new CustomEvent("view-changed", {
+    const event = new CustomEvent(APP_EVENTS.viewChanged, {
       detail: { view: this.#currentView },
       bubbles: true,
     });

@@ -9,25 +9,13 @@ import {
   BOOKMARK_STATUS_LABELS,
   BOOKMARK_UI_MESSAGES,
 } from "./constants/ui-strings.js";
-
-const BOOKMARK_SCOPE = Object.freeze({
-  public: "public",
-  mine: "mine",
-  all: "all",
-});
-
-const BOOKMARK_SORT = Object.freeze({
-  newest: "newest",
-  oldest: "oldest",
-  alphaAsc: "alpha-asc",
-  alphaDesc: "alpha-desc",
-});
-
-const BOOKMARK_FILTER = Object.freeze({
-  all: "all",
-  read: "read",
-  unread: "unread",
-});
+import { APP_EVENTS } from "./constants/app-events.js";
+import {
+  BOOKMARK_FILTER,
+  BOOKMARK_SCOPE,
+  BOOKMARK_SORT,
+} from "./constants/bookmark-ui-state.js";
+import { STORAGE_KEYS } from "./constants/storage-keys.js";
 
 export class LinkStackBookmarks extends HTMLElement {
   static #selectors = {
@@ -91,19 +79,19 @@ export class LinkStackBookmarks extends HTMLElement {
   disconnectedCallback() {
     if (this.#boundHandlers.onBookmarkCreated) {
       window.removeEventListener(
-        "bookmark-created",
+        APP_EVENTS.bookmarkCreated,
         this.#boundHandlers.onBookmarkCreated,
       );
     }
     if (this.#boundHandlers.onBookmarkUpdated) {
       window.removeEventListener(
-        "bookmark-updated",
+        APP_EVENTS.bookmarkUpdated,
         this.#boundHandlers.onBookmarkUpdated,
       );
     }
     if (this.#boundHandlers.onAuthStateChanged) {
       window.removeEventListener(
-        "auth-state-changed",
+        APP_EVENTS.authStateChanged,
         this.#boundHandlers.onAuthStateChanged,
       );
     }
@@ -142,11 +130,11 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#searchQuery = params.get("search") || "";
     this.#sortBy =
       this.#normalizeSort(
-        params.get("sort") || localStorage.getItem("linkstack:sortBy"),
+        params.get("sort") || localStorage.getItem(STORAGE_KEYS.sortBy),
       );
     this.#filterBy =
       this.#normalizeFilter(
-        params.get("filter") || localStorage.getItem("linkstack:filterBy"),
+        params.get("filter") || localStorage.getItem(STORAGE_KEYS.filterBy),
       );
 
     if (this.#elements.searchInput) {
@@ -195,15 +183,15 @@ export class LinkStackBookmarks extends HTMLElement {
     };
 
     window.addEventListener(
-      "bookmark-created",
+      APP_EVENTS.bookmarkCreated,
       this.#boundHandlers.onBookmarkCreated,
     );
     window.addEventListener(
-      "bookmark-updated",
+      APP_EVENTS.bookmarkUpdated,
       this.#boundHandlers.onBookmarkUpdated,
     );
     window.addEventListener(
-      "auth-state-changed",
+      APP_EVENTS.authStateChanged,
       this.#boundHandlers.onAuthStateChanged,
     );
 
@@ -340,7 +328,7 @@ export class LinkStackBookmarks extends HTMLElement {
       const target = /** @type {HTMLSelectElement} */ (event.target);
       this.#sortBy = this.#normalizeSort(target.value);
       target.value = this.#sortBy;
-      localStorage.setItem("linkstack:sortBy", this.#sortBy);
+      localStorage.setItem(STORAGE_KEYS.sortBy, this.#sortBy);
       this.#updateUrlParam(
         "sort",
         this.#sortBy === BOOKMARK_SORT.newest ? "" : this.#sortBy,
@@ -354,7 +342,7 @@ export class LinkStackBookmarks extends HTMLElement {
       button.addEventListener("click", async () => {
         this.#filterBy = this.#normalizeFilter(button.dataset.filter);
         this.#setActiveFilterButton(this.#filterBy);
-        localStorage.setItem("linkstack:filterBy", this.#filterBy);
+        localStorage.setItem(STORAGE_KEYS.filterBy, this.#filterBy);
         this.#updateUrlParam(
           "filter",
           this.#filterBy === BOOKMARK_FILTER.all ? "" : this.#filterBy,
@@ -875,7 +863,7 @@ export class LinkStackBookmarks extends HTMLElement {
         "Bookmark added to your library",
         "success",
       );
-      window.dispatchEvent(new CustomEvent("bookmark-created"));
+      window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkCreated));
     } catch (error) {
       this.#showToast(
         this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.saveBookmarkFailed),
@@ -891,7 +879,7 @@ export class LinkStackBookmarks extends HTMLElement {
         BOOKMARK_ACTION_LABELS.bookmarkSubmittedForReview,
         "success",
       );
-      window.dispatchEvent(new CustomEvent("bookmark-updated"));
+      window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkUpdated));
     } catch (error) {
       this.#showToast(
         this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.submitForReviewFailed),

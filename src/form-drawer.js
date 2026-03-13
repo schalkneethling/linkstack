@@ -1,4 +1,6 @@
 // @ts-check
+import { APP_EVENTS } from "./constants/app-events.js";
+
 /**
  * Form Drawer Web Component
  * Manages opening/closing the bookmark form popover with keyboard shortcuts
@@ -20,7 +22,7 @@ class FormDrawer extends HTMLElement {
     }
 
     if (this.#bookmarkCreatedHandler) {
-      window.removeEventListener("bookmark-created", this.#bookmarkCreatedHandler);
+      window.removeEventListener(APP_EVENTS.bookmarkCreated, this.#bookmarkCreatedHandler);
       this.#bookmarkCreatedHandler = null;
     }
 
@@ -57,7 +59,7 @@ class FormDrawer extends HTMLElement {
       this.#bookmarkCreatedHandler = () => {
         this.close();
       };
-      window.addEventListener("bookmark-created", this.#bookmarkCreatedHandler);
+      window.addEventListener(APP_EVENTS.bookmarkCreated, this.#bookmarkCreatedHandler);
     }
 
     if (!this.#toggleHandler) {

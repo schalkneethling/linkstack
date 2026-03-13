@@ -1,5 +1,6 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
+import { APP_EVENTS } from "./constants/app-events.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { EDIT_DIALOG_MESSAGES } from "./constants/ui-strings.js";
 
@@ -208,7 +209,7 @@ export class LinkStackEditDialog extends HTMLElement {
       toast?.show(EDIT_DIALOG_MESSAGES.updateSuccess, "success");
 
       // Dispatch custom event to notify other components
-      window.dispatchEvent(new CustomEvent("bookmark-updated"));
+      window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkUpdated));
 
       this.#setSaveButtonLoading(false);
       editDialog.close();

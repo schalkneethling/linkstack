@@ -1,5 +1,6 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
+import { APP_EVENTS } from "./constants/app-events.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { MODERATION_UI_MESSAGES } from "./constants/ui-strings.js";
 
@@ -91,7 +92,7 @@ export class LinkStackPublicReviews extends HTMLElement {
           await this.render();
         }
       };
-      window.addEventListener("auth-state-changed", this.#authStateChangedHandler);
+      window.addEventListener(APP_EVENTS.authStateChanged, this.#authStateChangedHandler);
     }
 
     if (!this.#panelOpenedHandler) {
@@ -101,7 +102,7 @@ export class LinkStackPublicReviews extends HTMLElement {
           this.#focusSummary();
         }
       };
-      window.addEventListener("public-review-panel-opened", this.#panelOpenedHandler);
+      window.addEventListener(APP_EVENTS.publicReviewPanelOpened, this.#panelOpenedHandler);
     }
 
     if (this.#container && !this.#reviewClickHandler) {
@@ -123,12 +124,12 @@ export class LinkStackPublicReviews extends HTMLElement {
 
   disconnectedCallback() {
     if (this.#authStateChangedHandler) {
-      window.removeEventListener("auth-state-changed", this.#authStateChangedHandler);
+      window.removeEventListener(APP_EVENTS.authStateChanged, this.#authStateChangedHandler);
       this.#authStateChangedHandler = null;
     }
 
     if (this.#panelOpenedHandler) {
-      window.removeEventListener("public-review-panel-opened", this.#panelOpenedHandler);
+      window.removeEventListener(APP_EVENTS.publicReviewPanelOpened, this.#panelOpenedHandler);
       this.#panelOpenedHandler = null;
     }
 
@@ -185,7 +186,7 @@ export class LinkStackPublicReviews extends HTMLElement {
         "success",
       );
 
-      window.dispatchEvent(new CustomEvent("bookmark-updated"));
+      window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkUpdated));
       await this.render();
     } catch (error) {
       const message =
