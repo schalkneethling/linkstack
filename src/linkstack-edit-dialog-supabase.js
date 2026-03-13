@@ -1,6 +1,7 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
+import { EDIT_DIALOG_MESSAGES } from "./constants/ui-strings.js";
 
 /**
  * Edit dialog component for updating bookmarks with Supabase storage
@@ -169,7 +170,7 @@ export class LinkStackEditDialog extends HTMLElement {
     try {
       return await this.#bookmarksService.getById(id);
     } catch (error) {
-      throw new Error(this.#getErrorMessage(error, "Failed to load bookmark."), {
+      throw new Error(this.#getErrorMessage(error, EDIT_DIALOG_MESSAGES.loadFailed), {
         cause: error,
       });
     }
@@ -204,7 +205,7 @@ export class LinkStackEditDialog extends HTMLElement {
         /** @type {{ show: (message: string, type: string) => void } | null} */ (
           /** @type {unknown} */ (document.querySelector("linkstack-toast"))
         );
-      toast?.show("Bookmark updated successfully!", "success");
+      toast?.show(EDIT_DIALOG_MESSAGES.updateSuccess, "success");
 
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
@@ -213,7 +214,7 @@ export class LinkStackEditDialog extends HTMLElement {
       editDialog.close();
     } catch (error) {
       this.#showToast(
-        this.#getErrorMessage(error, "Failed to save changes. Please try again."),
+        this.#getErrorMessage(error, EDIT_DIALOG_MESSAGES.saveFailed),
         "error",
       );
       this.#setSaveButtonLoading(false);
@@ -256,7 +257,7 @@ export class LinkStackEditDialog extends HTMLElement {
       editTitleInput.focus();
     } catch (error) {
       this.#showToast(
-        this.#getErrorMessage(error, "Failed to load bookmark. Please try again."),
+        this.#getErrorMessage(error, EDIT_DIALOG_MESSAGES.loadFailed),
         "error",
       );
     }

@@ -4,6 +4,11 @@ import {
   BookmarksService,
   PUBLIC_SHARE_STATUS,
 } from "./services/bookmarks.service.js";
+import {
+  BOOKMARK_ACTION_LABELS,
+  BOOKMARK_STATUS_LABELS,
+  BOOKMARK_UI_MESSAGES,
+} from "./constants/ui-strings.js";
 
 const BOOKMARK_SCOPE = Object.freeze({
   public: "public",
@@ -528,11 +533,11 @@ export class LinkStackBookmarks extends HTMLElement {
     }
 
     const labels = {
-      [PUBLIC_SHARE_STATUS.PENDING]: "Pending review",
+      [PUBLIC_SHARE_STATUS.PENDING]: BOOKMARK_STATUS_LABELS.pendingReview,
       [PUBLIC_SHARE_STATUS.APPROVED]: bookmark.is_public_listing_owner
-        ? "Publicly listed"
-        : "Already public",
-      [PUBLIC_SHARE_STATUS.REJECTED]: "Public listing rejected",
+        ? BOOKMARK_STATUS_LABELS.publiclyListed
+        : BOOKMARK_STATUS_LABELS.alreadyPublic,
+      [PUBLIC_SHARE_STATUS.REJECTED]: BOOKMARK_STATUS_LABELS.publicListingRejected,
     };
 
     statusTag.textContent = labels[status] || status;
@@ -601,8 +606,8 @@ export class LinkStackBookmarks extends HTMLElement {
     readToggle.dataset.id = bookmark.id;
     readToggle.dataset.isRead = String(bookmark.is_read);
     readToggle.querySelector(".read-text").textContent = bookmark.is_read
-      ? "Mark as Unread"
-      : "Mark as Read";
+      ? BOOKMARK_ACTION_LABELS.markAsUnread
+      : BOOKMARK_ACTION_LABELS.markAsRead;
 
     deleteButton.dataset.id = bookmark.id;
     editButton.dataset.id = bookmark.id;
@@ -616,11 +621,11 @@ export class LinkStackBookmarks extends HTMLElement {
     requestPublicShare.dataset.id = bookmark.id;
 
     if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.REJECTED) {
-      requestPublicShare.textContent = "Resubmit Public Listing";
+      requestPublicShare.textContent = BOOKMARK_ACTION_LABELS.resubmitPublicListing;
     } else if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.APPROVED) {
-      requestPublicShare.textContent = "Update Public Listing";
+      requestPublicShare.textContent = BOOKMARK_ACTION_LABELS.updatePublicListing;
     } else {
-      requestPublicShare.textContent = "Request Public Listing";
+      requestPublicShare.textContent = BOOKMARK_ACTION_LABELS.requestPublicListing;
     }
   }
 
@@ -648,7 +653,7 @@ export class LinkStackBookmarks extends HTMLElement {
     const message = document.createElement("p");
 
     wrapper.className = "error-message";
-    message.textContent = "Failed to load bookmarks. Please try refreshing the page.";
+    message.textContent = BOOKMARK_UI_MESSAGES.loadBookmarksFailed;
     wrapper.append(message);
 
     return wrapper;
@@ -839,7 +844,7 @@ export class LinkStackBookmarks extends HTMLElement {
       await this.#renderBookmarks();
     } catch (error) {
       this.#showToast(
-        this.#getErrorMessage(error, "Failed to delete bookmark. Please try again."),
+        this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.deleteFailed),
         "error",
       );
     }
@@ -857,7 +862,7 @@ export class LinkStackBookmarks extends HTMLElement {
       await this.#renderBookmarks();
     } catch (error) {
       this.#showToast(
-        this.#getErrorMessage(error, "Failed to update read status. Please try again."),
+        this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.readStatusFailed),
         "error",
       );
     }
@@ -873,7 +878,7 @@ export class LinkStackBookmarks extends HTMLElement {
       window.dispatchEvent(new CustomEvent("bookmark-created"));
     } catch (error) {
       this.#showToast(
-        this.#getErrorMessage(error, "Failed to save bookmark."),
+        this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.saveBookmarkFailed),
         "error",
       );
     }
@@ -883,13 +888,13 @@ export class LinkStackBookmarks extends HTMLElement {
     try {
       await this.#bookmarksService.requestPublicShare(id);
       this.#showToast(
-        "Bookmark submitted for public review",
+        BOOKMARK_ACTION_LABELS.bookmarkSubmittedForReview,
         "success",
       );
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
     } catch (error) {
       this.#showToast(
-        this.#getErrorMessage(error, "Failed to submit bookmark for review."),
+        this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.submitForReviewFailed),
         "error",
       );
     }
@@ -965,8 +970,8 @@ export class LinkStackBookmarks extends HTMLElement {
       if (!filteredBookmarks.length) {
         this.#showNoBookmarks(
           this.#scope === BOOKMARK_SCOPE.public
-            ? "No public bookmarks have been approved yet."
-            : "Why not add your first?",
+            ? BOOKMARK_UI_MESSAGES.noApprovedPublicBookmarks
+            : BOOKMARK_UI_MESSAGES.noBookmarksPrompt,
         );
         return;
       }

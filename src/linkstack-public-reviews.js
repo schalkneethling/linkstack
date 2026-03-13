@@ -1,6 +1,7 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
+import { MODERATION_UI_MESSAGES } from "./constants/ui-strings.js";
 
 const REVIEW_DECISIONS = Object.freeze({
   approve: "approve",
@@ -158,7 +159,7 @@ export class LinkStackPublicReviews extends HTMLElement {
       !(reasonSelect instanceof HTMLSelectElement && reasonSelect.value)
     ) {
       this.#showToast(
-        "Choose a rejection reason before rejecting this bookmark.",
+        MODERATION_UI_MESSAGES.chooseRejectionReason,
         "warning",
       );
       return;
@@ -179,15 +180,16 @@ export class LinkStackPublicReviews extends HTMLElement {
 
       this.#showToast(
         action === REVIEW_DECISIONS.approve
-          ? "Bookmark approved for the public catalog."
-          : "Public listing rejected.",
+          ? MODERATION_UI_MESSAGES.bookmarkApproved
+          : MODERATION_UI_MESSAGES.publicListingRejected,
         "success",
       );
 
       window.dispatchEvent(new CustomEvent("bookmark-updated"));
       await this.render();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to review bookmark.";
+      const message =
+        error instanceof Error ? error.message : MODERATION_UI_MESSAGES.reviewFailed;
       this.#showToast(message, "error");
     }
   }
@@ -202,7 +204,7 @@ export class LinkStackPublicReviews extends HTMLElement {
       this.#container.replaceChildren();
 
       if (!reviews.length) {
-        this.#summary.textContent = "No bookmarks are waiting for review.";
+        this.#summary.textContent = MODERATION_UI_MESSAGES.noBookmarksWaiting;
         return;
       }
 
@@ -217,7 +219,7 @@ export class LinkStackPublicReviews extends HTMLElement {
 
       this.#container.append(list);
     } catch {
-      this.#summary.textContent = "Failed to load moderation queue.";
+      this.#summary.textContent = MODERATION_UI_MESSAGES.moderationQueueFailed;
     }
   }
 

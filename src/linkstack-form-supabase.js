@@ -3,6 +3,7 @@ import { supabase } from "./lib/supabase.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { SettingsService } from "./services/settings.service.js";
 import { getRandomEncouragementMessage } from "./utils/encouragement-messages.js";
+import { FORM_UI_MESSAGES } from "./constants/ui-strings.js";
 import {
   validateBookmarkMetadata,
   getValidationMessage,
@@ -65,7 +66,7 @@ export class LinkStackForm extends HTMLElement {
         parentSelect.appendChild(option);
       });
     } catch {
-      this.#showToast("Failed to load stack options. Please try again.", "error");
+      this.#showToast(FORM_UI_MESSAGES.loadStackOptionsFailed, "error");
     }
   }
 
@@ -107,10 +108,10 @@ export class LinkStackForm extends HTMLElement {
       if (hasParent) {
         requestPublic.checked = false;
         helpText.textContent =
-          "Only top-level bookmarks can be submitted to the public catalog.";
+          FORM_UI_MESSAGES.publicTopLevelOnly;
       } else {
         helpText.textContent =
-          "Public submissions remain private in your library and require moderator approval before they appear publicly.";
+          FORM_UI_MESSAGES.publicRequiresApproval;
       }
     };
 
@@ -304,9 +305,7 @@ export class LinkStackForm extends HTMLElement {
     requestPublic,
   }) {
     const confirmed = window.confirm(
-      requestPublic
-        ? "This link is already public. Add it to your private bookmarks instead?"
-        : "This link is already public. Add it to your private bookmarks?",
+      FORM_UI_MESSAGES.duplicatePublicPrompt,
     );
 
     if (!confirmed) {
@@ -322,8 +321,8 @@ export class LinkStackForm extends HTMLElement {
 
     this.#showToast(
       requestPublic
-        ? "This link is already public. It was added to your private bookmarks instead."
-        : "Bookmark added to your private bookmarks.",
+        ? FORM_UI_MESSAGES.addedPrivateInstead
+        : FORM_UI_MESSAGES.addedPrivateBookmark,
       "success",
     );
 
@@ -384,7 +383,7 @@ export class LinkStackForm extends HTMLElement {
 
         if (inspection.personal_duplicate) {
           this.#showUrlError(
-            "This URL has already been bookmarked. Please enter a different URL.",
+            FORM_UI_MESSAGES.duplicateUrl,
           );
           this.#setSubmitButtonLoading(false);
           return;
@@ -425,7 +424,7 @@ export class LinkStackForm extends HTMLElement {
           bookmarkForm.reset();
           this.#setupPublicToggle();
           this.#showToast(
-            "Bookmark saved (metadata unavailable for this site)",
+            FORM_UI_MESSAGES.metadataUnavailable,
             "warning",
           );
           this.#dispatchCreated();
@@ -446,14 +445,14 @@ export class LinkStackForm extends HTMLElement {
         this.#setupPublicToggle();
         this.#showToast(
           requestPublic
-            ? "Bookmark added and submitted for public review."
-            : "Bookmark added successfully!",
+            ? FORM_UI_MESSAGES.bookmarkAddedWithReview
+            : FORM_UI_MESSAGES.bookmarkAdded,
           "success",
         );
         this.#dispatchCreated();
       } catch (error) {
         this.#showToast(
-          this.#getErrorMessage(error, "Failed to add bookmark. Please try again."),
+          this.#getErrorMessage(error, FORM_UI_MESSAGES.addBookmarkFailed),
           "error",
         );
       } finally {
