@@ -356,8 +356,7 @@ export class LinkStackBookmarks extends HTMLElement {
       description.textContent = message;
     }
 
-    this.#elements.bookmarksContainer.innerHTML = "";
-    this.#elements.bookmarksContainer.append(fragment);
+    this.#elements.bookmarksContainer.replaceChildren(fragment);
   }
 
   #showSkeletonLoader() {
@@ -368,8 +367,7 @@ export class LinkStackBookmarks extends HTMLElement {
       return;
     }
     const fragment = /** @type {DocumentFragment} */ (tmpl.content.cloneNode(true));
-    this.#elements.bookmarksContainer.innerHTML = "";
-    this.#elements.bookmarksContainer.append(fragment);
+    this.#elements.bookmarksContainer.replaceChildren(fragment);
   }
 
   #filterBookmarks(bookmarks) {
@@ -416,7 +414,7 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   #renderTags(container, tags) {
-    container.innerHTML = "";
+    container.replaceChildren();
 
     if (!tags?.length) {
       return;
@@ -555,6 +553,36 @@ export class LinkStackBookmarks extends HTMLElement {
     } else {
       requestPublicShare.textContent = "Request Public Listing";
     }
+  }
+
+  #ensureBookmarksList() {
+    const bookmarksContainer = this.#elements.bookmarksContainer;
+    if (!bookmarksContainer) {
+      return null;
+    }
+
+    const existingList = this.querySelector("#bookmarks-list");
+    if (existingList instanceof HTMLUListElement) {
+      existingList.replaceChildren();
+      return existingList;
+    }
+
+    const bookmarksList = document.createElement("ul");
+    bookmarksList.className = "reset-list bookmarks-list";
+    bookmarksList.id = "bookmarks-list";
+    bookmarksContainer.replaceChildren(bookmarksList);
+    return bookmarksList;
+  }
+
+  #createErrorState() {
+    const wrapper = document.createElement("div");
+    const message = document.createElement("p");
+
+    wrapper.className = "error-message";
+    message.textContent = "Failed to load bookmarks. Please try refreshing the page.";
+    wrapper.append(message);
+
+    return wrapper;
   }
 
   async #renderEntry(template, bookmark, children = []) {
@@ -821,18 +849,13 @@ export class LinkStackBookmarks extends HTMLElement {
         return;
       }
 
-      let bookmarksList = this.querySelector("#bookmarks-list");
+      const bookmarksList = this.#ensureBookmarksList();
       if (!bookmarksList) {
-        bookmarksList = document.createElement("ul");
-        bookmarksList.className = "reset-list bookmarks-list";
-        bookmarksList.id = "bookmarks-list";
-        bookmarksContainer.innerHTML = "";
-        bookmarksContainer.append(bookmarksList);
-      } else {
-        bookmarksList.innerHTML = "";
+        return;
       }
 
       bookmarksList.classList.toggle("multiple", filteredBookmarks.length > 1);
+      const fragment = document.createDocumentFragment();
 
       for (const bookmark of filteredBookmarks) {
         const entry = await this.#renderEntry(
@@ -840,14 +863,12 @@ export class LinkStackBookmarks extends HTMLElement {
           bookmark,
           children.get(bookmark.id) || [],
         );
-        bookmarksList.append(entry);
+        fragment.append(entry);
       }
+
+      bookmarksList.append(fragment);
     } catch {
-      bookmarksContainer.innerHTML = `
-        <div class="error-message">
-          <p>Failed to load bookmarks. Please try refreshing the page.</p>
-        </div>
-      `;
+      bookmarksContainer.replaceChildren(this.#createErrorState());
     }
   }
 
