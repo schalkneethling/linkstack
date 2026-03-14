@@ -1,5 +1,6 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
+import { captureException, initMonitoring } from "./lib/monitoring.js";
 import { AuthService } from "./services/auth.service.js";
 import { APP_EVENTS } from "./constants/app-events.js";
 import { BOOKMARK_SCOPE } from "./constants/bookmark-ui-state.js";
@@ -35,6 +36,7 @@ class LinkStackApp {
   }
 
   async #init() {
+    initMonitoring();
     this.#setupElements();
     this.#setupAuthListeners();
     this.#setupAdminToggle();
@@ -76,7 +78,11 @@ class LinkStackApp {
     this.#authComponent?.addEventListener("sign-in-google", async () => {
       try {
         await this.#authService.signInWithGoogle();
-      } catch {
+      } catch (error) {
+        captureException(error, {
+          surface: "app",
+          action: "sign-in-google",
+        });
         this.#showToast(
           "Failed to sign in with Google. Please try again.",
           "error",
@@ -87,7 +93,11 @@ class LinkStackApp {
     this.#authComponent?.addEventListener("sign-in-github", async () => {
       try {
         await this.#authService.signInWithGitHub();
-      } catch {
+      } catch (error) {
+        captureException(error, {
+          surface: "app",
+          action: "sign-in-github",
+        });
         this.#showToast(
           "Failed to sign in with GitHub. Please try again.",
           "error",
@@ -99,7 +109,11 @@ class LinkStackApp {
       try {
         await this.#authService.signOut();
         await this.#handleAuthChange(null, false);
-      } catch {
+      } catch (error) {
+        captureException(error, {
+          surface: "app",
+          action: "sign-out",
+        });
         this.#showToast("Failed to sign out. Please try again.", "error");
       }
     });
@@ -139,7 +153,11 @@ class LinkStackApp {
       const user = await this.#authService.getCurrentUser();
       const isAdmin = user ? await this.#authService.isAdmin() : false;
       await this.#handleAuthChange(user, isAdmin);
-    } catch {
+    } catch (error) {
+      captureException(error, {
+        surface: "app",
+        action: "check-auth-state",
+      });
       await this.#handleAuthChange(null, false);
     }
   }

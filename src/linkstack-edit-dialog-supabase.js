@@ -1,6 +1,7 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
 import { APP_EVENTS } from "./constants/app-events.js";
+import { captureException } from "./lib/monitoring.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { EDIT_DIALOG_MESSAGES } from "./constants/ui-strings.js";
 
@@ -214,6 +215,10 @@ export class LinkStackEditDialog extends HTMLElement {
       this.#setSaveButtonLoading(false);
       editDialog.close();
     } catch (error) {
+      captureException(error, {
+        surface: "edit-dialog",
+        action: "save-bookmark",
+      });
       this.#showToast(
         this.#getErrorMessage(error, EDIT_DIALOG_MESSAGES.saveFailed),
         "error",
@@ -257,6 +262,11 @@ export class LinkStackEditDialog extends HTMLElement {
       editDialog.showModal();
       editTitleInput.focus();
     } catch (error) {
+      captureException(error, {
+        surface: "edit-dialog",
+        action: "load-bookmark",
+        bookmarkId: id,
+      });
       this.#showToast(
         this.#getErrorMessage(error, EDIT_DIALOG_MESSAGES.loadFailed),
         "error",

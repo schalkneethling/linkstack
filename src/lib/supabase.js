@@ -1,8 +1,9 @@
 // @ts-check
 import { createClient } from "@supabase/supabase-js";
+import { ENV } from "varlock/env";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = ENV.VITE_SUPABASE_URL;
+const supabaseAnonKey = ENV.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(

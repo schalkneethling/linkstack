@@ -1,6 +1,10 @@
 // @ts-check
 import * as cheerio from "cheerio";
 import {
+  captureServerException,
+  initServerMonitoring,
+} from "../_shared/monitoring.js";
+import {
   getValidationMessage,
   validateBookmarkMetadata,
   validateUrl,
@@ -54,12 +58,13 @@ const sanitizeMetadata = (input, fallbackTitle) => {
   return {
     pageTitle: fallbackTitle,
     metaDescription: "",
-    previewImg: "",
   };
 };
 
 // Docs on request and context https://docs.netlify.com/functions/build/#code-your-function-2
 export default async (request) => {
+  initServerMonitoring();
+
   const origin = request.headers.get("origin") || "http://localhost:8888";
   const corsHeaders = {
     "Access-Control-Allow-Origin": getAllowedOrigin(origin),
@@ -152,21 +157,19 @@ export default async (request) => {
     const metaDescription =
       ogDescription || twitterDescription || htmlDescription || "";
 
-    // Extract preview image with fallback
-    const ogImage = cleanText($('meta[property="og:image"]').attr("content"));
-    const twitterImg = cleanText(
-      $('meta[name="twitter:image"]').attr("content"),
-    );
-    const previewImg = ogImage || twitterImg || "";
-
     const metadata = sanitizeMetadata({
       pageTitle,
       metaDescription,
-      previewImg,
     }, bookmark);
 
     return createJsonResponse(metadata, corsHeaders);
   } catch (error) {
+    await captureServerException(error, {
+      functionName: "get-bookmark-data",
+      requestUrl: request.url,
+      method: request.method,
+    });
+
     return createJsonResponse(
       {
         error:

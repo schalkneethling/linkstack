@@ -61,9 +61,14 @@
   },
   "dependencies": {
     "@awesome.me/webawesome": "^3.1.0",
+    "@sentry/browser": "^10.43.0",
+    "@sentry/node": "^10.43.0",
+    "@varlock/1password-plugin": "^0.2.3",
+    "@varlock/vite-integration": "^0.2.5",
     "cheerio": "^1.2.0",
     "iconoir": "^7.11.0",
-    "valibot": "^1.2.0"
+    "valibot": "^1.2.0",
+    "varlock": "^0.5.0"
   },
   "engines": {
     "node": ">=24.13.0"

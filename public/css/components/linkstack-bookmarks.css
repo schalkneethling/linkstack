@@ -29,11 +29,6 @@
   border-inline-start: 3px solid var(--ls-accent);
 }
 
-/* Hide OG images in redesigned views — type-first design */
-.bookmark-img-container {
-  display: none;
-}
-
 /* Domain line */
 .bookmark-domain {
   align-items: center;

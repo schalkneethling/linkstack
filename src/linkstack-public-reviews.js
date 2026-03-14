@@ -1,6 +1,7 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
 import { APP_EVENTS } from "./constants/app-events.js";
+import { captureException } from "./lib/monitoring.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { MODERATION_UI_MESSAGES } from "./constants/ui-strings.js";
 
@@ -189,6 +190,12 @@ export class LinkStackPublicReviews extends HTMLElement {
       window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkUpdated));
       await this.render();
     } catch (error) {
+      captureException(error, {
+        surface: "public-reviews",
+        action: "review-public-share",
+        reviewId: actionButton.dataset.id,
+        decision: action,
+      });
       const message =
         error instanceof Error ? error.message : MODERATION_UI_MESSAGES.reviewFailed;
       this.#showToast(message, "error");
@@ -219,7 +226,11 @@ export class LinkStackPublicReviews extends HTMLElement {
       });
 
       this.#container.append(list);
-    } catch {
+    } catch (error) {
+      captureException(error, {
+        surface: "public-reviews",
+        action: "load-pending-reviews",
+      });
       this.#summary.textContent = MODERATION_UI_MESSAGES.moderationQueueFailed;
     }
   }

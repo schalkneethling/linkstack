@@ -1,5 +1,6 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
+import { captureException } from "./lib/monitoring.js";
 import {
   BookmarksService,
   PUBLIC_SHARE_STATUS,
@@ -717,9 +718,6 @@ export class LinkStackBookmarks extends HTMLElement {
     const fragment = /** @type {DocumentFragment} */ (
       templateElement.content.cloneNode(true)
     );
-    const img = /** @type {HTMLImageElement | null} */ (
-      fragment.querySelector(".bookmark-img")
-    );
     const link = /** @type {HTMLAnchorElement | null} */ (
       fragment.querySelector(".bookmark-link")
     );
@@ -756,10 +754,6 @@ export class LinkStackBookmarks extends HTMLElement {
       !contextMenu
     ) {
       throw new Error("Bookmark template is missing required elements");
-    }
-
-    if (img) {
-      img.src = bookmark.preview_img || "../assets/linkstack-fallback.webp";
     }
 
     link.href = bookmark.url;
@@ -843,6 +837,11 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       await this.#renderBookmarks();
     } catch (error) {
+      captureException(error, {
+        surface: "bookmarks",
+        action: "delete-bookmark",
+        bookmarkId: id,
+      });
       this.#showToast(
         this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.deleteFailed),
         "error",
@@ -861,6 +860,12 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       await this.#renderBookmarks();
     } catch (error) {
+      captureException(error, {
+        surface: "bookmarks",
+        action: "toggle-read-status",
+        bookmarkId: id,
+        isRead: newStatus,
+      });
       this.#showToast(
         this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.readStatusFailed),
         "error",
@@ -877,6 +882,11 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkCreated));
     } catch (error) {
+      captureException(error, {
+        surface: "bookmarks",
+        action: "save-public-copy",
+        publicListingId,
+      });
       this.#showToast(
         this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.saveBookmarkFailed),
         "error",
@@ -893,6 +903,11 @@ export class LinkStackBookmarks extends HTMLElement {
       );
       window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkUpdated));
     } catch (error) {
+      captureException(error, {
+        surface: "bookmarks",
+        action: "request-public-share",
+        bookmarkId: id,
+      });
       this.#showToast(
         this.#getErrorMessage(error, BOOKMARK_UI_MESSAGES.submitForReviewFailed),
         "error",
@@ -994,7 +1009,13 @@ export class LinkStackBookmarks extends HTMLElement {
       }
 
       bookmarksList.append(fragment);
-    } catch {
+    } catch (error) {
+      captureException(error, {
+        surface: "bookmarks",
+        action: "render-bookmarks",
+        scope: this.#scope,
+        sortBy: this.#sortBy,
+      });
       bookmarksContainer.replaceChildren(this.#createErrorState());
     }
   }

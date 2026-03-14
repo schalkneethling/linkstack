@@ -37,7 +37,6 @@ describe("get-bookmark-data function", () => {
             <head>
               <title>Example Article</title>
               <meta name="description" content="Example description" />
-              <meta property="og:image" content="https://example.com/image.jpg" />
             </head>
           </html>
         `,
@@ -61,7 +60,6 @@ describe("get-bookmark-data function", () => {
     expect(body).toEqual({
       pageTitle: "Example Article",
       metaDescription: "Example description",
-      previewImg: "https://example.com/image.jpg",
     });
   });
 });

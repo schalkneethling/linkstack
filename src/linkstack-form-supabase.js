@@ -1,5 +1,6 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
+import { captureException } from "./lib/monitoring.js";
 import { BookmarksService } from "./services/bookmarks.service.js";
 import { SettingsService } from "./services/settings.service.js";
 import { APP_EVENTS } from "./constants/app-events.js";
@@ -67,7 +68,11 @@ export class LinkStackForm extends HTMLElement {
         option.textContent = bookmark.page_title;
         parentSelect.appendChild(option);
       });
-    } catch {
+    } catch (error) {
+      captureException(error, {
+        surface: "bookmark-form",
+        action: "populate-parent-select",
+      });
       this.#showToast(FORM_UI_MESSAGES.loadStackOptionsFailed, "error");
     }
   }
@@ -275,7 +280,6 @@ export class LinkStackForm extends HTMLElement {
       url,
       page_title: metadata.pageTitle,
       meta_description: metadata.metaDescription,
-      preview_img: metadata.previewImg,
       notes,
       parent_id: parentId || null,
       request_public: requestPublic,
@@ -287,7 +291,6 @@ export class LinkStackForm extends HTMLElement {
     return {
       pageTitle: urlObj.hostname.replace("www.", ""),
       metaDescription: "",
-      previewImg: "",
     };
   }
 
@@ -468,6 +471,11 @@ export class LinkStackForm extends HTMLElement {
         );
         this.#dispatchCreated();
       } catch (error) {
+        captureException(error, {
+          surface: "bookmark-form",
+          action: "submit",
+          requestPublic,
+        });
         this.#showToast(
           this.#getErrorMessage(error, FORM_UI_MESSAGES.addBookmarkFailed),
           "error",

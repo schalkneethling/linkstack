@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "vitest/config";
+import { varlockVitePlugin } from "@varlock/vite-integration";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
@@ -15,6 +16,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    varlockVitePlugin(),
     viteStaticCopy({
       targets: [
         {

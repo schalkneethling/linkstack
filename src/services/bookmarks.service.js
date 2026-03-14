@@ -150,7 +150,6 @@ export class BookmarksService {
       page_title: bookmark.title_override || resource?.page_title || "",
       meta_description:
         bookmark.description_override || resource?.meta_description || "",
-      preview_img: resource?.preview_img || "",
       notes: bookmark.notes || "",
       tags: Array.isArray(bookmark.tags) ? bookmark.tags : [],
       is_read: Boolean(bookmark.is_read),
@@ -183,7 +182,6 @@ export class BookmarksService {
       page_title: listing.page_title || resource?.page_title || "",
       meta_description:
         listing.meta_description || resource?.meta_description || "",
-      preview_img: listing.preview_img || resource?.preview_img || "",
       tags: Array.isArray(listing.tags) ? listing.tags : [],
       created_at: listing.created_at,
       updated_at: listing.updated_at,
@@ -291,7 +289,6 @@ export class BookmarksService {
       canonical_url: bookmark.url,
       page_title: bookmark.page_title,
       meta_description: bookmark.meta_description || "",
-      preview_img: bookmark.preview_img || "",
     };
 
     const { data, error } = await this.#supabase
@@ -651,7 +648,6 @@ export class BookmarksService {
       status: PUBLIC_SHARE_STATUS.PENDING,
       page_title: bookmark.page_title,
       meta_description: bookmark.meta_description,
-      preview_img: bookmark.preview_img,
       tags: bookmark.tags || [],
       rejection_code: null,
       rejection_reason: null,

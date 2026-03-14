@@ -24,7 +24,6 @@ const createBookmarkSchema = v.object({
   url: httpUrlSchema,
   page_title: v.string(),
   meta_description: v.optional(v.string()),
-  preview_img: v.optional(v.string()),
   notes: v.optional(v.string()),
   parent_id: v.optional(v.nullable(v.string())),
   request_public: v.optional(v.boolean()),
@@ -63,7 +62,6 @@ const reviewPublicShareSchema = v.pipe(
 const bookmarkMetadataSchema = v.object({
   pageTitle: v.string(),
   metaDescription: v.string(),
-  previewImg: v.string(),
 });
 
 /**

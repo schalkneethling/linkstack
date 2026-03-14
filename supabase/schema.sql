@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS public.resources (
   canonical_url TEXT NOT NULL,
   page_title TEXT NOT NULL,
   meta_description TEXT DEFAULT '',
-  preview_img TEXT DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -40,7 +39,6 @@ CREATE TABLE IF NOT EXISTS public.public_listings (
   status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
   page_title TEXT NOT NULL,
   meta_description TEXT DEFAULT '',
-  preview_img TEXT DEFAULT '',
   tags TEXT[] NOT NULL DEFAULT '{}',
   rejection_code TEXT,
   rejection_reason TEXT,
