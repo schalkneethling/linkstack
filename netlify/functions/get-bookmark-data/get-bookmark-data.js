@@ -34,7 +34,7 @@ const getAllowedOrigin = (requestOrigin) => {
   const allowedOrigins = [
     "http://localhost:8888",
     "http://localhost:3000",
-    "https://linkstack.netlify.app", // Add your production domain
+    "https://linkstacks.netlify.app", // Add your production domain
   ];
 
   return allowedOrigins.includes(requestOrigin)
