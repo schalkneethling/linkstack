@@ -20,6 +20,46 @@ export { PUBLIC_SHARE_STATUS } from "../constants/bookmark-model.js";
 /** @typedef {import("../constants/bookmark-ui-state.js").BookmarkSort} BookmarkSort */
 /** @typedef {import("../constants/bookmark-model.js").ReviewDecision} ReviewDecision */
 
+const RESOURCE_FIELDS = [
+  "id",
+  "normalized_url",
+  "canonical_url",
+  "page_title",
+  "meta_description",
+].join(", ");
+
+const BOOKMARK_FIELDS = [
+  "id",
+  "user_id",
+  "resource_id",
+  "parent_id",
+  "notes",
+  "tags",
+  "title_override",
+  "description_override",
+  "is_read",
+  "read_at",
+  "created_at",
+  "updated_at",
+].join(", ");
+
+const PUBLIC_LISTING_FIELDS = [
+  "id",
+  "resource_id",
+  "submitted_by_user_id",
+  "submitted_by_bookmark_id",
+  "status",
+  "page_title",
+  "meta_description",
+  "tags",
+  "rejection_code",
+  "rejection_reason",
+  "reviewed_at",
+  "reviewed_by",
+  "created_at",
+  "updated_at",
+].join(", ");
+
 /**
  * Service for managing resources, personal bookmarks, and moderated public listings.
  */
@@ -60,7 +100,7 @@ export class BookmarksService {
 
     const { data, error } = await this.#supabase
       .from("resources")
-      .select("*")
+      .select(RESOURCE_FIELDS)
       .in("id", resourceIds);
 
     if (error) {
@@ -77,7 +117,7 @@ export class BookmarksService {
 
     let query = this.#supabase
       .from("public_listings")
-      .select("*")
+      .select(PUBLIC_LISTING_FIELDS)
       .in("resource_id", resourceIds);
 
     if (statuses.length === 1) {
@@ -240,7 +280,7 @@ export class BookmarksService {
   async findResourceByNormalizedUrl(normalizedUrl) {
     const { data, error } = await this.#supabase
       .from("resources")
-      .select("*")
+      .select(RESOURCE_FIELDS)
       .eq("normalized_url", normalizedUrl)
       .maybeSingle();
 
@@ -256,7 +296,7 @@ export class BookmarksService {
 
     const { data, error } = await this.#supabase
       .from("bookmarks")
-      .select("*")
+      .select(BOOKMARK_FIELDS)
       .eq("user_id", targetUserId)
       .eq("resource_id", resourceId)
       .maybeSingle();
@@ -271,7 +311,7 @@ export class BookmarksService {
   async findApprovedPublicListing(resourceId) {
     const { data, error } = await this.#supabase
       .from("public_listings")
-      .select("*")
+      .select(PUBLIC_LISTING_FIELDS)
       .eq("resource_id", resourceId)
       .eq("status", PUBLIC_SHARE_STATUS.APPROVED)
       .maybeSingle();
@@ -286,7 +326,7 @@ export class BookmarksService {
   async #findPublicListing(resourceId) {
     const { data, error } = await this.#supabase
       .from("public_listings")
-      .select("*")
+      .select(PUBLIC_LISTING_FIELDS)
       .eq("resource_id", resourceId)
       .maybeSingle();
 
@@ -309,7 +349,7 @@ export class BookmarksService {
     const { data, error } = await this.#supabase
       .from("resources")
       .insert(resourcePayload)
-      .select("*")
+      .select(RESOURCE_FIELDS)
       .single();
 
     if (error) {
@@ -333,7 +373,7 @@ export class BookmarksService {
     const { data, error } = await this.#supabase
       .from("bookmarks")
       .insert(bookmarkPayload)
-      .select("*")
+      .select(BOOKMARK_FIELDS)
       .single();
 
     if (error) {
@@ -379,7 +419,7 @@ export class BookmarksService {
 
     let query = this.#supabase
       .from("bookmarks")
-      .select("*")
+      .select(BOOKMARK_FIELDS)
       .eq("user_id", user.id);
 
     query = this.#applySort(query, sortBy);
@@ -416,7 +456,7 @@ export class BookmarksService {
   async getPublicCatalog(sortBy = BOOKMARK_SORT.newest) {
     let query = this.#supabase
       .from("public_listings")
-      .select("*")
+      .select(PUBLIC_LISTING_FIELDS)
       .eq("status", PUBLIC_SHARE_STATUS.APPROVED);
 
     query = this.#applySort(query, sortBy, "reviewed_at", "page_title");
@@ -463,7 +503,7 @@ export class BookmarksService {
     const user = await this.#requireUser();
     const { data, error } = await this.#supabase
       .from("bookmarks")
-      .select("*")
+      .select(BOOKMARK_FIELDS)
       .eq("id", id)
       .eq("user_id", user.id)
       .single();
@@ -540,7 +580,7 @@ export class BookmarksService {
 
     const { data: listing, error: listingError } = await this.#supabase
       .from("public_listings")
-      .select("*")
+      .select(PUBLIC_LISTING_FIELDS)
       .eq("id", publicListingId)
       .eq("status", PUBLIC_SHARE_STATUS.APPROVED)
       .single();
@@ -551,7 +591,7 @@ export class BookmarksService {
 
     const { data: resource, error: resourceError } = await this.#supabase
       .from("resources")
-      .select("*")
+      .select(RESOURCE_FIELDS)
       .eq("id", resourceId)
       .single();
 
@@ -604,7 +644,7 @@ export class BookmarksService {
       .from("bookmarks")
       .update(payload)
       .eq("id", id)
-      .select("*")
+      .select("id")
       .single();
 
     if (error) {
@@ -648,7 +688,7 @@ export class BookmarksService {
       .from("bookmarks")
       .update(updates)
       .eq("id", id)
-      .select("*")
+      .select("id")
       .single();
 
     if (error) {
@@ -693,7 +733,7 @@ export class BookmarksService {
         .from("public_listings")
         .update(payload)
         .eq("id", existingListing.id)
-        .select("*")
+        .select(PUBLIC_LISTING_FIELDS)
         .single();
 
       if (error) {
@@ -705,7 +745,7 @@ export class BookmarksService {
       const { data, error } = await this.#supabase
         .from("public_listings")
         .insert(payload)
-        .select("*")
+        .select(PUBLIC_LISTING_FIELDS)
         .single();
 
       if (error) {
@@ -725,7 +765,7 @@ export class BookmarksService {
     const { data, error } = await this.#applySort(
       this.#supabase
         .from("public_listings")
-        .select("*")
+        .select(PUBLIC_LISTING_FIELDS)
         .eq("status", PUBLIC_SHARE_STATUS.PENDING),
       sortBy,
       "created_at",
@@ -786,7 +826,7 @@ export class BookmarksService {
         reviewed_by: reviewer.id,
       })
       .eq("id", id)
-      .select("*")
+      .select(PUBLIC_LISTING_FIELDS)
       .single();
 
     if (error) {
@@ -799,7 +839,7 @@ export class BookmarksService {
   async savePublicCopy(publicListingId) {
     const { data: listing, error } = await this.#supabase
       .from("public_listings")
-      .select("*")
+      .select("id, resource_id")
       .eq("id", publicListingId)
       .eq("status", PUBLIC_SHARE_STATUS.APPROVED)
       .single();
