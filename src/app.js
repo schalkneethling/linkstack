@@ -31,11 +31,7 @@ class LinkStackApp {
   #isAdmin = false;
   #authComponentsLoaded = false;
 
-  constructor() {
-    this.#init();
-  }
-
-  async #init() {
+  async init() {
     initMonitoring();
     this.#setupElements();
     this.#setupAuthListeners();
@@ -265,10 +261,15 @@ class LinkStackApp {
   }
 }
 
+async function startApp() {
+  const app = new LinkStackApp();
+  await app.init();
+}
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
-    new LinkStackApp();
+    void startApp();
   });
 } else {
-  new LinkStackApp();
+  void startApp();
 }
