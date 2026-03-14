@@ -1,96 +1,160 @@
 // @ts-check
 import { SettingsService } from "./services/settings.service.js";
 
-const guestTemplate = document.createElement("template");
-guestTemplate.innerHTML = `
-  <div class="guest-auth">
-    <button
-      type="button"
-      class="button solid"
-      id="guest-signin-trigger"
-      popovertarget="guest-signin-menu"
-      data-testid="signin-trigger"
-    >
-      Sign In
-    </button>
-    <div class="profile-dropdown guest-signin-menu" id="guest-signin-menu" popover>
-      <button
-        type="button"
-        class="dropdown-item"
-        data-testid="google-signin"
-        id="google-signin"
-      >
-        Continue with Google
-      </button>
-      <button
-        type="button"
-        class="dropdown-item"
-        data-testid="github-signin"
-        id="github-signin"
-      >
-        Continue with GitHub
-      </button>
-    </div>
-  </div>
-`;
+const SVG_NS = "http://www.w3.org/2000/svg";
 
-const authenticatedTemplate = document.createElement("template");
-authenticatedTemplate.innerHTML = `
-  <div class="user-profile" data-testid="user-info">
-    <button
-      type="button"
-      class="profile-trigger"
-      aria-expanded="false"
-      aria-haspopup="true"
-      data-testid="profile-trigger"
-      id="profile-trigger"
-    >
-      <div class="profile-avatar"></div>
-      <span class="profile-name"></span>
-      <span class="profile-role-badge" aria-label="Admin" hidden>Admin</span>
-      <svg class="profile-arrow" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-        <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
-      </svg>
-    </button>
-    <div class="profile-dropdown" id="profile-dropdown">
-      <div class="dropdown-user-info">
-        <div class="dropdown-user-name"></div>
-        <div class="dropdown-user-email"></div>
-      </div>
-      <div class="limit-settings">
-        <label class="limit-toggle">
-          <input
-            type="checkbox"
-            id="limit-enabled"
-            aria-label="Enable unread bookmark limit"
-          />
-          <span class="limit-label">Limit unread bookmarks</span>
-        </label>
-        <div class="limit-number-container" id="limit-number-container" hidden>
-          <label for="unread-limit" class="limit-number-label">Maximum unread:</label>
-          <input
-            type="number"
-            id="unread-limit"
-            min="1"
-            max="100"
-            inputmode="numeric"
-            aria-label="Unread bookmark limit"
-            class="limit-input"
-            title="Maximum number of unread bookmarks"
-          />
-        </div>
-      </div>
-      <button
-        type="button"
-        class="dropdown-item danger"
-        data-testid="signout-btn"
-        id="signout-btn"
-      >
-        Sign Out
-      </button>
-    </div>
-  </div>
-`;
+function createGuestTemplate() {
+  const template = document.createElement("template");
+  const wrapper = document.createElement("div");
+  wrapper.className = "guest-auth";
+
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "button solid";
+  trigger.id = "guest-signin-trigger";
+  trigger.setAttribute("popovertarget", "guest-signin-menu");
+  trigger.dataset.testid = "signin-trigger";
+  trigger.textContent = "Sign In";
+
+  const menu = document.createElement("div");
+  menu.className = "profile-dropdown guest-signin-menu";
+  menu.id = "guest-signin-menu";
+  menu.setAttribute("popover", "");
+
+  const googleButton = document.createElement("button");
+  googleButton.type = "button";
+  googleButton.className = "dropdown-item";
+  googleButton.dataset.testid = "google-signin";
+  googleButton.id = "google-signin";
+  googleButton.textContent = "Continue with Google";
+
+  const githubButton = document.createElement("button");
+  githubButton.type = "button";
+  githubButton.className = "dropdown-item";
+  githubButton.dataset.testid = "github-signin";
+  githubButton.id = "github-signin";
+  githubButton.textContent = "Continue with GitHub";
+
+  menu.append(googleButton, githubButton);
+  wrapper.append(trigger, menu);
+  template.content.append(wrapper);
+
+  return template;
+}
+
+function createAuthenticatedTemplate() {
+  const template = document.createElement("template");
+  const wrapper = document.createElement("div");
+  wrapper.className = "user-profile";
+  wrapper.dataset.testid = "user-info";
+
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "profile-trigger";
+  trigger.id = "profile-trigger";
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.setAttribute("aria-haspopup", "true");
+  trigger.dataset.testid = "profile-trigger";
+
+  const avatar = document.createElement("div");
+  avatar.className = "profile-avatar";
+
+  const name = document.createElement("span");
+  name.className = "profile-name";
+
+  const roleBadge = document.createElement("span");
+  roleBadge.className = "profile-role-badge";
+  roleBadge.setAttribute("aria-label", "Admin");
+  roleBadge.hidden = true;
+  roleBadge.textContent = "Admin";
+
+  const arrow = document.createElementNS(SVG_NS, "svg");
+  arrow.classList.add("profile-arrow");
+  arrow.setAttribute("viewBox", "0 0 12 12");
+  arrow.setAttribute("fill", "currentColor");
+  arrow.setAttribute("aria-hidden", "true");
+
+  const arrowPath = document.createElementNS(SVG_NS, "path");
+  arrowPath.setAttribute("d", "M2 4l4 4 4-4");
+  arrowPath.setAttribute("stroke", "currentColor");
+  arrowPath.setAttribute("stroke-width", "2");
+  arrowPath.setAttribute("fill", "none");
+  arrowPath.setAttribute("stroke-linecap", "round");
+  arrowPath.setAttribute("stroke-linejoin", "round");
+  arrow.append(arrowPath);
+
+  trigger.append(avatar, name, roleBadge, arrow);
+
+  const dropdown = document.createElement("div");
+  dropdown.className = "profile-dropdown";
+  dropdown.id = "profile-dropdown";
+
+  const userInfo = document.createElement("div");
+  userInfo.className = "dropdown-user-info";
+
+  const userName = document.createElement("div");
+  userName.className = "dropdown-user-name";
+
+  const userEmail = document.createElement("div");
+  userEmail.className = "dropdown-user-email";
+  userInfo.append(userName, userEmail);
+
+  const limitSettings = document.createElement("div");
+  limitSettings.className = "limit-settings";
+
+  const limitToggleLabel = document.createElement("label");
+  limitToggleLabel.className = "limit-toggle";
+
+  const limitEnabled = document.createElement("input");
+  limitEnabled.type = "checkbox";
+  limitEnabled.id = "limit-enabled";
+  limitEnabled.setAttribute("aria-label", "Enable unread bookmark limit");
+
+  const limitLabel = document.createElement("span");
+  limitLabel.className = "limit-label";
+  limitLabel.textContent = "Limit unread bookmarks";
+
+  limitToggleLabel.append(limitEnabled, limitLabel);
+
+  const limitNumberContainer = document.createElement("div");
+  limitNumberContainer.className = "limit-number-container";
+  limitNumberContainer.id = "limit-number-container";
+  limitNumberContainer.hidden = true;
+
+  const unreadLimitLabel = document.createElement("label");
+  unreadLimitLabel.className = "limit-number-label";
+  unreadLimitLabel.setAttribute("for", "unread-limit");
+  unreadLimitLabel.textContent = "Maximum unread:";
+
+  const unreadLimit = document.createElement("input");
+  unreadLimit.type = "number";
+  unreadLimit.id = "unread-limit";
+  unreadLimit.min = "1";
+  unreadLimit.max = "100";
+  unreadLimit.inputMode = "numeric";
+  unreadLimit.className = "limit-input";
+  unreadLimit.title = "Maximum number of unread bookmarks";
+  unreadLimit.setAttribute("aria-label", "Unread bookmark limit");
+
+  limitNumberContainer.append(unreadLimitLabel, unreadLimit);
+  limitSettings.append(limitToggleLabel, limitNumberContainer);
+
+  const signOutButton = document.createElement("button");
+  signOutButton.type = "button";
+  signOutButton.className = "dropdown-item danger";
+  signOutButton.dataset.testid = "signout-btn";
+  signOutButton.id = "signout-btn";
+  signOutButton.textContent = "Sign Out";
+
+  dropdown.append(userInfo, limitSettings, signOutButton);
+  wrapper.append(trigger, dropdown);
+  template.content.append(wrapper);
+
+  return template;
+}
+
+const guestTemplate = createGuestTemplate();
+const authenticatedTemplate = createAuthenticatedTemplate();
 
 export class LinkStackAuth extends HTMLElement {
   #user = null;
@@ -150,8 +214,7 @@ export class LinkStackAuth extends HTMLElement {
     const avatar = this.#user.user_metadata?.avatar_url;
     const initials = this.#getInitials(displayName || email);
     const fragment = authenticatedTemplate.content.cloneNode(true);
-    const root =
-      /** @type {DocumentFragment} */ (fragment);
+    const root = /** @type {DocumentFragment} */ (fragment);
     const profileName = root.querySelector(".profile-name");
     const userName = root.querySelector(".dropdown-user-name");
     const userEmail = root.querySelector(".dropdown-user-email");
@@ -173,6 +236,7 @@ export class LinkStackAuth extends HTMLElement {
     roleBadge.hidden = !this.#isAdmin;
 
     if (avatarContainer instanceof HTMLElement) {
+      avatarContainer.replaceChildren();
       if (avatar) {
         const avatarImage = document.createElement("img");
         avatarImage.src = avatar;
