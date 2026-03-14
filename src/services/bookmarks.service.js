@@ -1,4 +1,11 @@
 // @ts-check
+import { BOOKMARK_SORT } from "../constants/bookmark-ui-state.js";
+import {
+  BOOKMARK_KIND,
+  BOOKMARK_OWNERSHIP,
+  PUBLIC_SHARE_STATUS,
+  REVIEW_DECISION,
+} from "../constants/bookmark-model.js";
 import { normalizeUrl } from "../utils/normalize-url.js";
 import {
   validateAddExistingPublicBookmarkInput,
@@ -8,12 +15,10 @@ import {
   validateUpdateBookmarkInput,
 } from "../utils/validation-schemas.js";
 
-export const PUBLIC_SHARE_STATUS = {
-  NOT_REQUESTED: "not_requested",
-  PENDING: "pending",
-  APPROVED: "approved",
-  REJECTED: "rejected",
-};
+export { PUBLIC_SHARE_STATUS } from "../constants/bookmark-model.js";
+
+/** @typedef {import("../constants/bookmark-ui-state.js").BookmarkSort} BookmarkSort */
+/** @typedef {import("../constants/bookmark-model.js").ReviewDecision} ReviewDecision */
 
 /**
  * Service for managing resources, personal bookmarks, and moderated public listings.
@@ -92,42 +97,52 @@ export class BookmarksService {
     return new Map(data.map((listing) => [listing.resource_id, listing]));
   }
 
+  /**
+   * @param {any} query
+   * @param {BookmarkSort} sortBy
+   * @param {string} [dateField]
+   * @param {string} [alphaField]
+   */
   #applySort(query, sortBy, dateField = "created_at", alphaField = "page_title") {
     switch (sortBy) {
-      case "oldest":
+      case BOOKMARK_SORT.oldest:
         return query.order(dateField, { ascending: true });
-      case "alpha-asc":
+      case BOOKMARK_SORT.alphaAsc:
         return query.order(alphaField, { ascending: true });
-      case "alpha-desc":
+      case BOOKMARK_SORT.alphaDesc:
         return query.order(alphaField, { ascending: false });
-      case "newest":
+      case BOOKMARK_SORT.newest:
       default:
         return query.order(dateField, { ascending: false });
     }
   }
 
+  /**
+   * @param {Array<any>} items
+   * @param {BookmarkSort} sortBy
+   */
   #sortFeed(items, sortBy) {
     const sorted = [...items];
 
     switch (sortBy) {
-      case "oldest":
+      case BOOKMARK_SORT.oldest:
         sorted.sort(
           (left, right) =>
             new Date(left.created_at).getTime() -
             new Date(right.created_at).getTime(),
         );
         break;
-      case "alpha-asc":
+      case BOOKMARK_SORT.alphaAsc:
         sorted.sort((left, right) =>
           (left.page_title || "").localeCompare(right.page_title || ""),
         );
         break;
-      case "alpha-desc":
+      case BOOKMARK_SORT.alphaDesc:
         sorted.sort((left, right) =>
           (right.page_title || "").localeCompare(left.page_title || ""),
         );
         break;
-      case "newest":
+      case BOOKMARK_SORT.newest:
       default:
         sorted.sort(
           (left, right) =>
@@ -155,8 +170,8 @@ export class BookmarksService {
       is_read: Boolean(bookmark.is_read),
       created_at: bookmark.created_at,
       updated_at: bookmark.updated_at,
-      kind: "bookmark",
-      ownership: "mine",
+      kind: BOOKMARK_KIND.bookmark,
+      ownership: BOOKMARK_OWNERSHIP.mine,
       can_toggle_read: true,
       can_edit: true,
       can_delete: true,
@@ -185,8 +200,8 @@ export class BookmarksService {
       tags: Array.isArray(listing.tags) ? listing.tags : [],
       created_at: listing.created_at,
       updated_at: listing.updated_at,
-      kind: "public",
-      ownership: "public",
+      kind: BOOKMARK_KIND.public,
+      ownership: BOOKMARK_OWNERSHIP.public,
       can_toggle_read: false,
       can_edit: false,
       can_delete: false,
@@ -356,7 +371,10 @@ export class BookmarksService {
     );
   }
 
-  async getMyBookmarks(sortBy = "newest") {
+  /**
+   * @param {BookmarkSort} [sortBy]
+   */
+  async getMyBookmarks(sortBy = BOOKMARK_SORT.newest) {
     const user = await this.#requireUser();
 
     let query = this.#supabase
@@ -375,17 +393,27 @@ export class BookmarksService {
     return this.#hydrateBookmarks(data || [], user.id);
   }
 
-  async getTopLevel(sortBy = "newest") {
+  /**
+   * @param {BookmarkSort} [sortBy]
+   */
+  async getTopLevel(sortBy = BOOKMARK_SORT.newest) {
     const bookmarks = await this.getMyBookmarks(sortBy);
     return bookmarks.filter((bookmark) => !bookmark.parent_id);
   }
 
-  async getChildren(parentId, sortBy = "newest") {
+  /**
+   * @param {string} parentId
+   * @param {BookmarkSort} [sortBy]
+   */
+  async getChildren(parentId, sortBy = BOOKMARK_SORT.newest) {
     const bookmarks = await this.getMyBookmarks(sortBy);
     return bookmarks.filter((bookmark) => bookmark.parent_id === parentId);
   }
 
-  async getPublicCatalog(sortBy = "newest") {
+  /**
+   * @param {BookmarkSort} [sortBy]
+   */
+  async getPublicCatalog(sortBy = BOOKMARK_SORT.newest) {
     let query = this.#supabase
       .from("public_listings")
       .select("*")
@@ -412,7 +440,10 @@ export class BookmarksService {
     );
   }
 
-  async getCombinedFeed(sortBy = "newest") {
+  /**
+   * @param {BookmarkSort} [sortBy]
+   */
+  async getCombinedFeed(sortBy = BOOKMARK_SORT.newest) {
     const [myBookmarks, publicCatalog] = await Promise.all([
       this.getMyBookmarks(sortBy),
       this.getPublicCatalog(sortBy),
@@ -687,7 +718,10 @@ export class BookmarksService {
     return listing;
   }
 
-  async getPendingPublicListings(sortBy = "newest") {
+  /**
+   * @param {BookmarkSort} [sortBy]
+   */
+  async getPendingPublicListings(sortBy = BOOKMARK_SORT.newest) {
     const { data, error } = await this.#applySort(
       this.#supabase
         .from("public_listings")
@@ -734,8 +768,10 @@ export class BookmarksService {
     }
 
     const reviewer = await this.#requireUser();
+    /** @type {ReviewDecision} */
+    const typedDecision = decision;
     const status =
-      decision === "approve"
+      typedDecision === REVIEW_DECISION.approve
         ? PUBLIC_SHARE_STATUS.APPROVED
         : PUBLIC_SHARE_STATUS.REJECTED;
 
