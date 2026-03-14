@@ -13,10 +13,11 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "typecheck": "tsc --noEmit",
     "prettier:lint": "prettier .",
     "prettier:format": "prettier --write .",
     "lint:js": "eslint .",
-    "lint:css": "stylelint **/*.css"
+    "lint:css": "stylelint \"public/**/*.css\""
   },
   "repository": {
     "type": "git",
@@ -53,15 +54,21 @@
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^37.0.0",
     "stylelint-order": "^7.0.1",
+    "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-static-copy": "^3.2.0",
     "vitest": "^4.0.17"
   },
   "dependencies": {
     "@awesome.me/webawesome": "^3.1.0",
+    "@sentry/browser": "^10.43.0",
+    "@sentry/node": "^10.43.0",
+    "@varlock/1password-plugin": "^0.2.3",
+    "@varlock/vite-integration": "^0.2.5",
     "cheerio": "^1.2.0",
     "iconoir": "^7.11.0",
-    "zod": "^4.3.6"
+    "valibot": "^1.2.0",
+    "varlock": "^0.5.0"
   },
   "engines": {
     "node": ">=24.13.0"

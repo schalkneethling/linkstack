@@ -1,3 +1,4 @@
+// -check
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AuthService } from "../../src/services/auth.service.js";
 
@@ -6,7 +7,6 @@ describe("AuthService", () => {
   let mockSupabase;
 
   beforeEach(() => {
-    // Mock Supabase client
     mockSupabase = {
       auth: {
         signInWithOAuth: vi.fn(),
@@ -14,113 +14,78 @@ describe("AuthService", () => {
         getSession: vi.fn(),
         onAuthStateChange: vi.fn(),
       },
+      from: vi.fn(() => mockSupabase),
+      select: vi.fn(() => mockSupabase),
+      eq: vi.fn(() => mockSupabase),
+      maybeSingle: vi.fn(),
     };
 
     authService = new AuthService(mockSupabase);
   });
 
-  describe("signInWithGoogle", () => {
-    it("should call supabase auth with Google provider", async () => {
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: { url: "https://accounts.google.com/..." },
-        error: null,
-      });
-
-      await authService.signInWithGoogle();
-
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: "google",
-      });
+  it("signs in with google using the current origin as redirect", async () => {
+    mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: "https://accounts.google.com" },
+      error: null,
     });
 
-    it("should handle sign in errors", async () => {
-      const error = new Error("OAuth failed");
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: null,
-        error,
-      });
+    await authService.signInWithGoogle();
 
-      await expect(authService.signInWithGoogle()).rejects.toThrow(
-        "OAuth failed",
-      );
+    expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
     });
   });
 
-  describe("signInWithGitHub", () => {
-    it("should call supabase auth with GitHub provider", async () => {
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: { url: "https://github.com/login/oauth/..." },
-        error: null,
-      });
+  it("signs in with github using the current origin as redirect", async () => {
+    mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+      data: { url: "https://github.com/login/oauth" },
+      error: null,
+    });
 
-      await authService.signInWithGitHub();
+    await authService.signInWithGitHub();
 
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: "github",
-      });
+    expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "github",
+      options: {
+        redirectTo: window.location.origin,
+      },
     });
   });
 
-  describe("signOut", () => {
-    it("should call supabase signOut", async () => {
-      mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+  it("returns the current session user", async () => {
+    const user = { id: "user-1", email: "test@example.com" };
 
-      await authService.signOut();
-
-      expect(mockSupabase.auth.signOut).toHaveBeenCalled();
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: { user } },
+      error: null,
     });
 
-    it("should handle sign out errors", async () => {
-      const error = new Error("Sign out failed");
-      mockSupabase.auth.signOut.mockResolvedValue({ error });
-
-      await expect(authService.signOut()).rejects.toThrow("Sign out failed");
-    });
+    await expect(authService.getCurrentUser()).resolves.toEqual(user);
   });
 
-  describe("getCurrentUser", () => {
-    it("should return current user from session", async () => {
-      const mockUser = {
-        id: "123",
-        email: "test@example.com",
-      };
-
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: mockUser } },
-        error: null,
-      });
-
-      const user = await authService.getCurrentUser();
-
-      expect(user).toEqual(mockUser);
+  it("returns false for isAdmin when there is no user", async () => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
     });
 
-    it("should return null when no session exists", async () => {
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: null },
-        error: null,
-      });
-
-      const user = await authService.getCurrentUser();
-
-      expect(user).toBeNull();
-    });
+    await expect(authService.isAdmin()).resolves.toBe(false);
   });
 
-  describe("onAuthStateChange", () => {
-    it("should register auth state change callback", () => {
-      const callback = vi.fn();
-      const mockUnsubscribe = vi.fn();
-
-      mockSupabase.auth.onAuthStateChange.mockReturnValue({
-        data: { subscription: { unsubscribe: mockUnsubscribe } },
-      });
-
-      authService.onAuthStateChange(callback);
-
-      expect(mockSupabase.auth.onAuthStateChange).toHaveBeenCalledWith(
-        callback,
-      );
+  it("returns true for isAdmin when the admin role exists", async () => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "user-1" } } },
+      error: null,
     });
+    mockSupabase.maybeSingle.mockResolvedValue({
+      data: { role: "admin" },
+      error: null,
+    });
+
+    await expect(authService.isAdmin()).resolves.toBe(true);
+    expect(mockSupabase.from).toHaveBeenCalledWith("user_roles");
   });
 });

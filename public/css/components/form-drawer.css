@@ -28,9 +28,8 @@
 
 /* Backdrop blur when drawer is open */
 .form-drawer::backdrop {
-  background: rgb(0 0 0 / 20%);
   backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgb(0 0 0 / 20%);
 }
 
 /* When popover is open */
@@ -53,10 +52,10 @@
   background: var(--ls-surface-card);
   border-block-end: 1px solid var(--ls-border);
   display: flex;
+  inset-block-start: 0;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
   position: sticky;
-  inset-block-start: 0;
   z-index: 10;
 }
 
@@ -128,8 +127,8 @@
 .form-drawer-content .linkstack-form input,
 .form-drawer-content .linkstack-form select,
 .form-drawer-content .linkstack-form textarea {
-  inline-size: 100%;
   border-radius: var(--ls-radius-sm);
+  inline-size: 100%;
 }
 
 .form-drawer-content .linkstack-form button[type="submit"] {

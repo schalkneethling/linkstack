@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Authentication service for handling user authentication with Supabase
  */
@@ -10,7 +11,6 @@ export class AuthService {
 
   /**
    * Get the redirect URL for OAuth based on current environment
-   * @private
    * @returns {string} The redirect URL
    */
   #getRedirectUrl() {
@@ -74,7 +74,7 @@ export class AuthService {
 
   /**
    * Get the currently authenticated user
-   * @returns {Promise<User|null>}
+   * @returns {Promise<object|null>}
    */
   async getCurrentUser() {
     const {
@@ -87,6 +87,31 @@ export class AuthService {
     }
 
     return session?.user ?? null;
+  }
+
+  /**
+   * Check whether the current user has the admin role.
+   * @returns {Promise<boolean>}
+   */
+  async isAdmin() {
+    const user = await this.getCurrentUser();
+
+    if (!user) {
+      return false;
+    }
+
+    const { data, error } = await this.#supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return Boolean(data);
   }
 
   /**
