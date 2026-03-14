@@ -1,6 +1,10 @@
 // @ts-check
 import { supabase } from "./lib/supabase.js";
-import { captureException, initMonitoring } from "./lib/monitoring.js";
+import {
+  captureException,
+  initMonitoring,
+  setMonitoringUser,
+} from "./lib/monitoring.js";
 import { AuthService } from "./services/auth.service.js";
 import { APP_EVENTS } from "./constants/app-events.js";
 import { BOOKMARK_SCOPE } from "./constants/bookmark-ui-state.js";
@@ -180,6 +184,7 @@ class LinkStackApp {
   async #handleAuthChange(user, isAdmin) {
     this.#currentUser = user;
     this.#isAdmin = isAdmin;
+    setMonitoringUser(user);
 
     if (user) {
       await this.#loadAuthenticatedComponents();

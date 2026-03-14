@@ -1,4 +1,5 @@
 // @ts-check
+/* global __APP_VERSION__ */
 import * as Sentry from "@sentry/browser";
 import { ENV } from "varlock/env";
 
@@ -12,7 +13,7 @@ const EXPECTED_ERRORS = Object.freeze([
 
 const SENTRY_DSN = ENV.VITE_SENTRY_DSN;
 const SENTRY_ENVIRONMENT = ENV.VITE_SENTRY_ENVIRONMENT || ENV.APP_ENV;
-const SENTRY_RELEASE = import.meta.env.VITE_APP_VERSION || undefined;
+const SENTRY_RELEASE = __APP_VERSION__ || undefined;
 
 let isInitialized = false;
 
@@ -48,7 +49,35 @@ export function captureException(error, context = {}) {
   const normalizedError =
     error instanceof Error ? error : new Error("Unexpected non-Error exception");
 
-  Sentry.captureException(normalizedError, {
-    extra: context,
+  Sentry.withScope((scope) => {
+    Object.entries(context).forEach(([key, value]) => {
+      if (key === "surface" || key === "action") {
+        scope.setTag(key, String(value));
+        return;
+      }
+
+      scope.setExtra(key, value);
+    });
+
+    Sentry.captureException(normalizedError);
+  });
+}
+
+/**
+ * @param {{ id: string, email?: string | null } | null} user
+ */
+export function setMonitoringUser(user) {
+  if (!isInitialized) {
+    return;
+  }
+
+  if (!user) {
+    Sentry.setUser(null);
+    return;
+  }
+
+  Sentry.setUser({
+    id: user.id,
+    email: user.email ?? undefined,
   });
 }

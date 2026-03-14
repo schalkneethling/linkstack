@@ -1,5 +1,6 @@
 // @ts-check
 import * as Sentry from "@sentry/node";
+import packageJson from "../../../package.json" with { type: "json" };
 import "varlock/auto-load";
 import { ENV } from "varlock/env";
 
@@ -11,6 +12,8 @@ const EXPECTED_ERRORS = Object.freeze([
 
 let isInitialized = false;
 
+const SENTRY_RELEASE = packageJson.version || undefined;
+
 export function initServerMonitoring() {
   if (isInitialized || !ENV.SENTRY_DSN) {
     return false;
@@ -19,7 +22,7 @@ export function initServerMonitoring() {
   Sentry.init({
     dsn: ENV.SENTRY_DSN,
     environment: ENV.SENTRY_ENVIRONMENT || process.env.CONTEXT || ENV.APP_ENV,
-    release: process.env.npm_package_version || undefined,
+    release: SENTRY_RELEASE,
     sendDefaultPii: false,
     ignoreErrors: [...EXPECTED_ERRORS],
   });
@@ -42,6 +45,10 @@ export async function captureServerException(error, context = {}) {
 
   Sentry.withScope((scope) => {
     Object.entries(context).forEach(([key, value]) => {
+      if (key === "functionName" || key === "surface" || key === "action") {
+        scope.setTag(key, String(value));
+        return;
+      }
       scope.setExtra(key, value);
     });
     Sentry.captureException(normalizedError);

@@ -11,3 +11,5 @@ declare module "varlock/env" {
 
   export const ENV: TypedEnvSchema;
 }
+
+declare const __APP_VERSION__: string;
