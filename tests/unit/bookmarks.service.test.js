@@ -401,4 +401,18 @@ describe("BookmarksService", () => {
       }),
     ).rejects.toThrow("Invalid type");
   });
+
+  it("throws when a fetched resource has an invalid shape", async () => {
+    store.resources[0].canonical_url = /** @type {any} */ (null);
+
+    await expect(
+      service.inspectUrl("https://example.com/article"),
+    ).rejects.toThrow("Invalid type");
+  });
+
+  it("throws when public listings returned from the database are malformed", async () => {
+    store.public_listings[0].tags = /** @type {any} */ ("web");
+
+    await expect(service.getPublicCatalog()).rejects.toThrow("Invalid type");
+  });
 });

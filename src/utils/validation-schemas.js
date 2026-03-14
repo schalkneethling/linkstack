@@ -64,6 +64,55 @@ const bookmarkMetadataSchema = v.object({
   metaDescription: v.string(),
 });
 
+const resourceRecordSchema = v.object({
+  id: v.string(),
+  normalized_url: v.string(),
+  canonical_url: v.string(),
+  page_title: v.string(),
+  meta_description: v.string(),
+});
+
+const bookmarkRecordSchema = v.object({
+  id: v.string(),
+  user_id: v.string(),
+  resource_id: v.string(),
+  parent_id: v.nullable(v.string()),
+  notes: v.string(),
+  tags: v.array(v.string()),
+  title_override: v.nullable(v.string()),
+  description_override: v.nullable(v.string()),
+  is_read: v.boolean(),
+  read_at: v.nullable(v.string()),
+  created_at: v.string(),
+  updated_at: v.string(),
+});
+
+const publicListingRecordSchema = v.object({
+  id: v.string(),
+  resource_id: v.string(),
+  submitted_by_user_id: v.string(),
+  submitted_by_bookmark_id: v.string(),
+  status: v.picklist(["not_requested", "pending", "approved", "rejected"]),
+  page_title: v.string(),
+  meta_description: v.string(),
+  tags: v.array(v.string()),
+  rejection_code: v.nullable(v.string()),
+  rejection_reason: v.nullable(v.string()),
+  reviewed_at: v.nullable(v.string()),
+  reviewed_by: v.nullable(v.string()),
+  created_at: v.string(),
+  updated_at: v.string(),
+});
+
+const publicListingReferenceSchema = v.object({
+  id: v.string(),
+  resource_id: v.string(),
+});
+
+const bookmarkReferenceSchema = v.object({
+  id: v.string(),
+});
+
 /**
  * @param {{ issues?: Array<{ message?: string }> } | undefined} result
  * @param {string} fallbackMessage
@@ -112,4 +161,60 @@ export function validateReviewPublicShareInput(input) {
  */
 export function validateBookmarkMetadata(input) {
   return v.safeParse(bookmarkMetadataSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateResourceRecord(input) {
+  return v.safeParse(resourceRecordSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateResourceRecords(input) {
+  return v.safeParse(v.array(resourceRecordSchema), input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateBookmarkRecord(input) {
+  return v.safeParse(bookmarkRecordSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateBookmarkRecords(input) {
+  return v.safeParse(v.array(bookmarkRecordSchema), input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicListingRecord(input) {
+  return v.safeParse(publicListingRecordSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicListingRecords(input) {
+  return v.safeParse(v.array(publicListingRecordSchema), input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicListingReference(input) {
+  return v.safeParse(publicListingReferenceSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateBookmarkReference(input) {
+  return v.safeParse(bookmarkReferenceSchema, input);
 }

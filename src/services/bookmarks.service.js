@@ -9,7 +9,15 @@ import {
 import { normalizeUrl } from "../utils/normalize-url.js";
 import {
   validateAddExistingPublicBookmarkInput,
+  validateBookmarkReference,
+  validateBookmarkRecord,
+  validateBookmarkRecords,
   getValidationMessage,
+  validatePublicListingRecord,
+  validatePublicListingRecords,
+  validatePublicListingReference,
+  validateResourceRecord,
+  validateResourceRecords,
   validateCreateBookmarkInput,
   validateReviewPublicShareInput,
   validateUpdateBookmarkInput,
@@ -93,6 +101,25 @@ export class BookmarksService {
     return user;
   }
 
+  /**
+   * @template T
+   * @param {{ success: true, output: T } | { success: false, issues?: Array<{ message?: string }> }} result
+   * @param {string} fallbackMessage
+   * @returns {T}
+   */
+  #requireValid(result, fallbackMessage) {
+    if (!result.success) {
+      throw new Error(
+        getValidationMessage(
+          /** @type {{ issues?: Array<{ message?: string }> }} */ (result),
+          fallbackMessage,
+        ),
+      );
+    }
+
+    return result.output;
+  }
+
   async #fetchResources(resourceIds) {
     if (!resourceIds.length) {
       return new Map();
@@ -107,7 +134,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return new Map(data.map((resource) => [resource.id, resource]));
+    const resources = this.#requireValid(
+      validateResourceRecords(data || []),
+      "Received invalid resource records from the database.",
+    );
+
+    return new Map(resources.map((resource) => [resource.id, resource]));
   }
 
   async #fetchPublicListings(resourceIds, statuses = []) {
@@ -134,7 +166,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return new Map(data.map((listing) => [listing.resource_id, listing]));
+    const listings = this.#requireValid(
+      validatePublicListingRecords(data || []),
+      "Received invalid public listing records from the database.",
+    );
+
+    return new Map(listings.map((listing) => [listing.resource_id, listing]));
   }
 
   /**
@@ -288,7 +325,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return data
+      ? this.#requireValid(
+          validateResourceRecord(data),
+          "Received an invalid resource from the database.",
+        )
+      : null;
   }
 
   async findBookmarkByResourceId(resourceId, userId = null) {
@@ -305,7 +347,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return data
+      ? this.#requireValid(
+          validateBookmarkRecord(data),
+          "Received an invalid bookmark from the database.",
+        )
+      : null;
   }
 
   async findApprovedPublicListing(resourceId) {
@@ -320,7 +367,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return data
+      ? this.#requireValid(
+          validatePublicListingRecord(data),
+          "Received an invalid public listing from the database.",
+        )
+      : null;
   }
 
   async #findPublicListing(resourceId) {
@@ -334,7 +386,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return data
+      ? this.#requireValid(
+          validatePublicListingRecord(data),
+          "Received an invalid public listing from the database.",
+        )
+      : null;
   }
 
   async #createResource(bookmark) {
@@ -356,7 +413,10 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return this.#requireValid(
+      validateResourceRecord(data),
+      "Received an invalid resource from the database.",
+    );
   }
 
   async #createBookmarkRow(resource, bookmark, userId, defaults = {}) {
@@ -366,6 +426,8 @@ export class BookmarksService {
       parent_id: bookmark.parent_id || null,
       notes: bookmark.notes || "",
       tags: bookmark.tags || defaults.tags || [],
+      is_read: false,
+      read_at: null,
       title_override: defaults.title_override || null,
       description_override: defaults.description_override || null,
     };
@@ -383,7 +445,10 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return this.#requireValid(
+      validateBookmarkRecord(data),
+      "Received an invalid bookmark from the database.",
+    );
   }
 
   async #hydrateBookmarks(bookmarks, currentUserId) {
@@ -430,7 +495,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return this.#hydrateBookmarks(data || [], user.id);
+    const bookmarks = this.#requireValid(
+      validateBookmarkRecords(data || []),
+      "Received invalid bookmarks from the database.",
+    );
+
+    return this.#hydrateBookmarks(bookmarks, user.id);
   }
 
   /**
@@ -471,11 +541,16 @@ export class BookmarksService {
       return [];
     }
 
-    const resources = await this.#fetchResources(
-      data.map((listing) => listing.resource_id),
+    const listings = this.#requireValid(
+      validatePublicListingRecords(data),
+      "Received invalid public listings from the database.",
     );
 
-    return data.map((listing) =>
+    const resources = await this.#fetchResources(
+      listings.map((listing) => listing.resource_id),
+    );
+
+    return listings.map((listing) =>
       this.#toPublicViewModel(listing, resources.get(listing.resource_id)),
     );
   }
@@ -512,7 +587,12 @@ export class BookmarksService {
       throw error;
     }
 
-    const hydrated = await this.#hydrateBookmarks([data], user.id);
+    const bookmark = this.#requireValid(
+      validateBookmarkRecord(data),
+      "Received an invalid bookmark from the database.",
+    );
+
+    const hydrated = await this.#hydrateBookmarks([bookmark], user.id);
     return hydrated[0];
   }
 
@@ -664,7 +744,12 @@ export class BookmarksService {
       await this.requestPublicShare(id);
     }
 
-    return this.getById(data.id);
+    const updatedBookmark = this.#requireValid(
+      validateBookmarkReference(data),
+      "Received an invalid bookmark update response from the database.",
+    );
+
+    return this.getById(updatedBookmark.id);
   }
 
   async delete(id) {
@@ -695,7 +780,12 @@ export class BookmarksService {
       throw error;
     }
 
-    return this.getById(data.id);
+    const updatedBookmark = this.#requireValid(
+      validateBookmarkReference(data),
+      "Received an invalid bookmark update response from the database.",
+    );
+
+    return this.getById(updatedBookmark.id);
   }
 
   async requestPublicShare(bookmarkId) {
@@ -740,7 +830,10 @@ export class BookmarksService {
         throw error;
       }
 
-      listing = data;
+      listing = this.#requireValid(
+        validatePublicListingRecord(data),
+        "Received an invalid public listing from the database.",
+      );
     } else {
       const { data, error } = await this.#supabase
         .from("public_listings")
@@ -752,7 +845,10 @@ export class BookmarksService {
         throw error;
       }
 
-      listing = data;
+      listing = this.#requireValid(
+        validatePublicListingRecord(data),
+        "Received an invalid public listing from the database.",
+      );
     }
 
     return listing;
@@ -780,11 +876,16 @@ export class BookmarksService {
       return [];
     }
 
-    const resources = await this.#fetchResources(
-      data.map((listing) => listing.resource_id),
+    const listings = this.#requireValid(
+      validatePublicListingRecords(data),
+      "Received invalid public listings from the database.",
     );
 
-    return data.map((listing) => ({
+    const resources = await this.#fetchResources(
+      listings.map((listing) => listing.resource_id),
+    );
+
+    return listings.map((listing) => ({
       ...this.#toPublicViewModel(listing, resources.get(listing.resource_id)),
       submitted_by_user_id: listing.submitted_by_user_id,
       submitted_by_bookmark_id: listing.submitted_by_bookmark_id,
@@ -833,7 +934,10 @@ export class BookmarksService {
       throw error;
     }
 
-    return data;
+    return this.#requireValid(
+      validatePublicListingRecord(data),
+      "Received an invalid public listing from the database.",
+    );
   }
 
   async savePublicCopy(publicListingId) {
@@ -848,8 +952,13 @@ export class BookmarksService {
       throw error;
     }
 
+    const publicListing = this.#requireValid(
+      validatePublicListingReference(listing),
+      "Received an invalid public listing from the database.",
+    );
+
     return this.addExistingPublicToLibrary({
-      resourceId: listing.resource_id,
+      resourceId: publicListing.resource_id,
       publicListingId,
     });
   }
