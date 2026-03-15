@@ -26,6 +26,12 @@ If you already have a LinkStack database running and need to add new features, r
 - Creates index for efficient parent-child queries
 - Safe to run multiple times (uses `IF NOT EXISTS`)
 
+**`20260315_fix_user_roles_rls_recursion.sql`**
+
+- Fixes recursive RLS evaluation on `public.user_roles`
+- Updates `public.is_admin()` to run as `SECURITY DEFINER`
+- Resolves `stack depth limit exceeded` errors during admin checks
+
 ### How to Run Migrations
 
 1. Open your Supabase project dashboard
