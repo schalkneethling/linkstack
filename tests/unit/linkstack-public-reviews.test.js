@@ -65,6 +65,7 @@ describe("linkstack-public-reviews", () => {
       "1 bookmark waiting for review.",
     );
     expect(document.querySelectorAll(".review-card")).toHaveLength(1);
+    expect(document.querySelector(".review-domain")?.textContent).toBe("example.com");
     expect(document.querySelector(".bookmark-title")?.textContent).toBe("Example article");
     expect(document.querySelectorAll(".bookmark-tags .tag")).toHaveLength(2);
   });

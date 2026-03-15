@@ -232,14 +232,21 @@
               ></textarea>
             </div>
           </details>
-          <div class="form-field">
-            <label class="limit-toggle" for="request-public">
-              <input type="checkbox" name="request_public" id="request-public" />
-              <span class="limit-label">Submit to the public catalog</span>
+          <div class="form-field public-submit-field">
+            <label class="public-submit-toggle" for="request-public">
+              <input
+                class="public-submit-checkbox"
+                type="checkbox"
+                name="request_public"
+                id="request-public"
+              />
+              <span class="public-submit-copy">
+                <span class="public-submit-label">Submit to the public catalog</span>
+                <span class="public-submit-help" id="request-public-help">
+                  Public submissions remain private in your library and require moderator approval before they appear publicly.
+                </span>
+              </span>
             </label>
-            <p class="tags-hint" id="request-public-help">
-              Public submissions remain private in your library and require moderator approval before they appear publicly.
-            </p>
           </div>
           <button class="button solid" type="submit" id="submit-bookmark">
             <span class="button-text">Add Bookmark</span>

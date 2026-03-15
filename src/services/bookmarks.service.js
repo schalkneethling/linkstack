@@ -101,6 +101,21 @@ export class BookmarksService {
     return user;
   }
 
+  async #isAdmin(userId) {
+    const { data, error } = await this.#supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return Boolean(data);
+  }
+
   /**
    * @template T
    * @param {{ success: true, output: T } | { success: false, issues?: Array<{ message?: string }> }} result
@@ -791,6 +806,7 @@ export class BookmarksService {
   async requestPublicShare(bookmarkId) {
     const user = await this.#requireUser();
     const bookmark = await this.getById(bookmarkId);
+    const isAdmin = await this.#isAdmin(user.id);
 
     if (bookmark.parent_id) {
       throw new Error("Only top-level bookmarks can be submitted publicly");
@@ -802,18 +818,19 @@ export class BookmarksService {
     }
 
     const existingListing = await this.#findPublicListing(bookmark.resource_id);
+    const now = new Date().toISOString();
     const payload = {
       resource_id: bookmark.resource_id,
       submitted_by_user_id: user.id,
       submitted_by_bookmark_id: bookmark.id,
-      status: PUBLIC_SHARE_STATUS.PENDING,
+      status: isAdmin ? PUBLIC_SHARE_STATUS.APPROVED : PUBLIC_SHARE_STATUS.PENDING,
       page_title: bookmark.page_title,
       meta_description: bookmark.meta_description,
       tags: bookmark.tags || [],
       rejection_code: null,
       rejection_reason: null,
-      reviewed_at: null,
-      reviewed_by: null,
+      reviewed_at: isAdmin ? now : null,
+      reviewed_by: isAdmin ? user.id : null,
     };
 
     let listing;

@@ -24,38 +24,43 @@ const reviewCardTemplate = document.createElement("template");
 reviewCardTemplate.innerHTML = `
   <li class="bookmark-entry review-card">
     <div class="bookmark-info">
+      <p class="bookmark-domain review-domain"></p>
       <a class="bookmark-link" target="_blank" rel="noopener noreferrer">
         <h3 class="bookmark-title"></h3>
       </a>
       <p class="bookmark-description"></p>
       <div class="bookmark-tags"></div>
-      <div class="form-field">
-        <label class="review-reason-label">Rejection reason</label>
-        <select class="review-reason"></select>
-      </div>
-      <div class="form-field">
-        <label class="review-note-label">Reviewer note (optional)</label>
-        <input
-          type="text"
-          class="review-note"
-          placeholder="Add context for the submitter"
-        />
+      <div class="review-controls">
+        <div class="form-field">
+          <label class="review-reason-label">Rejection reason</label>
+          <select class="review-reason"></select>
+        </div>
+        <div class="form-field">
+          <label class="review-note-label">Reviewer note (optional)</label>
+          <input
+            type="text"
+            class="review-note"
+            placeholder="Add context for the submitter"
+          />
+        </div>
       </div>
       <div class="bookmark-actions">
-        <button
-          type="button"
-          class="button solid"
-          data-review-action="approve"
-        >
-          Approve
-        </button>
-        <button
-          type="button"
-          class="button solid critical"
-          data-review-action="reject"
-        >
-          Reject
-        </button>
+        <div class="bookmark-actions-primary review-actions-primary">
+          <button
+            type="button"
+            class="button solid"
+            data-review-action="approve"
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            class="button solid critical"
+            data-review-action="reject"
+          >
+            Reject
+          </button>
+        </div>
       </div>
     </div>
   </li>
@@ -243,6 +248,7 @@ export class LinkStackPublicReviews extends HTMLElement {
       /** @type {DocumentFragment} */ (reviewCardTemplate.content.cloneNode(true));
     const item = fragment.firstElementChild;
     const link = fragment.querySelector(".bookmark-link");
+    const domain = fragment.querySelector(".review-domain");
     const title = fragment.querySelector(".bookmark-title");
     const description = fragment.querySelector(".bookmark-description");
     const tagsContainer = fragment.querySelector(".bookmark-tags");
@@ -256,6 +262,7 @@ export class LinkStackPublicReviews extends HTMLElement {
     if (
       !(item instanceof HTMLLIElement) ||
       !(link instanceof HTMLAnchorElement) ||
+      !(domain instanceof HTMLElement) ||
       !(title instanceof HTMLElement) ||
       !(description instanceof HTMLElement) ||
       !(tagsContainer instanceof HTMLElement) ||
@@ -274,6 +281,7 @@ export class LinkStackPublicReviews extends HTMLElement {
     const noteInputId = `review-note-${listingId}`;
 
     link.href = review.url;
+    domain.textContent = new URL(review.url).hostname.replace(/^www\./u, "");
     title.textContent = review.page_title;
     description.textContent = review.meta_description || "";
     reasonLabel.htmlFor = reasonSelectId;

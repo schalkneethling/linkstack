@@ -23,7 +23,7 @@
   }
 
   .form-field-collapsible,
-  input,
+  input:not([type="checkbox"]),
   select {
     block-size: 3rem;
   }
@@ -86,6 +86,65 @@
   display: none;
 }
 
+.public-submit-field {
+  margin-block-start: 0.25rem;
+}
+
+.public-submit-toggle {
+  align-items: start;
+  border: 0.0625rem solid var(--minimalist-input-border, var(--border-primary-border));
+  border-radius: var(--radius-md, 0.75rem);
+  cursor: pointer;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 0.875rem 1rem;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.public-submit-toggle:hover {
+  background-color: var(--ls-surface-subtle);
+  border-color: var(--ls-accent-soft, var(--ls-accent));
+}
+
+.public-submit-toggle:focus-within {
+  border-color: var(--focus-color, #06c);
+  outline: 0.125rem solid color-mix(in srgb, var(--focus-color, #06c) 20%, transparent);
+  outline-offset: 0.125rem;
+}
+
+.public-submit-toggle.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.public-submit-checkbox {
+  accent-color: var(--ls-accent);
+  block-size: 1.125rem;
+  inline-size: 1.125rem;
+  margin: 0.1875rem 0 0;
+}
+
+.public-submit-copy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.public-submit-label {
+  color: var(--ls-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.public-submit-help {
+  color: var(--ls-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
 input.error,
 select.error,
 textarea.error {
@@ -107,4 +166,14 @@ button[aria-busy="true"] {
 
 button[aria-busy="true"]:hover {
   opacity: 0.7;
+}
+
+@media (width <= 40rem) {
+  .public-submit-toggle {
+    padding: 0.75rem 0.875rem;
+  }
+
+  .public-submit-label {
+    font-size: 0.875rem;
+  }
 }

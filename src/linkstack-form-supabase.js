@@ -13,6 +13,8 @@ import {
 } from "./utils/validation-schemas.js";
 
 export class LinkStackForm extends HTMLElement {
+  static #metadataTimeoutMs = 4500;
+
   static #selectors = {
     bookmarkForm: "#bookmark-form",
     parentSelect: "#parent-bookmark",
@@ -103,14 +105,16 @@ export class LinkStackForm extends HTMLElement {
       this.querySelector(LinkStackForm.#selectors.requestPublic)
     );
     const helpText = this.querySelector(LinkStackForm.#selectors.requestPublicHelp);
+    const publicToggleLabel = requestPublic?.closest(".public-submit-toggle");
 
-    if (!parentSelect || !requestPublic || !helpText) {
+    if (!parentSelect || !requestPublic || !helpText || !publicToggleLabel) {
       return;
     }
 
     const syncState = () => {
       const hasParent = Boolean(parentSelect.value);
       requestPublic.disabled = hasParent;
+      publicToggleLabel.classList.toggle("is-disabled", hasParent);
 
       if (hasParent) {
         requestPublic.checked = false;
@@ -287,11 +291,40 @@ export class LinkStackForm extends HTMLElement {
   }
 
   #getFallbackMetadata(url) {
-    const urlObj = new URL(url);
     return {
-      pageTitle: urlObj.hostname.replace("www.", ""),
+      pageTitle: url,
       metaDescription: "",
     };
+  }
+
+  async #fetchMetadata(url) {
+    const isDev = window.location.hostname === "localhost";
+    const baseUrl = isDev ? "http://localhost:8888" : window.location.origin;
+    const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      controller.abort();
+    }, LinkStackForm.#metadataTimeoutMs);
+
+    try {
+      const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return this.#parseMetadataResponse(await response.json(), url);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return null;
+      }
+
+      return null;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
 
   #parseMetadataResponse(input, url) {
@@ -427,12 +460,9 @@ export class LinkStackForm extends HTMLElement {
           return;
         }
 
-        const isDev = window.location.hostname === "localhost";
-        const baseUrl = isDev ? "http://localhost:8888" : window.location.origin;
-        const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
-        const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
+        const metadata = await this.#fetchMetadata(url);
 
-        if (!response.ok) {
+        if (!metadata) {
           await this.#createWithMetadata({
             url,
             notes,
@@ -444,7 +474,7 @@ export class LinkStackForm extends HTMLElement {
           bookmarkForm.reset();
           this.#setupPublicToggle();
           this.#showToast(
-            FORM_UI_MESSAGES.metadataUnavailable,
+            FORM_UI_MESSAGES.bookmarkAddedWithoutMetadata,
             "warning",
           );
           this.#dispatchCreated();
@@ -452,7 +482,6 @@ export class LinkStackForm extends HTMLElement {
           return;
         }
 
-        const metadata = this.#parseMetadataResponse(await response.json(), url);
         await this.#createWithMetadata({
           url,
           notes,
