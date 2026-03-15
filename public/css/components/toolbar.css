@@ -186,6 +186,10 @@
   margin-inline-start: auto;
 }
 
+.scope-controls-container {
+  margin-inline-start: 0;
+}
+
 .sort-label {
   color: var(--ls-text-tertiary);
   font-size: 0.8125rem;
