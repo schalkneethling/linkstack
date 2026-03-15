@@ -409,6 +409,34 @@ export class BookmarksService {
       : null;
   }
 
+  async #hasBookmarksForResource(resourceId) {
+    const { data, error } = await this.#supabase
+      .from("bookmarks")
+      .select("id")
+      .eq("resource_id", resourceId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return Boolean(data);
+  }
+
+  async #hasPublicListingForResource(resourceId) {
+    const { data, error } = await this.#supabase
+      .from("public_listings")
+      .select("id")
+      .eq("resource_id", resourceId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return Boolean(data);
+  }
+
   async #createResource(bookmark) {
     const normalizedUrl = normalizeUrl(bookmark.url);
     const resourcePayload = {
@@ -768,6 +796,20 @@ export class BookmarksService {
   }
 
   async delete(id) {
+    const bookmark = await this.getById(id);
+    const listing = await this.#findPublicListing(bookmark.resource_id);
+
+    if (listing?.submitted_by_bookmark_id === id) {
+      const { error: listingError } = await this.#supabase
+        .from("public_listings")
+        .delete()
+        .eq("id", listing.id);
+
+      if (listingError) {
+        throw listingError;
+      }
+    }
+
     const { error } = await this.#supabase
       .from("bookmarks")
       .delete()
@@ -775,6 +817,22 @@ export class BookmarksService {
 
     if (error) {
       throw error;
+    }
+
+    const [hasBookmarks, hasPublicListing] = await Promise.all([
+      this.#hasBookmarksForResource(bookmark.resource_id),
+      this.#hasPublicListingForResource(bookmark.resource_id),
+    ]);
+
+    if (!hasBookmarks && !hasPublicListing) {
+      const { error: resourceError } = await this.#supabase
+        .from("resources")
+        .delete()
+        .eq("id", bookmark.resource_id);
+
+      if (resourceError) {
+        throw resourceError;
+      }
     }
   }
 

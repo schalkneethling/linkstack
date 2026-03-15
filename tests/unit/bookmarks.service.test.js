@@ -416,6 +416,40 @@ describe("BookmarksService", () => {
     expect(reviewed.rejection_code).toBe("out_of_scope");
   });
 
+  it("deletes the public listing and resource when removing the submitted bookmark", async () => {
+    currentUser = { id: "user-1", email: "owner@example.com" };
+
+    await service.delete("bookmark-1");
+
+    expect(store.bookmarks).toHaveLength(0);
+    expect(store.public_listings).toHaveLength(0);
+    expect(store.resources).toHaveLength(0);
+  });
+
+  it("keeps the public listing and resource when deleting a private copy of a public resource", async () => {
+    store.bookmarks.push({
+      id: "bookmark-2",
+      user_id: "user-2",
+      resource_id: "resource-1",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: [],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-06T11:00:00Z",
+      updated_at: "2026-03-06T11:00:00Z",
+    });
+
+    await service.delete("bookmark-2");
+
+    expect(store.bookmarks).toHaveLength(1);
+    expect(store.bookmarks[0].id).toBe("bookmark-1");
+    expect(store.public_listings).toHaveLength(1);
+    expect(store.resources).toHaveLength(1);
+  });
+
   it("requires a rejection reason when rejecting a public listing", async () => {
     await expect(
       service.reviewPublicShare("listing-1", {

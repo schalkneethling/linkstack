@@ -46,6 +46,7 @@ export const FORM_UI_MESSAGES = Object.freeze({
   duplicateUrl: "This URL has already been bookmarked. Please enter a different URL.",
   bookmarkAdded: "Bookmark added successfully!",
   bookmarkAddedWithReview: "Bookmark added and submitted for public review.",
+  bookmarkAddedAndPublished: "Bookmark added and published publicly.",
   bookmarkAddedWithoutMetadata:
     "Bookmark saved without fetched title or description. You can edit it later.",
   addBookmarkFailed: "Failed to add bookmark. Please try again.",
