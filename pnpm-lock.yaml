@@ -55,7 +55,7 @@ importers:
         specifier: ^17.3.1
         version: 17.3.1
       eslint:
-        specifier: ^10.0.2
+        specifier: ^10.0.3
         version: 10.0.3
       eslint-config-prettier:
         specifier: ^10.1.8
@@ -64,7 +64,7 @@ importers:
         specifier: ^17.4.0
         version: 17.4.0
       happy-dom:
-        specifier: ^20.7.0
+        specifier: ^20.8.3
         version: 20.8.4
       jsdom:
         specifier: ^28.1.0
@@ -1400,6 +1400,9 @@ packages:
 
   flatted@3.3.3:
     resolution: {integrity: sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg==}
+
+  flatted@3.4.1:
+    resolution: {integrity: sha512-IxfVbRFVlV8V/yRaGzk0UVIcsKKHMSfYw66T/u4nTwlWteQePsxe//LjudR1AMX4tZW3WFCh3Zqa/sjlqpbURQ==}
 
   forwarded-parse@2.1.2:
     resolution: {integrity: sha512-alTFZZQDKMporBH77856pXgzhEzaUVmLCDk+egLgIgHst3Tpndzz8MnKe+GzRJRfvVdn69HhpW7cmXzvtLvJAw==}
@@ -3520,7 +3523,7 @@ snapshots:
 
   flat-cache@4.0.1:
     dependencies:
-      flatted: 3.3.3
+      flatted: 3.4.1
       keyv: 4.5.4
 
   flat-cache@6.1.20:
@@ -3530,6 +3533,8 @@ snapshots:
       hookified: 1.15.0
 
   flatted@3.3.3: {}
+
+  flatted@3.4.1: {}
 
   forwarded-parse@2.1.2: {}
 
