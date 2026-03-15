@@ -60,6 +60,8 @@ CREATE OR REPLACE FUNCTION public.is_admin(check_user_id UUID DEFAULT auth.uid()
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1
