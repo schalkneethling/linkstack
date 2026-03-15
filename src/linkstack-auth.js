@@ -12,14 +12,14 @@ function createGuestTemplate() {
   trigger.type = "button";
   trigger.className = "button solid";
   trigger.id = "guest-signin-trigger";
-  trigger.setAttribute("popovertarget", "guest-signin-menu");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.setAttribute("aria-haspopup", "true");
   trigger.dataset.testid = "signin-trigger";
   trigger.textContent = "Sign In";
 
   const menu = document.createElement("div");
   menu.className = "profile-dropdown guest-signin-menu";
   menu.id = "guest-signin-menu";
-  menu.setAttribute("popover", "");
 
   const googleButton = document.createElement("button");
   googleButton.type = "button";
@@ -257,17 +257,26 @@ export class LinkStackAuth extends HTMLElement {
     }
 
     if (target.closest("#google-signin")) {
+      this.#closeGuestMenu();
       this.dispatchEvent(new CustomEvent("sign-in-google"));
       return;
     }
 
     if (target.closest("#github-signin")) {
+      this.#closeGuestMenu();
       this.dispatchEvent(new CustomEvent("sign-in-github"));
       return;
     }
 
     if (target.closest("#signout-btn")) {
       this.dispatchEvent(new CustomEvent("sign-out"));
+      return;
+    }
+
+    const guestTrigger = target.closest("#guest-signin-trigger");
+    if (guestTrigger instanceof HTMLButtonElement) {
+      event.stopPropagation();
+      this.#toggleGuestMenu(guestTrigger);
       return;
     }
 
@@ -279,25 +288,42 @@ export class LinkStackAuth extends HTMLElement {
   }
 
   #setupDropdown() {
-    const trigger = this.querySelector("#profile-trigger");
-    const dropdown = this.querySelector("#profile-dropdown");
-
-    if (!trigger || !dropdown) {
-      return;
-    }
-
     if (this.#documentClickHandler) {
       document.removeEventListener("click", this.#documentClickHandler);
     }
 
     this.#documentClickHandler = (event) => {
       if (!this.contains(event.target)) {
-        trigger.setAttribute("aria-expanded", "false");
-        dropdown.classList.remove("active");
+        this.#closeGuestMenu();
+        this.#closeProfileDropdown();
       }
     };
 
     document.addEventListener("click", this.#documentClickHandler);
+  }
+
+  #toggleGuestMenu(trigger) {
+    const menu = this.querySelector("#guest-signin-menu");
+    if (!(menu instanceof HTMLElement)) {
+      return;
+    }
+
+    const isExpanded = trigger.getAttribute("aria-expanded") === "true";
+    trigger.setAttribute("aria-expanded", String(!isExpanded));
+    menu.classList.toggle("active", !isExpanded);
+  }
+
+  #closeGuestMenu() {
+    const trigger = this.querySelector("#guest-signin-trigger");
+    const menu = this.querySelector("#guest-signin-menu");
+
+    if (trigger instanceof HTMLButtonElement) {
+      trigger.setAttribute("aria-expanded", "false");
+    }
+
+    if (menu instanceof HTMLElement) {
+      menu.classList.remove("active");
+    }
   }
 
   #toggleDropdown(trigger) {
@@ -309,6 +335,19 @@ export class LinkStackAuth extends HTMLElement {
     const isExpanded = trigger.getAttribute("aria-expanded") === "true";
     trigger.setAttribute("aria-expanded", String(!isExpanded));
     dropdown.classList.toggle("active", !isExpanded);
+  }
+
+  #closeProfileDropdown() {
+    const trigger = this.querySelector("#profile-trigger");
+    const dropdown = this.querySelector("#profile-dropdown");
+
+    if (trigger instanceof HTMLButtonElement) {
+      trigger.setAttribute("aria-expanded", "false");
+    }
+
+    if (dropdown instanceof HTMLElement) {
+      dropdown.classList.remove("active");
+    }
   }
 
   #setupSettings() {
