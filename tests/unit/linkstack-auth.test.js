@@ -20,6 +20,20 @@ describe("linkstack-auth", () => {
     expect(element.querySelector('[data-testid="github-signin"]')).toBeTruthy();
   });
 
+  it("opens the guest sign-in menu when the trigger is clicked", () => {
+    const trigger = /** @type {HTMLButtonElement} */ (
+      element.querySelector('[data-testid="signin-trigger"]')
+    );
+    const menu = /** @type {HTMLElement} */ (
+      element.querySelector("#guest-signin-menu")
+    );
+
+    trigger.click();
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(menu.classList.contains("active")).toBe(true);
+  });
+
   it("renders user info when authenticated", async () => {
     element.setUser(
       {
@@ -39,6 +53,7 @@ describe("linkstack-auth", () => {
     const handler = vi.fn();
     element.addEventListener("sign-in-google", handler);
 
+    element.querySelector('[data-testid="signin-trigger"]').click();
     element.querySelector('[data-testid="google-signin"]').click();
 
     expect(handler).toHaveBeenCalledTimes(1);
