@@ -139,16 +139,19 @@ class MockQueryBuilder {
 
     if (this.operation === "delete") {
       const remaining = [];
-      let deleted = false;
+      const deletedRows = [];
       this.#getTable().forEach((row) => {
         if (this.filters.every((filter) => filter(row))) {
-          deleted = true;
+          deletedRows.push(row);
           return;
         }
         remaining.push(row);
       });
       this.store[this.table] = remaining;
-      return { data: [], error: deleted ? null : new Error("Delete failed") };
+      return {
+        data: deletedRows,
+        error: deletedRows.length ? null : new Error("Delete failed"),
+      };
     }
 
     return {

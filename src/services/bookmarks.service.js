@@ -437,6 +437,25 @@ export class BookmarksService {
     return Boolean(data);
   }
 
+  async #deleteRowById(table, id, failureMessage) {
+    const { data, error } = await this.#supabase
+      .from(table)
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error(failureMessage);
+    }
+
+    return data;
+  }
+
   async #createResource(bookmark) {
     const normalizedUrl = normalizeUrl(bookmark.url);
     const resourcePayload = {
@@ -800,24 +819,18 @@ export class BookmarksService {
     const listing = await this.#findPublicListing(bookmark.resource_id);
 
     if (listing?.submitted_by_bookmark_id === id) {
-      const { error: listingError } = await this.#supabase
-        .from("public_listings")
-        .delete()
-        .eq("id", listing.id);
-
-      if (listingError) {
-        throw listingError;
-      }
+      await this.#deleteRowById(
+        "public_listings",
+        listing.id,
+        "Failed to delete the public listing tied to this bookmark.",
+      );
     }
 
-    const { error } = await this.#supabase
-      .from("bookmarks")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      throw error;
-    }
+    await this.#deleteRowById(
+      "bookmarks",
+      id,
+      "Failed to delete this bookmark.",
+    );
 
     const [hasBookmarks, hasPublicListing] = await Promise.all([
       this.#hasBookmarksForResource(bookmark.resource_id),
@@ -825,14 +838,11 @@ export class BookmarksService {
     ]);
 
     if (!hasBookmarks && !hasPublicListing) {
-      const { error: resourceError } = await this.#supabase
-        .from("resources")
-        .delete()
-        .eq("id", bookmark.resource_id);
-
-      if (resourceError) {
-        throw resourceError;
-      }
+      await this.#deleteRowById(
+        "resources",
+        bookmark.resource_id,
+        "Failed to delete the orphaned resource tied to this bookmark.",
+      );
     }
   }
 
