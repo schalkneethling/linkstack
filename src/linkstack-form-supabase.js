@@ -13,8 +13,6 @@ import {
 } from "./utils/validation-schemas.js";
 
 export class LinkStackForm extends HTMLElement {
-  static #metadataTimeoutMs = 4500;
-
   static #selectors = {
     bookmarkForm: "#bookmark-form",
     parentSelect: "#parent-bookmark",
@@ -301,29 +299,17 @@ export class LinkStackForm extends HTMLElement {
     const isDev = window.location.hostname === "localhost";
     const baseUrl = isDev ? "http://localhost:8888" : window.location.origin;
     const endpoint = `${baseUrl}/.netlify/functions/get-bookmark-data`;
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
-      controller.abort();
-    }, LinkStackForm.#metadataTimeoutMs);
 
     try {
-      const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`, {
-        signal: controller.signal,
-      });
+      const response = await fetch(`${endpoint}?url=${encodeURIComponent(url)}`);
 
       if (!response.ok) {
         return null;
       }
 
       return this.#parseMetadataResponse(await response.json(), url);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return null;
-      }
-
+    } catch {
       return null;
-    } finally {
-      window.clearTimeout(timeoutId);
     }
   }
 
