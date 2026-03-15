@@ -76,6 +76,16 @@ describe("AuthService", () => {
   });
 
   it("returns true for isAdmin when the admin role exists", async () => {
+    mockSupabase.maybeSingle.mockResolvedValue({
+      data: { role: "admin" },
+      error: null,
+    });
+
+    await expect(authService.isAdmin("user-1")).resolves.toBe(true);
+    expect(mockSupabase.from).toHaveBeenCalledWith("user_roles");
+  });
+
+  it("uses the current session user id when isAdmin is called without an argument", async () => {
     mockSupabase.auth.getSession.mockResolvedValue({
       data: { session: { user: { id: "user-1" } } },
       error: null,
@@ -86,6 +96,6 @@ describe("AuthService", () => {
     });
 
     await expect(authService.isAdmin()).resolves.toBe(true);
-    expect(mockSupabase.from).toHaveBeenCalledWith("user_roles");
+    expect(mockSupabase.eq).toHaveBeenCalledWith("user_id", "user-1");
   });
 });
