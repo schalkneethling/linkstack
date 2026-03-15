@@ -62,4 +62,46 @@ describe("get-bookmark-data function", () => {
       metaDescription: "Example description",
     });
   });
+
+  it("returns 502 when the upstream site responds with a non-ok status", async () => {
+    const fetchMock = /** @type {ReturnType<typeof vi.fn>} */ (fetch);
+    fetchMock.mockResolvedValue(new Response("nope", { status: 403, statusText: "Forbidden" }));
+
+    const request = new Request(
+      "http://localhost/.netlify/functions/get-bookmark-data?url=https://example.com/article",
+      {
+        headers: {
+          origin: "http://localhost:8888",
+        },
+      },
+    );
+
+    const response = await handler(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe(
+      "Failed to fetch metadata from the target site: 403 Forbidden",
+    );
+  });
+
+  it("returns 504 when the upstream fetch times out", async () => {
+    const fetchMock = /** @type {ReturnType<typeof vi.fn>} */ (fetch);
+    fetchMock.mockRejectedValue(new DOMException("The operation was aborted.", "AbortError"));
+
+    const request = new Request(
+      "http://localhost/.netlify/functions/get-bookmark-data?url=https://example.com/article",
+      {
+        headers: {
+          origin: "http://localhost:8888",
+        },
+      },
+    );
+
+    const response = await handler(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(504);
+    expect(body.error).toBe("Timed out while fetching metadata from the target site.");
+  });
 });

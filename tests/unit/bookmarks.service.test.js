@@ -162,8 +162,10 @@ describe("BookmarksService", () => {
   let service;
   let store;
   let mockSupabase;
+  let currentUser;
 
   beforeEach(() => {
+    currentUser = { id: "user-2", email: "person@example.com" };
     store = {
       resources: [
         {
@@ -216,7 +218,7 @@ describe("BookmarksService", () => {
     mockSupabase = {
       auth: {
         getUser: async () => ({
-          data: { user: { id: "user-2", email: "person@example.com" } },
+          data: { user: currentUser },
           error: null,
         }),
       },
@@ -351,6 +353,39 @@ describe("BookmarksService", () => {
 
     expect(listing.status).toBe(PUBLIC_SHARE_STATUS.PENDING);
     expect(store.public_listings).toHaveLength(2);
+  });
+
+  it("auto-approves public listings submitted by admins", async () => {
+    currentUser = { id: "user-admin", email: "admin@example.com" };
+    store.resources.push({
+      id: "resource-2",
+      normalized_url: "https://admin.example.com/post",
+      canonical_url: "https://admin.example.com/post",
+      page_title: "Admin article",
+      meta_description: "",
+      created_at: "2026-03-07T07:00:00Z",
+      updated_at: "2026-03-07T07:00:00Z",
+    });
+    store.bookmarks.push({
+      id: "bookmark-2",
+      user_id: "user-admin",
+      resource_id: "resource-2",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: ["news"],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:10:00Z",
+      updated_at: "2026-03-07T07:10:00Z",
+    });
+
+    const listing = await service.requestPublicShare("bookmark-2");
+
+    expect(listing.status).toBe(PUBLIC_SHARE_STATUS.APPROVED);
+    expect(listing.reviewed_by).toBe("user-admin");
+    expect(listing.reviewed_at).toBeTruthy();
   });
 
   it("reviews a pending public listing", async () => {

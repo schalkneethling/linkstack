@@ -14,6 +14,8 @@ const JSON_HEADERS = {
   "content-type": "application/json",
 };
 
+const UPSTREAM_TIMEOUT_MS = 8000;
+
 const REQUEST_HEADERS = Object.freeze({
   "User-Agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -34,7 +36,7 @@ const getAllowedOrigin = (requestOrigin) => {
   const allowedOrigins = [
     "http://localhost:8888",
     "http://localhost:3000",
-    "https://linkstacks.netlify.app", // Add your production domain
+    "https://linkstack.netlify.app",
   ];
 
   return allowedOrigins.includes(requestOrigin)
@@ -59,6 +61,44 @@ const sanitizeMetadata = (input, fallbackTitle) => {
     pageTitle: fallbackTitle,
     metaDescription: "",
   };
+};
+
+const getErrorCode = (error) => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "cause" in error &&
+    error.cause &&
+    typeof error.cause === "object" &&
+    "code" in error.cause
+  ) {
+    return String(error.cause.code);
+  }
+
+  return null;
+};
+
+const fetchBookmarkResponse = async (bookmark) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, UPSTREAM_TIMEOUT_MS);
+  const startedAt = Date.now();
+
+  try {
+    const response = await fetch(bookmark, {
+      headers: REQUEST_HEADERS,
+      redirect: "follow",
+      signal: controller.signal,
+    });
+
+    return {
+      response,
+      elapsedMs: Date.now() - startedAt,
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
 
 // Docs on request and context https://docs.netlify.com/functions/build/#code-your-function-2
@@ -106,17 +146,61 @@ export default async (request) => {
       );
     }
 
-    const response = await fetch(bookmark, {
-      headers: REQUEST_HEADERS,
-    });
+    let upstream;
 
-    if (!response.ok) {
+    try {
+      upstream = await fetchBookmarkResponse(bookmark);
+    } catch (error) {
+      const code = getErrorCode(error);
+      const isTimeout =
+        error instanceof DOMException && error.name === "AbortError";
+
+      await captureServerException(error, {
+        functionName: "get-bookmark-data",
+        action: "fetch-upstream",
+        requestUrl: request.url,
+        targetUrl: bookmark,
+        method: request.method,
+        timeoutMs: UPSTREAM_TIMEOUT_MS,
+        errorCode: code,
+      });
+
       return createJsonResponse(
         {
-          error: `Failed to fetch URL: ${response.status} ${response.statusText}`,
+          error: isTimeout
+            ? "Timed out while fetching metadata from the target site."
+            : "Failed to fetch metadata from the target site.",
+          detailCode: code,
         },
         corsHeaders,
-        500,
+        isTimeout ? 504 : 502,
+      );
+    }
+
+    const { response, elapsedMs } = upstream;
+
+    if (!response.ok) {
+      await captureServerException(
+        new Error(`Upstream metadata fetch failed with ${response.status}`),
+        {
+          functionName: "get-bookmark-data",
+          action: "upstream-non-ok-response",
+          requestUrl: request.url,
+          targetUrl: bookmark,
+          method: request.method,
+          upstreamStatus: response.status,
+          upstreamStatusText: response.statusText,
+          upstreamUrl: response.url,
+          elapsedMs,
+        },
+      );
+
+      return createJsonResponse(
+        {
+          error: `Failed to fetch metadata from the target site: ${response.status} ${response.statusText}`,
+        },
+        corsHeaders,
+        502,
       );
     }
 
