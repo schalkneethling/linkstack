@@ -60,7 +60,7 @@
     "vitest": "^4.0.17"
   },
   "dependencies": {
-    "@awesome.me/webawesome": "^3.1.0",
+    "@awesome.me/webawesome": "^3.3.1",
     "@sentry/browser": "^10.43.0",
     "@sentry/node": "^10.43.0",
     "@varlock/1password-plugin": "^0.2.3",
