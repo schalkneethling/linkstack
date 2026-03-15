@@ -118,10 +118,14 @@ class LinkStackApp {
       }
     });
 
-    this.#authService.onAuthStateChange(async (event, session) => {
+    this.#authService.onAuthStateChange((event, session) => {
       const user = session?.user ?? null;
-      const isAdmin = await this.#resolveAdminState(user, "auth-state-change");
-      await this.#handleAuthChange(user, isAdmin);
+
+      // Avoid nested auth work inside Supabase's auth callback. Defer the
+      // follow-up role lookup and UI sync to the next task.
+      setTimeout(() => {
+        void this.#syncAuthState(user, "auth-state-change");
+      }, 0);
     });
 
     this.#scopeSelect?.addEventListener("change", async () => {
@@ -151,8 +155,7 @@ class LinkStackApp {
   async #checkAuthState() {
     try {
       const user = await this.#authService.getCurrentUser();
-      const isAdmin = await this.#resolveAdminState(user, "check-auth-state");
-      await this.#handleAuthChange(user, isAdmin);
+      await this.#syncAuthState(user, "check-auth-state");
     } catch (error) {
       captureException(error, {
         surface: "app",
@@ -162,13 +165,18 @@ class LinkStackApp {
     }
   }
 
+  async #syncAuthState(user, action) {
+    const isAdmin = await this.#resolveAdminState(user, action);
+    await this.#handleAuthChange(user, isAdmin);
+  }
+
   async #resolveAdminState(user, action) {
     if (!user) {
       return false;
     }
 
     try {
-      return await this.#authService.isAdmin();
+      return await this.#authService.isAdmin(user.id);
     } catch (error) {
       captureException(error, {
         surface: "app",

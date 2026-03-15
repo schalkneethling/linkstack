@@ -91,19 +91,20 @@ export class AuthService {
 
   /**
    * Check whether the current user has the admin role.
+   * @param {string | null} [userId]
    * @returns {Promise<boolean>}
    */
-  async isAdmin() {
-    const user = await this.getCurrentUser();
+  async isAdmin(userId = null) {
+    const targetUserId = userId ?? (await this.getCurrentUser())?.id ?? null;
 
-    if (!user) {
+    if (!targetUserId) {
       return false;
     }
 
     const { data, error } = await this.#supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", targetUserId)
       .eq("role", "admin")
       .maybeSingle();
 
