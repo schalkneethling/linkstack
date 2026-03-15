@@ -288,6 +288,16 @@ export class LinkStackForm extends HTMLElement {
     });
   }
 
+  #getSuccessMessage(createdBookmark, requestPublic) {
+    if (!requestPublic) {
+      return FORM_UI_MESSAGES.bookmarkAdded;
+    }
+
+    return createdBookmark?.public_share_status === "approved"
+      ? FORM_UI_MESSAGES.bookmarkAddedAndPublished
+      : FORM_UI_MESSAGES.bookmarkAddedWithReview;
+  }
+
   #getFallbackMetadata(url) {
     return {
       pageTitle: url,
@@ -468,7 +478,7 @@ export class LinkStackForm extends HTMLElement {
           return;
         }
 
-        await this.#createWithMetadata({
+        const createdBookmark = await this.#createWithMetadata({
           url,
           notes,
           parentId,
@@ -479,9 +489,7 @@ export class LinkStackForm extends HTMLElement {
         bookmarkForm.reset();
         this.#setupPublicToggle();
         this.#showToast(
-          requestPublic
-            ? FORM_UI_MESSAGES.bookmarkAddedWithReview
-            : FORM_UI_MESSAGES.bookmarkAdded,
+          this.#getSuccessMessage(createdBookmark, requestPublic),
           "success",
         );
         this.#dispatchCreated();
