@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2024",
+    "lib": ["ES2024", "DOM"],
+    "types": ["node", "vitest/globals"],
+    "skipLibCheck": true,
+    "strict": false,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.js",
+    "netlify/functions/**/*.js",
+    "tests/**/*.js",
+    "eslint.config.js",
+    "playwright.config.js",
+    "vite.config.js"
+  ]
+}

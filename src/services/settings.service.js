@@ -1,10 +1,14 @@
+// @ts-check
+import { APP_EVENTS } from "../constants/app-events.js";
+import { STORAGE_KEYS } from "../constants/storage-keys.js";
+
 /**
  * Settings service for managing user preferences
  */
 export class SettingsService {
   static KEYS = {
-    LIMIT_ENABLED: "linkstack:limitEnabled",
-    UNREAD_LIMIT: "linkstack:unreadLimit",
+    LIMIT_ENABLED: STORAGE_KEYS.limitEnabled,
+    UNREAD_LIMIT: STORAGE_KEYS.unreadLimit,
   };
 
   static DEFAULTS = {
@@ -29,7 +33,7 @@ export class SettingsService {
       JSON.stringify(enabled),
     );
     window.dispatchEvent(
-      new CustomEvent("settings-changed", {
+      new CustomEvent(APP_EVENTS.settingsChanged, {
         detail: { key: "limitEnabled", value: enabled },
       }),
     );
@@ -50,9 +54,12 @@ export class SettingsService {
    */
   setUnreadLimit(limit) {
     const numericLimit = Math.max(1, parseInt(limit, 10));
-    localStorage.setItem(SettingsService.KEYS.UNREAD_LIMIT, numericLimit);
+    localStorage.setItem(
+      SettingsService.KEYS.UNREAD_LIMIT,
+      String(numericLimit),
+    );
     window.dispatchEvent(
-      new CustomEvent("settings-changed", {
+      new CustomEvent(APP_EVENTS.settingsChanged, {
         detail: { key: "unreadLimit", value: numericLimit },
       }),
     );

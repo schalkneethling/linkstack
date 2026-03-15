@@ -1,45 +1,89 @@
+// @ts-check
 import { supabase } from "./lib/supabase.js";
+import {
+  captureException,
+  initMonitoring,
+  setMonitoringUser,
+} from "./lib/monitoring.js";
 import { AuthService } from "./services/auth.service.js";
-import { appStateManager, AppState } from "./state/app-state.js";
+import { APP_EVENTS } from "./constants/app-events.js";
+import { BOOKMARK_SCOPE } from "./constants/bookmark-ui-state.js";
 
-// Always import auth component
 import "./linkstack-auth.js";
+import "./linkstack-bookmarks-supabase.js";
 
-/**
- * Main application coordinator
- * Handles authentication state and component orchestration
- * Uses state manager to conditionally load authenticated components
- */
+const SCOPE_OPTIONS = Object.freeze({
+  guest: Object.freeze([
+    { value: BOOKMARK_SCOPE.public, label: "Public bookmarks" },
+  ]),
+  authenticated: Object.freeze([
+    { value: BOOKMARK_SCOPE.mine, label: "My bookmarks" },
+    { value: BOOKMARK_SCOPE.all, label: "All bookmarks" },
+  ]),
+});
+
 class LinkStackApp {
   #authService = new AuthService(supabase);
   #authComponent = null;
-  #mainContent = null;
+  #newBookmarkButton = null;
+  #formDrawer = null;
+  #scopeSelect = null;
+  #scopeLabel = null;
+  #adminButton = null;
+  #adminPanel = null;
+  #currentUser = null;
+  #isAdmin = false;
+  #authComponentsLoaded = false;
 
-  constructor() {
-    this.#init();
-  }
-
-  async #init() {
+  async init() {
+    initMonitoring();
     this.#setupElements();
     this.#setupAuthListeners();
-    this.#setupStateListener();
+    this.#setupAdminToggle();
+    await this.#loadGuestShell();
     await this.#checkAuthState();
   }
 
   #setupElements() {
     this.#authComponent = document.querySelector("linkstack-auth");
-    this.#mainContent = document.querySelector(".main-content");
+    this.#newBookmarkButton = document.getElementById("new-bookmark-btn");
+    this.#formDrawer = document.getElementById("form-drawer");
+    this.#scopeSelect = document.getElementById("scope-select");
+    this.#scopeLabel = document.getElementById("scope-label");
+    this.#adminButton = document.getElementById("admin-review-toggle");
+    this.#adminPanel = document.getElementById("admin-panel");
+  }
+
+  async #loadGuestShell() {
+    this.#updateScopeOptions(false);
+    await this.#emitAuthStateChanged();
+  }
+
+  async #loadAuthenticatedComponents() {
+    if (this.#authComponentsLoaded) {
+      return;
+    }
+
+    await Promise.all([
+      import("./linkstack-form-supabase.js"),
+      import("./linkstack-edit-dialog-supabase.js"),
+      import("./form-drawer.js"),
+      import("./linkstack-public-reviews.js"),
+    ]);
+
+    this.#authComponentsLoaded = true;
   }
 
   #setupAuthListeners() {
-    // Listen for sign-in events
     this.#authComponent?.addEventListener("sign-in-google", async () => {
       try {
         await this.#authService.signInWithGoogle();
       } catch (error) {
-        console.error("Google sign in error:", error);
-        const toast = document.querySelector("linkstack-toast");
-        toast?.show(
+        captureException(error, {
+          surface: "app",
+          action: "sign-in-google",
+        });
+        this.#showToast(
           "Failed to sign in with Google. Please try again.",
           "error",
         );
@@ -50,9 +94,11 @@ class LinkStackApp {
       try {
         await this.#authService.signInWithGitHub();
       } catch (error) {
-        console.error("GitHub sign in error:", error);
-        const toast = document.querySelector("linkstack-toast");
-        toast?.show(
+        captureException(error, {
+          surface: "app",
+          action: "sign-in-github",
+        });
+        this.#showToast(
           "Failed to sign in with GitHub. Please try again.",
           "error",
         );
@@ -62,80 +108,173 @@ class LinkStackApp {
     this.#authComponent?.addEventListener("sign-out", async () => {
       try {
         await this.#authService.signOut();
-        this.#handleAuthChange(null);
+        await this.#handleAuthChange(null, false);
       } catch (error) {
-        console.error("Sign out error:", error);
-        const toast = document.querySelector("linkstack-toast");
-        toast?.show("Failed to sign out. Please try again.", "error");
+        captureException(error, {
+          surface: "app",
+          action: "sign-out",
+        });
+        this.#showToast("Failed to sign out. Please try again.", "error");
       }
     });
 
-    // Listen for auth state changes from Supabase
-    this.#authService.onAuthStateChange((event, session) => {
-      this.#handleAuthChange(session?.user ?? null);
+    this.#authService.onAuthStateChange(async (event, session) => {
+      const user = session?.user ?? null;
+      const isAdmin = user ? await this.#authService.isAdmin() : false;
+      await this.#handleAuthChange(user, isAdmin);
+    });
+
+    this.#scopeSelect?.addEventListener("change", async () => {
+      this.#scopeSelect.value = this.#sanitizeScopeValue(
+        this.#scopeSelect.value,
+        Boolean(this.#currentUser),
+      );
+      await this.#emitAuthStateChanged();
     });
   }
 
-  #setupStateListener() {
-    // Listen for state changes and load components accordingly
-    appStateManager.subscribe(async (newState, previousState) => {
-      if (newState === AppState.AUTHENTICATED && !appStateManager.componentsInitialized) {
-        await this.#loadAuthenticatedComponents();
-        appStateManager.markComponentsInitialized();
+  #setupAdminToggle() {
+    this.#adminButton?.addEventListener("click", () => {
+      const isHidden = Boolean(this.#adminPanel?.hidden);
+
+      this.#setElementHidden(this.#adminPanel, !isHidden);
+      this.#adminButton?.setAttribute("aria-pressed", String(isHidden));
+
+      if (isHidden) {
+        window.dispatchEvent(new CustomEvent(APP_EVENTS.publicReviewPanelOpened));
+      } else {
+        this.#adminButton?.focus();
       }
     });
-  }
-
-  async #loadAuthenticatedComponents() {
-    // Dynamically import authenticated components only when needed
-    await Promise.all([
-      import("./linkstack-form-supabase.js"),
-      import("./linkstack-bookmarks-supabase.js"),
-      import("./linkstack-edit-dialog-supabase.js"),
-      import("./form-drawer.js"),
-    ]);
-
-    // Trigger render after components are loaded
-    window.dispatchEvent(new CustomEvent("auth-state-changed"));
   }
 
   async #checkAuthState() {
     try {
       const user = await this.#authService.getCurrentUser();
-      this.#handleAuthChange(user);
+      const isAdmin = user ? await this.#authService.isAdmin() : false;
+      await this.#handleAuthChange(user, isAdmin);
     } catch (error) {
-      console.error("Error checking auth state:", error);
-      this.#handleAuthChange(null);
+      captureException(error, {
+        surface: "app",
+        action: "check-auth-state",
+      });
+      await this.#handleAuthChange(null, false);
     }
   }
 
-  #handleAuthChange(user) {
-    const formDrawer = document.getElementById("form-drawer");
+  #updateScopeOptions(isAuthenticated) {
+    if (!this.#scopeSelect || !this.#scopeLabel) {
+      return;
+    }
+
+    if (isAuthenticated) {
+      this.#scopeLabel.textContent = "Library:";
+      this.#replaceScopeOptions(SCOPE_OPTIONS.authenticated);
+      this.#scopeSelect.value = this.#sanitizeScopeValue(
+        this.#scopeSelect.value,
+        true,
+      );
+    } else {
+      this.#scopeLabel.textContent = "Showing:";
+      this.#replaceScopeOptions(SCOPE_OPTIONS.guest);
+      this.#scopeSelect.value = BOOKMARK_SCOPE.public;
+    }
+  }
+
+  async #handleAuthChange(user, isAdmin) {
+    this.#currentUser = user;
+    this.#isAdmin = isAdmin;
+    setMonitoringUser(user);
 
     if (user) {
-      // User is signed in - update app state
-      appStateManager.setState(AppState.AUTHENTICATED);
-
-      this.#authComponent?.setUser(user);
-      this.#mainContent?.classList.remove("hidden");
-      formDrawer?.classList.remove("hidden");
-    } else {
-      // User is signed out - update app state
-      appStateManager.setState(AppState.UNAUTHENTICATED);
-      appStateManager.resetComponentsInitialized();
-
-      this.#authComponent?.setUser(null);
-      this.#mainContent?.classList.add("hidden");
-      formDrawer?.classList.add("hidden");
+      await this.#loadAuthenticatedComponents();
     }
+
+    this.#authComponent?.setUser(user, { isAdmin });
+    this.#setElementHidden(this.#newBookmarkButton, !user);
+    this.#setElementHidden(this.#formDrawer, !user);
+    this.#setElementHidden(this.#adminButton, !(user && isAdmin));
+    this.#adminButton?.setAttribute("aria-pressed", "false");
+    this.#setElementHidden(this.#adminPanel, true);
+
+    this.#updateScopeOptions(Boolean(user));
+    await this.#emitAuthStateChanged();
+  }
+
+  async #emitAuthStateChanged() {
+    window.dispatchEvent(
+      new CustomEvent(APP_EVENTS.authStateChanged, {
+        detail: {
+          user: this.#currentUser,
+          isAuthenticated: Boolean(this.#currentUser),
+          isAdmin: this.#isAdmin,
+          scope:
+            this.#scopeSelect?.value ||
+            this.#sanitizeScopeValue("", Boolean(this.#currentUser)),
+        },
+      }),
+    );
+  }
+
+  #replaceScopeOptions(options) {
+    if (!this.#scopeSelect) {
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    options.forEach((option) => {
+      const optionElement = document.createElement("option");
+      optionElement.value = option.value;
+      optionElement.textContent = option.label;
+      fragment.append(optionElement);
+    });
+    this.#scopeSelect.replaceChildren(fragment);
+  }
+
+  /**
+   * @param {string} value
+   * @param {boolean} isAuthenticated
+   * @returns {string}
+   */
+  #sanitizeScopeValue(value, isAuthenticated) {
+    const allowedScopes = /** @type {string[]} */ (isAuthenticated
+      ? SCOPE_OPTIONS.authenticated.map((option) => option.value)
+      : SCOPE_OPTIONS.guest.map((option) => option.value));
+
+    return allowedScopes.includes(value)
+      ? value
+      : isAuthenticated
+        ? BOOKMARK_SCOPE.mine
+        : BOOKMARK_SCOPE.public;
+  }
+
+  #showToast(message, type) {
+    const toast =
+      /** @type {{ show: (message: string, type: string) => void } | null} */ (
+        /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+      );
+    toast?.show(message, type);
+  }
+
+  #setElementHidden(element, isHidden) {
+    if (!(element instanceof HTMLElement)) {
+      return;
+    }
+
+    element.hidden = isHidden;
+    element.classList.toggle("hidden", isHidden);
   }
 }
 
-// Initialize app when DOM is ready
+async function startApp() {
+  const app = new LinkStackApp();
+  await app.init();
+}
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
-    new LinkStackApp();
+    void startApp();
   });
 } else {
-  new LinkStackApp();
+  void startApp();
 }
