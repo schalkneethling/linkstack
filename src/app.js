@@ -120,7 +120,7 @@ class LinkStackApp {
 
     this.#authService.onAuthStateChange(async (event, session) => {
       const user = session?.user ?? null;
-      const isAdmin = user ? await this.#authService.isAdmin() : false;
+      const isAdmin = await this.#resolveAdminState(user, "auth-state-change");
       await this.#handleAuthChange(user, isAdmin);
     });
 
@@ -151,7 +151,7 @@ class LinkStackApp {
   async #checkAuthState() {
     try {
       const user = await this.#authService.getCurrentUser();
-      const isAdmin = user ? await this.#authService.isAdmin() : false;
+      const isAdmin = await this.#resolveAdminState(user, "check-auth-state");
       await this.#handleAuthChange(user, isAdmin);
     } catch (error) {
       captureException(error, {
@@ -159,6 +159,25 @@ class LinkStackApp {
         action: "check-auth-state",
       });
       await this.#handleAuthChange(null, false);
+    }
+  }
+
+  async #resolveAdminState(user, action) {
+    if (!user) {
+      return false;
+    }
+
+    try {
+      return await this.#authService.isAdmin();
+    } catch (error) {
+      captureException(error, {
+        surface: "app",
+        action,
+        authState: "admin-check",
+        userId: user.id,
+      });
+
+      return false;
     }
   }
 
