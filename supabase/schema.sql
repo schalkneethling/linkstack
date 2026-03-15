@@ -158,6 +158,26 @@ CREATE POLICY "bookmark owners and admins can update resources"
     )
   );
 
+CREATE POLICY "admins and authenticated users can delete orphan resources"
+  ON public.resources
+  FOR DELETE
+  USING (
+    public.is_admin()
+    OR (
+      auth.uid() IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.bookmarks
+        WHERE bookmarks.resource_id = resources.id
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.public_listings
+        WHERE public_listings.resource_id = resources.id
+      )
+    )
+  );
+
 CREATE POLICY "approved public listings are public"
   ON public.public_listings
   FOR SELECT
@@ -189,6 +209,14 @@ CREATE POLICY "owners can submit public listings"
 CREATE POLICY "owners and admins can update public listings"
   ON public.public_listings
   FOR UPDATE
+  USING (
+    public.is_admin()
+    OR submitted_by_user_id = auth.uid()
+  );
+
+CREATE POLICY "owners and admins can delete public listings"
+  ON public.public_listings
+  FOR DELETE
   USING (
     public.is_admin()
     OR submitted_by_user_id = auth.uid()
