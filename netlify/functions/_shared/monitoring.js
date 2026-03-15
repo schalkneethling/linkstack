@@ -1,8 +1,6 @@
 // @ts-check
 import * as Sentry from "@sentry/node";
 import packageJson from "../../../package.json" with { type: "json" };
-import "varlock/auto-load";
-import { ENV } from "varlock/env";
 
 const EXPECTED_ERRORS = Object.freeze([
   "URL parameter is required",
@@ -13,15 +11,20 @@ const EXPECTED_ERRORS = Object.freeze([
 let isInitialized = false;
 
 const SENTRY_RELEASE = packageJson.version || undefined;
+const SENTRY_DSN = process.env.SENTRY_DSN;
+const SENTRY_ENVIRONMENT =
+  process.env.SENTRY_ENVIRONMENT ||
+  process.env.CONTEXT ||
+  process.env.APP_ENV;
 
 export function initServerMonitoring() {
-  if (isInitialized || !ENV.SENTRY_DSN) {
+  if (isInitialized || !SENTRY_DSN) {
     return false;
   }
 
   Sentry.init({
-    dsn: ENV.SENTRY_DSN,
-    environment: ENV.SENTRY_ENVIRONMENT || process.env.CONTEXT || ENV.APP_ENV,
+    dsn: SENTRY_DSN,
+    environment: SENTRY_ENVIRONMENT,
     release: SENTRY_RELEASE,
     sendDefaultPii: false,
     ignoreErrors: [...EXPECTED_ERRORS],
