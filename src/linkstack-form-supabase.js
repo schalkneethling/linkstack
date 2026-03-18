@@ -317,7 +317,12 @@ export class LinkStackForm extends HTMLElement {
         return null;
       }
 
-      return this.#parseMetadataResponse(await response.json(), url);
+      const payload = await response.json();
+      return {
+        metadata: this.#parseMetadataResponse(payload, url),
+        metadataUnavailable:
+          Boolean(payload && typeof payload === "object" && payload.metadataUnavailable),
+      };
     } catch {
       return null;
     }
@@ -456,9 +461,9 @@ export class LinkStackForm extends HTMLElement {
           return;
         }
 
-        const metadata = await this.#fetchMetadata(url);
+        const metadataResult = await this.#fetchMetadata(url);
 
-        if (!metadata) {
+        if (!metadataResult) {
           await this.#createWithMetadata({
             url,
             notes,
@@ -483,15 +488,22 @@ export class LinkStackForm extends HTMLElement {
           notes,
           parentId,
           requestPublic,
-          metadata,
+          metadata: metadataResult.metadata,
         });
 
         bookmarkForm.reset();
         this.#setupPublicToggle();
-        this.#showToast(
-          this.#getSuccessMessage(createdBookmark, requestPublic),
-          "success",
-        );
+        if (metadataResult.metadataUnavailable) {
+          this.#showToast(
+            FORM_UI_MESSAGES.bookmarkAddedWithoutMetadata,
+            "warning",
+          );
+        } else {
+          this.#showToast(
+            this.#getSuccessMessage(createdBookmark, requestPublic),
+            "success",
+          );
+        }
         this.#dispatchCreated();
       } catch (error) {
         captureException(error, {

@@ -15,6 +15,7 @@ const JSON_HEADERS = {
 };
 
 const UPSTREAM_TIMEOUT_MS = 8000;
+const EXPECTED_UPSTREAM_FAILURE_STATUSES = new Set([401, 403, 404, 408, 429]);
 
 const REQUEST_HEADERS = Object.freeze({
   "User-Agent":
@@ -62,6 +63,14 @@ const sanitizeMetadata = (input, fallbackTitle) => {
     metaDescription: "",
   };
 };
+
+const createMetadataUnavailablePayload = (bookmark, reason, detail = {}) => ({
+  pageTitle: bookmark,
+  metaDescription: "",
+  metadataUnavailable: true,
+  reason,
+  ...detail,
+});
 
 const getErrorCode = (error) => {
   if (
@@ -155,52 +164,46 @@ export default async (request) => {
       const isTimeout =
         error instanceof DOMException && error.name === "AbortError";
 
-      await captureServerException(error, {
-        functionName: "get-bookmark-data",
-        action: "fetch-upstream",
-        requestUrl: request.url,
-        targetUrl: bookmark,
-        method: request.method,
-        timeoutMs: UPSTREAM_TIMEOUT_MS,
-        errorCode: code,
-      });
-
       return createJsonResponse(
-        {
-          error: isTimeout
-            ? "Timed out while fetching metadata from the target site."
-            : "Failed to fetch metadata from the target site.",
-          detailCode: code,
-        },
+        createMetadataUnavailablePayload(
+          bookmark,
+          isTimeout ? "timeout" : "network_error",
+          {
+            detailCode: code,
+          },
+        ),
         corsHeaders,
-        isTimeout ? 504 : 502,
+        200,
       );
     }
 
     const { response, elapsedMs } = upstream;
 
     if (!response.ok) {
-      await captureServerException(
-        new Error(`Upstream metadata fetch failed with ${response.status}`),
-        {
-          functionName: "get-bookmark-data",
-          action: "upstream-non-ok-response",
-          requestUrl: request.url,
-          targetUrl: bookmark,
-          method: request.method,
-          upstreamStatus: response.status,
-          upstreamStatusText: response.statusText,
-          upstreamUrl: response.url,
-          elapsedMs,
-        },
-      );
+      if (!EXPECTED_UPSTREAM_FAILURE_STATUSES.has(response.status)) {
+        await captureServerException(
+          new Error(`Upstream metadata fetch failed with ${response.status}`),
+          {
+            functionName: "get-bookmark-data",
+            action: "upstream-non-ok-response",
+            requestUrl: request.url,
+            targetUrl: bookmark,
+            method: request.method,
+            upstreamStatus: response.status,
+            upstreamStatusText: response.statusText,
+            upstreamUrl: response.url,
+            elapsedMs,
+          },
+        );
+      }
 
       return createJsonResponse(
-        {
-          error: `Failed to fetch metadata from the target site: ${response.status} ${response.statusText}`,
-        },
+        createMetadataUnavailablePayload(bookmark, "upstream_rejected", {
+          upstreamStatus: response.status,
+          upstreamStatusText: response.statusText,
+        }),
         corsHeaders,
-        502,
+        200,
       );
     }
 
