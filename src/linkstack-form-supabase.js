@@ -321,7 +321,7 @@ export class LinkStackForm extends HTMLElement {
       return {
         metadata: this.#parseMetadataResponse(payload, url),
         metadataUnavailable:
-          Boolean(payload && typeof payload === "object" && "metadataUnavailable" in payload && payload.metadataUnavailable),
+          Boolean(payload && typeof payload === "object" && payload.metadataUnavailable),
       };
     } catch {
       return null;
