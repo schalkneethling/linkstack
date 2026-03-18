@@ -126,6 +126,19 @@ CREATE POLICY "resource owners and public catalog can read resources"
   FOR SELECT
   USING (
     public.is_admin()
+    OR (
+      auth.uid() IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.bookmarks
+        WHERE bookmarks.resource_id = resources.id
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.public_listings
+        WHERE public_listings.resource_id = resources.id
+      )
+    )
     OR EXISTS (
       SELECT 1
       FROM public.bookmarks
