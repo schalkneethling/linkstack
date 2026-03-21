@@ -97,6 +97,9 @@ function createBookmarksFixture() {
               </div>
             </div>
             <button class="stack-toggle hidden" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M6 9L12 15L18 9"></path>
+              </svg>
               <span class="stack-label">Show stack</span>
             </button>
             <ul class="stack-children reset-list hidden"></ul>
@@ -404,5 +407,72 @@ describe("linkstack-bookmarks", () => {
       expect(confirmDialog.confirm).toHaveBeenCalledTimes(1);
     });
     expect(serviceState.delete).not.toHaveBeenCalled();
+  });
+
+  it("expands a stack when clicking the nested toggle icon", async () => {
+    serviceState.getMyBookmarks.mockResolvedValue([
+      {
+        id: "bookmark-parent",
+        resource_id: "resource-parent",
+        parent_id: null,
+        url: "https://example.com/parent",
+        page_title: "Parent bookmark",
+        meta_description: "Parent description",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+      },
+      {
+        id: "bookmark-child",
+        resource_id: "resource-child",
+        parent_id: "bookmark-parent",
+        url: "https://example.com/child",
+        page_title: "Child bookmark",
+        meta_description: "Child description",
+        tags: [],
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+      },
+    ]);
+
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: true, scope: "mine" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await element.refresh();
+
+    const stackToggle = /** @type {HTMLButtonElement | null} */ (
+      document.querySelector(".stack-toggle")
+    );
+    const stackIcon = stackToggle?.querySelector("svg");
+    const stackChildren = /** @type {HTMLUListElement | null} */ (
+      document.querySelector(".stack-children")
+    );
+
+    expect(stackToggle?.hidden).toBe(false);
+    expect(stackChildren?.hidden).toBe(true);
+
+    stackIcon?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(stackToggle?.getAttribute("aria-expanded")).toBe("true");
+    expect(stackChildren?.hidden).toBe(false);
+    expect(stackToggle?.querySelector(".stack-label")?.textContent).toBe(
+      "Hide stack",
+    );
   });
 });
