@@ -59,6 +59,7 @@ export class LinkStackBookmarks extends HTMLElement {
   #bookmarksService = new BookmarksService(supabase);
   #renderPromise = null;
   #isInitialLoad = true;
+  #hasReceivedAuthState = false;
   #searchQuery = "";
   /** @type {"newest" | "oldest" | "alpha-asc" | "alpha-desc"} */
   #sortBy = BOOKMARK_SORT.newest;
@@ -156,7 +157,6 @@ export class LinkStackBookmarks extends HTMLElement {
     this.#setupFilter();
     this.#setupScope();
     this.#syncFilterVisibility();
-    await this.#renderBookmarks();
   }
 
   #addEventListeners() {
@@ -175,13 +175,24 @@ export class LinkStackBookmarks extends HTMLElement {
         /** @type {CustomEvent<{ isAuthenticated?: boolean, scope?: string }>} */ (
           event
         );
-      this.#isAuthenticated = Boolean(authEvent.detail?.isAuthenticated);
-      this.#scope = this.#normalizeScope(
+      const isAuthenticated = Boolean(authEvent.detail?.isAuthenticated);
+      const scope = this.#normalizeScope(
         authEvent.detail?.scope,
-        this.#isAuthenticated,
+        isAuthenticated,
       );
+      const shouldRender =
+        !this.#hasReceivedAuthState ||
+        this.#isAuthenticated !== isAuthenticated ||
+        this.#scope !== scope;
+
+      this.#isAuthenticated = isAuthenticated;
+      this.#scope = scope;
+      this.#hasReceivedAuthState = true;
       this.#syncFilterVisibility();
-      await this.#renderBookmarks();
+
+      if (shouldRender) {
+        await this.#renderBookmarks();
+      }
     };
 
     window.addEventListener(
