@@ -216,6 +216,42 @@ describe("linkstack-bookmarks", () => {
     expect(menuTrigger.getAttribute("aria-expanded")).toBe("false");
   });
 
+  it("does not re-render when the same auth state is emitted repeatedly", async () => {
+    serviceState.getPublicCatalog.mockResolvedValue([
+      {
+        id: "public-listing-1",
+        public_listing_id: "listing-1",
+        resource_id: "resource-1",
+        url: "https://example.com/article",
+        page_title: "Example article",
+        meta_description: "Example description",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "public",
+        notes: "",
+      },
+    ]);
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: false, scope: "public" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: false, scope: "public" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(serviceState.getPublicCatalog).toHaveBeenCalledTimes(1);
+  });
+
   it("shows save action for authenticated users viewing public bookmarks", async () => {
     serviceState.getPublicCatalog.mockResolvedValue([
       {

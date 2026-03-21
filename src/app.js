@@ -40,7 +40,7 @@ class LinkStackApp {
     this.#setupElements();
     this.#setupAuthListeners();
     this.#setupAdminToggle();
-    await this.#loadGuestShell();
+    this.#loadGuestShell();
     await this.#checkAuthState();
   }
 
@@ -54,9 +54,8 @@ class LinkStackApp {
     this.#adminPanel = document.getElementById("admin-panel");
   }
 
-  async #loadGuestShell() {
+  #loadGuestShell() {
     this.#updateScopeOptions(false);
-    await this.#emitAuthStateChanged();
   }
 
   async #loadAuthenticatedComponents() {
