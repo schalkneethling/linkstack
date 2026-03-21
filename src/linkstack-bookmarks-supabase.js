@@ -233,7 +233,7 @@ export class LinkStackBookmarks extends HTMLElement {
     });
 
     bookmarksContainer.addEventListener("click", async (event) => {
-      const target = event.target instanceof HTMLElement ? event.target : null;
+      const target = event.target instanceof Element ? event.target : null;
       if (!target) {
         return;
       }
@@ -265,14 +265,13 @@ export class LinkStackBookmarks extends HTMLElement {
         requestPublicShare &&
         !requestPublicShare.classList.contains("hidden")
       ) {
+        const requestButton = /** @type {HTMLElement} */ (requestPublicShare);
         const contextMenu =
           /** @type {(HTMLElement & { hidePopover?: () => void }) | null} */ (
             requestPublicShare.closest(".context-menu")
           );
         contextMenu?.hidePopover?.();
-        await this.#requestPublicShare(
-          /** @type {HTMLElement} */ (requestPublicShare).dataset.id,
-        );
+        await this.#requestPublicShare(requestButton.dataset.id);
         return;
       }
 
@@ -281,15 +280,17 @@ export class LinkStackBookmarks extends HTMLElement {
       }
 
       if (target.id === "delete-bookmark") {
+        const deleteButton = /** @type {HTMLElement} */ (target);
         const contextMenu =
           /** @type {(HTMLElement & { hidePopover?: () => void }) | null} */ (
             target.closest(".context-menu")
           );
         contextMenu?.hidePopover?.();
-        await this.#deleteBookmark(target.dataset.id);
+        await this.#deleteBookmark(deleteButton.dataset.id);
       }
 
       if (target.id === "edit-bookmark") {
+        const editButton = /** @type {HTMLElement} */ (target);
         const contextMenu =
           /** @type {(HTMLElement & { hidePopover?: () => void }) | null} */ (
             target.closest(".context-menu")
@@ -297,7 +298,7 @@ export class LinkStackBookmarks extends HTMLElement {
         contextMenu?.hidePopover?.();
         this.#elements.linkstackEditDialog?.dispatchEvent(
           new CustomEvent("edit-bookmark", {
-            detail: { id: target.dataset.id },
+            detail: { id: editButton.dataset.id },
           }),
         );
       }
