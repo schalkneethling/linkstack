@@ -103,6 +103,7 @@
   align-items: stretch;
   flex-direction: column;
   gap: 0;
+  padding-block: 1rem 1.125rem;
 }
 
 #bookmarks-container.view-list .bookmark-entry.stack-expanded .bookmark-info {
@@ -115,7 +116,7 @@
   gap: 0.5rem;
   inline-size: 100%;
   margin: 0;
-  margin-block-start: 0.75rem;
+  margin-block: 1rem 0.125rem;
   padding-inline-start: 1.5rem;
 }
 
