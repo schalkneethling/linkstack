@@ -261,6 +261,12 @@
   padding: 0.625rem 0.75rem;
 }
 
+.settings-group + .settings-group {
+  border-block-start: 1px solid var(--ls-border);
+  margin-block-start: 0.75rem;
+  padding-block-start: 0.75rem;
+}
+
 .limit-toggle {
   align-items: center;
   cursor: pointer;
@@ -306,4 +312,70 @@
   border-color: var(--ls-accent);
   outline: 2px solid var(--ls-accent);
   outline-offset: 1px;
+}
+
+.highlight-settings-label {
+  color: var(--ls-text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.highlight-swatch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block-start: 0.625rem;
+}
+
+.highlight-swatch {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--ls-border);
+  border-radius: 999px;
+  color: var(--ls-text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--minimalist-typography-body-family);
+  font-size: 0.75rem;
+  gap: 0.4375rem;
+  min-block-size: 2rem;
+  padding: 0.3125rem 0.625rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.highlight-swatch:hover {
+  border-color: var(--highlight-preview);
+  transform: translateY(-1px);
+}
+
+.highlight-swatch:focus-visible {
+  outline: 2px solid var(--highlight-preview);
+  outline-offset: 2px;
+}
+
+.highlight-swatch.active {
+  background: color-mix(in srgb, var(--highlight-preview) 12%, white);
+  border-color: var(--highlight-preview);
+  box-shadow: 0 0 0 1px var(--highlight-preview);
+}
+
+.highlight-swatch-dot {
+  background: var(--highlight-preview);
+  block-size: 0.75rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 30%);
+  inline-size: 0.75rem;
+}
+
+.highlight-swatch-label {
+  color: var(--ls-text-secondary);
+  font-size: 0.75rem;
+}
+
+.highlight-swatch.active .highlight-swatch-label {
+  color: var(--ls-text-primary);
 }

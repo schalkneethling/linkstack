@@ -70,4 +70,51 @@ describe("linkstack-auth", () => {
 
     expect(handler).toHaveBeenCalledTimes(1);
   });
+
+  it("renders curated highlight color choices for authenticated users", async () => {
+    element.setUser(
+      {
+        email: "test@example.com",
+        user_metadata: { full_name: "Test User" },
+      },
+      { highlightColor: "rose" },
+    );
+    await element.updateComplete;
+
+    const buttons = element.querySelectorAll("[data-highlight-color]");
+    const activeButton = element.querySelector(
+      '[data-highlight-color="rose"]',
+    );
+
+    expect(buttons).toHaveLength(6);
+    expect(activeButton?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("dispatches highlight-color-change when a different swatch is selected", async () => {
+    element.setUser(
+      {
+        email: "test@example.com",
+        user_metadata: { full_name: "Test User" },
+      },
+      { highlightColor: "default" },
+    );
+    await element.updateComplete;
+
+    const handler = vi.fn();
+    element.addEventListener("highlight-color-change", handler);
+
+    const roseButton = /** @type {HTMLButtonElement} */ (
+      element.querySelector('[data-highlight-color="rose"]')
+    );
+    roseButton.click();
+
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: {
+          highlightColor: "rose",
+        },
+      }),
+    );
+    expect(roseButton.getAttribute("aria-pressed")).toBe("true");
+  });
 });
