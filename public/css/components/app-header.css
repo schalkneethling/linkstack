@@ -262,9 +262,9 @@
 }
 
 .settings-group + .settings-group {
-  border-top: 1px solid var(--ls-border);
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
+  border-block-start: 1px solid var(--ls-border);
+  margin-block-start: 0.75rem;
+  padding-block-start: 0.75rem;
 }
 
 .limit-toggle {
@@ -325,7 +325,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.625rem;
+  margin-block-start: 0.625rem;
 }
 
 .highlight-swatch {
@@ -339,7 +339,7 @@
   font-family: var(--minimalist-typography-body-family);
   font-size: 0.75rem;
   gap: 0.4375rem;
-  min-height: 2rem;
+  min-block-size: 2rem;
   padding: 0.3125rem 0.625rem;
   transition:
     border-color 0.15s ease,
