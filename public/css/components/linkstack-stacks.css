@@ -124,6 +124,10 @@
   margin-block-end: 0;
 }
 
+#bookmarks-container.view-grid .bookmark-entry.stack-expanded .stack-children {
+  margin-block-end: 1rem;
+}
+
 /* Responsive adjustments */
 @media (width <= 768px) {
   .stack-children {
