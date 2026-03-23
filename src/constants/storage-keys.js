@@ -6,4 +6,5 @@ export const STORAGE_KEYS = Object.freeze({
   viewPreference: "linkstack:view-preference",
   limitEnabled: "linkstack:limitEnabled",
   unreadLimit: "linkstack:unreadLimit",
+  highlightPreferenceCache: "linkstack:highlight-preference-cache",
 });

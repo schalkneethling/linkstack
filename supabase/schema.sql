@@ -56,6 +56,15 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
   CONSTRAINT unique_user_role UNIQUE (user_id, role)
 );
 
+CREATE TABLE IF NOT EXISTS public.user_preferences (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  highlight_color TEXT NOT NULL DEFAULT 'default'
+    CHECK (highlight_color IN ('default', 'amber', 'cobalt', 'rose', 'plum', 'moss')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE OR REPLACE FUNCTION public.is_admin(check_user_id UUID DEFAULT auth.uid())
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -110,10 +119,17 @@ CREATE TRIGGER update_public_listings_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON public.user_preferences;
+CREATE TRIGGER update_user_preferences_updated_at
+  BEFORE UPDATE ON public.user_preferences
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
 ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.public_listings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "bookmark owners can manage their bookmarks"
   ON public.bookmarks
@@ -245,3 +261,9 @@ CREATE POLICY "admins can manage user roles"
   FOR ALL
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
+
+CREATE POLICY "users can manage their preferences"
+  ON public.user_preferences
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

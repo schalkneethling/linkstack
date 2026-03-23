@@ -1,4 +1,9 @@
 // @ts-check
+import {
+  DEFAULT_HIGHLIGHT_COLOR,
+  HIGHLIGHT_COLOR_OPTIONS,
+  normalizeHighlightColor,
+} from "./constants/highlight-theme.js";
 import { SettingsService } from "./services/settings.service.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -102,6 +107,9 @@ function createAuthenticatedTemplate() {
   const limitSettings = document.createElement("div");
   limitSettings.className = "limit-settings";
 
+  const unreadSettings = document.createElement("div");
+  unreadSettings.className = "settings-group";
+
   const limitToggleLabel = document.createElement("label");
   limitToggleLabel.className = "limit-toggle";
 
@@ -137,7 +145,46 @@ function createAuthenticatedTemplate() {
   unreadLimit.setAttribute("aria-label", "Unread bookmark limit");
 
   limitNumberContainer.append(unreadLimitLabel, unreadLimit);
-  limitSettings.append(limitToggleLabel, limitNumberContainer);
+  unreadSettings.append(limitToggleLabel, limitNumberContainer);
+
+  const highlightSettings = document.createElement("div");
+  highlightSettings.className = "settings-group highlight-settings";
+
+  const highlightLabel = document.createElement("div");
+  highlightLabel.className = "highlight-settings-label";
+  highlightLabel.textContent = "Highlight color";
+
+  const highlightSwatches = document.createElement("div");
+  highlightSwatches.className = "highlight-swatch-list";
+  highlightSwatches.setAttribute("role", "group");
+  highlightSwatches.setAttribute("aria-label", "Highlight color");
+
+  HIGHLIGHT_COLOR_OPTIONS.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "highlight-swatch";
+    button.dataset.highlightColor = option.value;
+    button.setAttribute(
+      "aria-label",
+      `Use ${option.label} as your highlight color`,
+    );
+    button.setAttribute("aria-pressed", "false");
+    button.style.setProperty("--highlight-preview", option.swatch);
+
+    const swatchDot = document.createElement("span");
+    swatchDot.className = "highlight-swatch-dot";
+    swatchDot.setAttribute("aria-hidden", "true");
+
+    const swatchLabel = document.createElement("span");
+    swatchLabel.className = "highlight-swatch-label";
+    swatchLabel.textContent = option.label;
+
+    button.append(swatchDot, swatchLabel);
+    highlightSwatches.append(button);
+  });
+
+  highlightSettings.append(highlightLabel, highlightSwatches);
+  limitSettings.append(unreadSettings, highlightSettings);
 
   const signOutButton = document.createElement("button");
   signOutButton.type = "button";
@@ -159,6 +206,7 @@ const authenticatedTemplate = createAuthenticatedTemplate();
 export class LinkStackAuth extends HTMLElement {
   #user = null;
   #isAdmin = false;
+  #highlightColor = DEFAULT_HIGHLIGHT_COLOR;
   #settingsService = new SettingsService();
   #documentClickHandler = null;
   #hostClickHandler = null;
@@ -186,10 +234,19 @@ export class LinkStackAuth extends HTMLElement {
     }
   }
 
-  setUser(user, { isAdmin = false } = {}) {
+  setUser(user, { isAdmin = false, highlightColor = DEFAULT_HIGHLIGHT_COLOR } = {}) {
     this.#user = user;
     this.#isAdmin = isAdmin;
+    this.#highlightColor = normalizeHighlightColor(highlightColor);
     this.#render();
+  }
+
+  /**
+   * @param {unknown} highlightColor
+   */
+  setHighlightColor(highlightColor) {
+    this.#highlightColor = normalizeHighlightColor(highlightColor);
+    this.#syncHighlightColorButtons();
   }
 
   get updateComplete() {
@@ -205,6 +262,7 @@ export class LinkStackAuth extends HTMLElement {
     if (this.#user) {
       this.#setupDropdown();
       this.#setupSettings();
+      this.#syncHighlightColorButtons();
     }
   }
 
@@ -385,6 +443,52 @@ export class LinkStackAuth extends HTMLElement {
       if (value >= 1 && value <= 100) {
         this.#settingsService.setUnreadLimit(value);
       }
+    });
+
+    this.querySelectorAll("[data-highlight-color]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        const target =
+          event.currentTarget instanceof HTMLButtonElement
+            ? event.currentTarget
+            : null;
+
+        if (!target) {
+          return;
+        }
+
+        const nextHighlightColor = normalizeHighlightColor(
+          target.dataset.highlightColor,
+        );
+
+        if (nextHighlightColor === this.#highlightColor) {
+          return;
+        }
+
+        this.#highlightColor = nextHighlightColor;
+        this.#syncHighlightColorButtons();
+        this.dispatchEvent(
+          new CustomEvent("highlight-color-change", {
+            detail: {
+              highlightColor: nextHighlightColor,
+            },
+          }),
+        );
+      });
+    });
+  }
+
+  #syncHighlightColorButtons() {
+    this.querySelectorAll("[data-highlight-color]").forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const isActive =
+        normalizeHighlightColor(button.dataset.highlightColor) ===
+        this.#highlightColor;
+
+      button.setAttribute("aria-pressed", String(isActive));
+      button.classList.toggle("active", isActive);
     });
   }
 

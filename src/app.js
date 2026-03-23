@@ -8,9 +8,20 @@ import {
 import { AuthService } from "./services/auth.service.js";
 import { APP_EVENTS } from "./constants/app-events.js";
 import { BOOKMARK_SCOPE } from "./constants/bookmark-ui-state.js";
+import { DEFAULT_HIGHLIGHT_COLOR } from "./constants/highlight-theme.js";
+import {
+  applyCachedHighlightColor,
+  applyHighlightColor,
+  cacheHighlightColorForUser,
+  clearHighlightColorCache,
+  getCachedHighlightColorForUser,
+} from "./lib/highlight-theme.js";
+import { UserPreferencesService } from "./services/user-preferences.service.js";
 
 import "./linkstack-auth.js";
 import "./linkstack-bookmarks-supabase.js";
+
+const INITIAL_HIGHLIGHT_COLOR = applyCachedHighlightColor();
 
 const SCOPE_OPTIONS = Object.freeze({
   guest: Object.freeze([
@@ -24,6 +35,7 @@ const SCOPE_OPTIONS = Object.freeze({
 
 class LinkStackApp {
   #authService = new AuthService(supabase);
+  #userPreferencesService = new UserPreferencesService(supabase);
   #authComponent = null;
   #newBookmarkButton = null;
   #formDrawer = null;
@@ -34,6 +46,7 @@ class LinkStackApp {
   #currentUser = null;
   #isAdmin = false;
   #authComponentsLoaded = false;
+  #highlightColor = INITIAL_HIGHLIGHT_COLOR;
 
   async init() {
     initMonitoring();
@@ -107,6 +120,7 @@ class LinkStackApp {
     this.#authComponent?.addEventListener("sign-out", async () => {
       try {
         await this.#authService.signOut();
+        this.#prepareHighlightColor(null);
         await this.#handleAuthChange(null, false);
       } catch (error) {
         captureException(error, {
@@ -116,6 +130,56 @@ class LinkStackApp {
         this.#showToast("Failed to sign out. Please try again.", "error");
       }
     });
+
+    this.#authComponent?.addEventListener(
+      "highlight-color-change",
+      async (event) => {
+        const userId = this.#currentUser?.id;
+
+        if (!(event instanceof CustomEvent) || !userId) {
+          return;
+        }
+
+        const previousHighlightColor = this.#highlightColor;
+        const nextHighlightColor = this.#setHighlightColor(
+          event.detail?.highlightColor,
+        );
+
+        if (nextHighlightColor === previousHighlightColor) {
+          return;
+        }
+
+        this.#highlightColor = nextHighlightColor;
+
+        try {
+          const savedHighlightColor =
+            await this.#userPreferencesService.setHighlightColor(
+              userId,
+              nextHighlightColor,
+            );
+
+          this.#highlightColor = this.#setHighlightColor(savedHighlightColor);
+          cacheHighlightColorForUser(userId, this.#highlightColor);
+          this.#authComponent?.setHighlightColor(this.#highlightColor);
+        } catch (error) {
+          this.#highlightColor = this.#setHighlightColor(
+            previousHighlightColor,
+          );
+          cacheHighlightColorForUser(userId, previousHighlightColor);
+          this.#authComponent?.setHighlightColor(this.#highlightColor);
+          captureException(error, {
+            surface: "app",
+            action: "save-highlight-color",
+            userId,
+            highlightColor: nextHighlightColor,
+          });
+          this.#showToast(
+            "Couldn't save your highlight color. Please try again.",
+            "error",
+          );
+        }
+      },
+    );
 
     this.#authService.onAuthStateChange((event, session) => {
       const user = session?.user ?? null;
@@ -160,13 +224,66 @@ class LinkStackApp {
         surface: "app",
         action: "check-auth-state",
       });
+      this.#prepareHighlightColor(null);
       await this.#handleAuthChange(null, false);
     }
   }
 
   async #syncAuthState(user, action) {
     const isAdmin = await this.#resolveAdminState(user, action);
+    this.#prepareHighlightColor(user);
     await this.#handleAuthChange(user, isAdmin);
+
+    if (user) {
+      void this.#reconcileHighlightColor(user, action);
+    }
+  }
+
+  /**
+   * @param {{ id: string } | null} user
+   */
+  #prepareHighlightColor(user) {
+    if (!user) {
+      clearHighlightColorCache();
+      this.#highlightColor = this.#setHighlightColor(DEFAULT_HIGHLIGHT_COLOR);
+      return;
+    }
+
+    const cachedHighlightColor = getCachedHighlightColorForUser(user.id);
+    this.#highlightColor = this.#setHighlightColor(
+      cachedHighlightColor ?? DEFAULT_HIGHLIGHT_COLOR,
+    );
+  }
+
+  /**
+   * @param {{ id: string } | null} user
+   * @param {string} action
+   */
+  async #reconcileHighlightColor(user, action) {
+    if (!user) {
+      return;
+    }
+
+    try {
+      const highlightColor = await this.#userPreferencesService.getHighlightColor(
+        user.id,
+      );
+
+      if (this.#currentUser?.id !== user.id) {
+        return;
+      }
+
+      this.#highlightColor = this.#setHighlightColor(highlightColor);
+      cacheHighlightColorForUser(user.id, this.#highlightColor);
+      this.#authComponent?.setHighlightColor(this.#highlightColor);
+    } catch (error) {
+      captureException(error, {
+        surface: "app",
+        action,
+        authState: "highlight-color",
+        userId: user.id,
+      });
+    }
   }
 
   async #resolveAdminState(user, action) {
@@ -216,7 +333,10 @@ class LinkStackApp {
       await this.#loadAuthenticatedComponents();
     }
 
-    this.#authComponent?.setUser(user, { isAdmin });
+    this.#authComponent?.setUser(user, {
+      isAdmin,
+      highlightColor: this.#highlightColor,
+    });
     this.#setElementHidden(this.#newBookmarkButton, !user);
     this.#setElementHidden(this.#formDrawer, !user);
     this.#setElementHidden(this.#adminButton, !(user && isAdmin));
@@ -280,6 +400,14 @@ class LinkStackApp {
         /** @type {unknown} */ (document.querySelector("linkstack-toast"))
       );
     toast?.show(message, type);
+  }
+
+  /**
+   * @param {unknown} highlightColor
+   * @returns {string}
+   */
+  #setHighlightColor(highlightColor) {
+    return applyHighlightColor(highlightColor);
   }
 
   #setElementHidden(element, isHidden) {
