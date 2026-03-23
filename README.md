@@ -1,5 +1,7 @@
 # LinkStack
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/4227e1ca-9864-497d-b07b-7b8f66b2d5ee/deploy-status)](https://app.netlify.com/projects/linkstack/deploys)
+
 LinkStack is a bookmark manager for saving links to the original source,
 organizing a personal reading library, and optionally sharing standout links
 through a moderated public catalog.
