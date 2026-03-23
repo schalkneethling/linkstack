@@ -13,6 +13,7 @@ class MockQueryBuilder {
     this.filters = [];
     this.sortField = null;
     this.sortAscending = true;
+    this.sortError = null;
     this.payload = null;
   }
 
@@ -48,6 +49,14 @@ class MockQueryBuilder {
   }
 
   order(field, { ascending }) {
+    const firstRow = this.#getTable()[0];
+    if (firstRow && !(field in firstRow)) {
+      this.sortError = new Error(
+        `Cannot sort ${this.table} by missing field "${field}"`,
+      );
+      return this;
+    }
+
     this.sortField = field;
     this.sortAscending = ascending;
     return this;
@@ -105,6 +114,10 @@ class MockQueryBuilder {
   }
 
   #execute() {
+    if (this.sortError) {
+      return { data: [], error: this.sortError };
+    }
+
     if (this.operation === "insert") {
       const rows = Array.isArray(this.payload) ? this.payload : [this.payload];
       const inserted = rows.map((row) => {
@@ -292,6 +305,62 @@ describe("BookmarksService", () => {
     expect(store.bookmarks).toHaveLength(2);
     expect(bookmark.page_title).toBe("A new article");
     expect(bookmark.public_share_status).toBe(PUBLIC_SHARE_STATUS.NOT_REQUESTED);
+  });
+
+  it("sorts private bookmarks alphabetically after hydration", async () => {
+    store.resources.push({
+      id: "resource-2",
+      normalized_url: "https://zeta.example.com/post",
+      canonical_url: "https://zeta.example.com/post",
+      page_title: "Zeta article",
+      meta_description: "",
+      created_at: "2026-03-07T07:00:00Z",
+      updated_at: "2026-03-07T07:00:00Z",
+    });
+    store.bookmarks.push({
+      id: "bookmark-2",
+      user_id: "user-2",
+      resource_id: "resource-2",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: [],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:10:00Z",
+      updated_at: "2026-03-07T07:10:00Z",
+    });
+    store.resources.push({
+      id: "resource-3",
+      normalized_url: "https://alpha.example.com/post",
+      canonical_url: "https://alpha.example.com/post",
+      page_title: "Alpha article",
+      meta_description: "",
+      created_at: "2026-03-07T07:20:00Z",
+      updated_at: "2026-03-07T07:20:00Z",
+    });
+    store.bookmarks.push({
+      id: "bookmark-3",
+      user_id: "user-2",
+      resource_id: "resource-3",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: [],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:30:00Z",
+      updated_at: "2026-03-07T07:30:00Z",
+    });
+
+    const bookmarks = await service.getMyBookmarks("alpha-asc");
+
+    expect(bookmarks.map((bookmark) => bookmark.page_title)).toEqual([
+      "Alpha article",
+      "Zeta article",
+    ]);
   });
 
   it("rejects create input with an invalid URL", async () => {

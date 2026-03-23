@@ -210,6 +210,16 @@ export class BookmarksService {
   }
 
   /**
+   * @param {BookmarkSort} sortBy
+   * @returns {boolean}
+   */
+  #usesAlphaSort(sortBy) {
+    return (
+      sortBy === BOOKMARK_SORT.alphaAsc || sortBy === BOOKMARK_SORT.alphaDesc
+    );
+  }
+
+  /**
    * @param {Array<any>} items
    * @param {BookmarkSort} sortBy
    */
@@ -543,13 +553,16 @@ export class BookmarksService {
    */
   async getMyBookmarks(sortBy = BOOKMARK_SORT.newest) {
     const user = await this.#requireUser();
+    const querySort = this.#usesAlphaSort(sortBy)
+      ? BOOKMARK_SORT.newest
+      : sortBy;
 
     let query = this.#supabase
       .from("bookmarks")
       .select(BOOKMARK_FIELDS)
       .eq("user_id", user.id);
 
-    query = this.#applySort(query, sortBy);
+    query = this.#applySort(query, querySort);
 
     const { data, error } = await query;
 
@@ -562,7 +575,8 @@ export class BookmarksService {
       "Received invalid bookmarks from the database.",
     );
 
-    return this.#hydrateBookmarks(bookmarks, user.id);
+    const hydratedBookmarks = await this.#hydrateBookmarks(bookmarks, user.id);
+    return this.#sortFeed(hydratedBookmarks, sortBy);
   }
 
   /**
