@@ -405,9 +405,11 @@ export class LinkStackBookmarks extends HTMLElement {
     const isExpanded = toggleButton.getAttribute("aria-expanded") === "true";
     const stackChildren = toggleButton.nextElementSibling;
     const stackLabel = toggleButton.querySelector(".stack-label");
+    const entry = toggleButton.closest(".bookmark-entry");
 
     toggleButton.setAttribute("aria-expanded", String(!isExpanded));
     this.#setElementHidden(stackChildren, isExpanded);
+    entry?.classList.toggle("stack-expanded", !isExpanded);
 
     if (stackLabel) {
       stackLabel.textContent = isExpanded ? "Show stack" : "Hide stack";
@@ -807,6 +809,8 @@ export class LinkStackBookmarks extends HTMLElement {
       if (!stackToggle || !stackChildren) {
         return fragment;
       }
+      entry.classList.add("has-stack");
+      entry.classList.remove("stack-expanded");
       this.#setElementHidden(stackToggle, false);
       this.#setElementHidden(stackChildren, true);
       stackToggle.setAttribute("aria-expanded", "false");

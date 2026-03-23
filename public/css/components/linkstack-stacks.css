@@ -41,6 +41,10 @@
   margin-block-end: 0;
 }
 
+.bookmark-entry.has-stack .bookmark-info {
+  padding-inline-end: 3.5rem;
+}
+
 /* Child bookmark styling - compact, no thumbnail */
 .bookmark-child {
   background: var(--bg-secondary);
@@ -93,6 +97,30 @@
 /* Parent bookmark adjustments */
 .bookmark-entry {
   position: relative;
+}
+
+#bookmarks-container.view-list .bookmark-entry.stack-expanded {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0;
+}
+
+#bookmarks-container.view-list .bookmark-entry.stack-expanded .bookmark-info {
+  inline-size: 100%;
+}
+
+#bookmarks-container.view-list .bookmark-entry.stack-expanded .stack-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  inline-size: 100%;
+  margin: 0;
+  margin-block-start: 0.75rem;
+  padding-inline-start: 1.5rem;
+}
+
+#bookmarks-container.view-list .bookmark-entry.stack-expanded .bookmark-child {
+  margin-block-end: 0;
 }
 
 /* Responsive adjustments */

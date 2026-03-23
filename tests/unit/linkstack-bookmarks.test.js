@@ -463,14 +463,19 @@ describe("linkstack-bookmarks", () => {
     const stackChildren = /** @type {HTMLUListElement | null} */ (
       document.querySelector(".stack-children")
     );
+    const stackEntry = /** @type {HTMLElement | null} */ (
+      document.querySelector(".bookmark-entry")
+    );
 
     expect(stackToggle?.hidden).toBe(false);
     expect(stackChildren?.hidden).toBe(true);
+    expect(stackEntry?.classList.contains("stack-expanded")).toBe(false);
 
     stackIcon?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(stackToggle?.getAttribute("aria-expanded")).toBe("true");
     expect(stackChildren?.hidden).toBe(false);
+    expect(stackEntry?.classList.contains("stack-expanded")).toBe(true);
     expect(stackToggle?.querySelector(".stack-label")?.textContent).toBe(
       "Hide stack",
     );
