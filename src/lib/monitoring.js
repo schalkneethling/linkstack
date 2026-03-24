@@ -18,6 +18,86 @@ const SENTRY_RELEASE = __APP_VERSION__ || undefined;
 let isInitialized = false;
 
 /**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * @param {Record<string, unknown>} source
+ * @returns {Record<string, string | number | boolean>}
+ */
+function extractErrorExtras(source) {
+  return Object.entries(source).reduce((extras, [key, value]) => {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      extras[key] = value;
+    }
+
+    return extras;
+  }, /** @type {Record<string, string | number | boolean>} */ ({}));
+}
+
+/**
+ * @param {unknown} error
+ * @returns {{ normalizedError: Error, extraContext: Record<string, unknown> }}
+ */
+export function normalizeException(error) {
+  if (error instanceof Error) {
+    return {
+      normalizedError: error,
+      extraContext: {},
+    };
+  }
+
+  if (typeof error === "string") {
+    return {
+      normalizedError: new Error(error),
+      extraContext: {
+        originalError: error,
+      },
+    };
+  }
+
+  if (isRecord(error)) {
+    const message =
+      typeof error.message === "string"
+        ? error.message
+        : typeof error.error_description === "string"
+          ? error.error_description
+          : typeof error.code === "string"
+            ? `Non-Error exception (${error.code})`
+            : "Unexpected non-Error exception";
+
+    const normalizedError = new Error(message);
+
+    if (typeof error.name === "string" && error.name) {
+      normalizedError.name = error.name;
+    }
+
+    return {
+      normalizedError,
+      extraContext: {
+        ...extractErrorExtras(error),
+        originalError: error,
+      },
+    };
+  }
+
+  return {
+    normalizedError: new Error("Unexpected non-Error exception"),
+    extraContext: {
+      originalError: error,
+    },
+  };
+}
+
+/**
  * @returns {boolean}
  */
 export function initMonitoring() {
@@ -46,8 +126,7 @@ export function captureException(error, context = {}) {
     return;
   }
 
-  const normalizedError =
-    error instanceof Error ? error : new Error("Unexpected non-Error exception");
+  const { normalizedError, extraContext } = normalizeException(error);
 
   Sentry.withScope((scope) => {
     Object.entries(context).forEach(([key, value]) => {
@@ -56,6 +135,10 @@ export function captureException(error, context = {}) {
         return;
       }
 
+      scope.setExtra(key, value);
+    });
+
+    Object.entries(extraContext).forEach(([key, value]) => {
       scope.setExtra(key, value);
     });
 
