@@ -68,7 +68,8 @@ reviewCardTemplate.innerHTML = `
 
 /**
  * @typedef {{
- *   public_listing_id: string;
+ *   id: string;
+ *   review_kind: string;
  *   url: string;
  *   page_title: string;
  *   meta_description?: string | null;
@@ -173,17 +174,21 @@ export class LinkStackPublicReviews extends HTMLElement {
     }
 
     try {
-      await this.#bookmarksService.reviewPublicShare(actionButton.dataset.id, {
-        decision: action,
-        rejectionCode:
-          action === REVIEW_DECISIONS.reject && reasonSelect instanceof HTMLSelectElement
-            ? reasonSelect.value
-            : null,
-        rejectionReason:
-          action === REVIEW_DECISIONS.reject && noteInput instanceof HTMLInputElement
-            ? noteInput.value.trim()
-            : "",
-      });
+      await this.#bookmarksService.reviewPublicSubmission(
+        actionButton.dataset.reviewKind,
+        actionButton.dataset.id,
+        {
+          decision: action,
+          rejectionCode:
+            action === REVIEW_DECISIONS.reject && reasonSelect instanceof HTMLSelectElement
+              ? reasonSelect.value
+              : null,
+          rejectionReason:
+            action === REVIEW_DECISIONS.reject && noteInput instanceof HTMLInputElement
+              ? noteInput.value.trim()
+              : "",
+        },
+      );
 
       this.#showToast(
         action === REVIEW_DECISIONS.approve
@@ -213,7 +218,7 @@ export class LinkStackPublicReviews extends HTMLElement {
     }
 
     try {
-      const reviews = await this.#bookmarksService.getPendingPublicListings();
+      const reviews = await this.#bookmarksService.getPendingPublicSubmissions();
       this.#container.replaceChildren();
 
       if (!reviews.length) {
@@ -276,7 +281,7 @@ export class LinkStackPublicReviews extends HTMLElement {
       throw new Error("Public review template is missing required elements.");
     }
 
-    const listingId = review.public_listing_id;
+    const listingId = review.id;
     const reasonSelectId = `review-reason-${listingId}`;
     const noteInputId = `review-note-${listingId}`;
 
@@ -290,6 +295,8 @@ export class LinkStackPublicReviews extends HTMLElement {
     noteInput.id = noteInputId;
     approveButton.dataset.id = listingId;
     rejectButton.dataset.id = listingId;
+    approveButton.dataset.reviewKind = review.review_kind;
+    rejectButton.dataset.reviewKind = review.review_kind;
 
     REJECTION_OPTIONS.forEach((option) => {
       const optionElement = document.createElement("option");

@@ -228,6 +228,8 @@ describe("BookmarksService", () => {
           updated_at: "2026-03-06T10:00:00Z",
         },
       ],
+      public_stacks: [],
+      public_stack_items: [],
       user_roles: [{ id: "role-1", user_id: "user-admin", role: "admin" }],
     };
 
@@ -427,6 +429,382 @@ describe("BookmarksService", () => {
     expect(store.public_listings).toHaveLength(2);
   });
 
+  it("publishes an existing stack and creates stack items for current children", async () => {
+    store.resources.push(
+      {
+        id: "resource-2",
+        normalized_url: "https://stack.example.com/root",
+        canonical_url: "https://stack.example.com/root",
+        page_title: "Root article",
+        meta_description: "Root description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-3",
+        normalized_url: "https://stack.example.com/child-a",
+        canonical_url: "https://stack.example.com/child-a",
+        page_title: "Child article A",
+        meta_description: "Child A description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-4",
+        normalized_url: "https://stack.example.com/child-b",
+        canonical_url: "https://stack.example.com/child-b",
+        page_title: "Child article B",
+        meta_description: "Child B description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+    );
+    store.bookmarks.push(
+      {
+        id: "bookmark-root",
+        user_id: "user-2",
+        resource_id: "resource-2",
+        parent_id: null,
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: ["frontend"],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+      },
+      {
+        id: "bookmark-child-a",
+        user_id: "user-2",
+        resource_id: "resource-3",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: ["frontend"],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+      },
+      {
+        id: "bookmark-child-b",
+        user_id: "user-2",
+        resource_id: "resource-4",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: ["backend"],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:12:00Z",
+        updated_at: "2026-03-07T07:12:00Z",
+      },
+    );
+    store.public_listings.push({
+      id: "listing-2",
+      resource_id: "resource-3",
+      submitted_by_user_id: "user-9",
+      submitted_by_bookmark_id: "bookmark-9",
+      status: "approved",
+      page_title: "Child article A",
+      meta_description: "Child A description",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:30:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    const stack = await service.submitStackForPublication("bookmark-root");
+
+    expect(stack.status).toBe(PUBLIC_SHARE_STATUS.PENDING);
+    expect(store.public_stacks).toHaveLength(1);
+    expect(store.public_stack_items).toHaveLength(2);
+    expect(
+      store.public_stack_items.find((item) => item.bookmark_id === "bookmark-child-a")?.status,
+    ).toBe(PUBLIC_SHARE_STATUS.APPROVED);
+    expect(
+      store.public_stack_items.find((item) => item.bookmark_id === "bookmark-child-b")?.status,
+    ).toBe(PUBLIC_SHARE_STATUS.PENDING);
+  });
+
+  it("renders approved public stacks with approved children in the public catalog", async () => {
+    store.resources.push(
+      {
+        id: "resource-2",
+        normalized_url: "https://stack.example.com/root",
+        canonical_url: "https://stack.example.com/root",
+        page_title: "Root article",
+        meta_description: "Root description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-3",
+        normalized_url: "https://stack.example.com/child-a",
+        canonical_url: "https://stack.example.com/child-a",
+        page_title: "Child article A",
+        meta_description: "Child A description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-4",
+        normalized_url: "https://stack.example.com/child-b",
+        canonical_url: "https://stack.example.com/child-b",
+        page_title: "Child article B",
+        meta_description: "Child B description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+    );
+    store.bookmarks.push(
+      {
+        id: "bookmark-root",
+        user_id: "user-2",
+        resource_id: "resource-2",
+        parent_id: null,
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: ["frontend"],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+      },
+      {
+        id: "bookmark-child-a",
+        user_id: "user-2",
+        resource_id: "resource-3",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: ["frontend"],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+      },
+      {
+        id: "bookmark-child-b",
+        user_id: "user-2",
+        resource_id: "resource-4",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: ["backend"],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:12:00Z",
+        updated_at: "2026-03-07T07:12:00Z",
+      },
+    );
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+    store.public_stack_items.push(
+      {
+        id: "stack-item-1",
+        public_stack_id: "stack-1",
+        bookmark_id: "bookmark-child-a",
+        resource_id: "resource-3",
+        source_public_listing_id: "listing-2",
+        status: "approved",
+        page_title: "Child article A",
+        meta_description: "Child A description",
+        tags: ["frontend"],
+        display_order: 0,
+        rejection_code: null,
+        rejection_reason: null,
+        reviewed_at: "2026-03-07T09:00:00Z",
+        reviewed_by: "user-admin",
+        created_at: "2026-03-07T08:00:00Z",
+        updated_at: "2026-03-07T09:00:00Z",
+      },
+      {
+        id: "stack-item-2",
+        public_stack_id: "stack-1",
+        bookmark_id: "bookmark-child-b",
+        resource_id: "resource-4",
+        source_public_listing_id: null,
+        status: "pending",
+        page_title: "Child article B",
+        meta_description: "Child B description",
+        tags: ["backend"],
+        display_order: 1,
+        rejection_code: null,
+        rejection_reason: null,
+        reviewed_at: null,
+        reviewed_by: null,
+        created_at: "2026-03-07T08:00:00Z",
+        updated_at: "2026-03-07T08:00:00Z",
+      },
+    );
+
+    const catalog = await service.getPublicCatalog();
+    const stackEntry = catalog.find((entry) => entry.kind === "public_stack");
+
+    expect(stackEntry).toBeTruthy();
+    expect(stackEntry?.children).toHaveLength(1);
+    expect(stackEntry?.children[0].page_title).toBe("Child article A");
+  });
+
+  it("queues a new private child for review when added under an approved public stack", async () => {
+    store.resources.push({
+      id: "resource-2",
+      normalized_url: "https://stack.example.com/root",
+      canonical_url: "https://stack.example.com/root",
+      page_title: "Root article",
+      meta_description: "Root description",
+      created_at: "2026-03-07T07:00:00Z",
+      updated_at: "2026-03-07T07:00:00Z",
+    });
+    store.bookmarks.push({
+      id: "bookmark-root",
+      user_id: "user-2",
+      resource_id: "resource-2",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: ["frontend"],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:10:00Z",
+      updated_at: "2026-03-07T07:10:00Z",
+    });
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    const created = await service.create({
+      url: "https://stack.example.com/new-child",
+      page_title: "Fresh child",
+      meta_description: "Fresh child description",
+      notes: "",
+      parent_id: "bookmark-root",
+      request_public: false,
+    });
+
+    expect(created.parent_id).toBe("bookmark-root");
+    expect(store.public_stack_items).toHaveLength(1);
+    expect(store.public_stack_items[0].status).toBe(PUBLIC_SHARE_STATUS.PENDING);
+  });
+
+  it("adds an already-public child to an approved public stack by reference", async () => {
+    store.resources.push(
+      {
+        id: "resource-2",
+        normalized_url: "https://stack.example.com/root",
+        canonical_url: "https://stack.example.com/root",
+        page_title: "Root article",
+        meta_description: "Root description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-2b",
+        normalized_url: "https://stack.example.com/public-child",
+        canonical_url: "https://stack.example.com/public-child",
+        page_title: "Public child",
+        meta_description: "Public child description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+    );
+    store.bookmarks.push({
+      id: "bookmark-root",
+      user_id: "user-2",
+      resource_id: "resource-2",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: ["frontend"],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:10:00Z",
+      updated_at: "2026-03-07T07:10:00Z",
+    });
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+    store.public_listings.push({
+      id: "listing-2",
+      resource_id: "resource-2b",
+      submitted_by_user_id: "user-8",
+      submitted_by_bookmark_id: "bookmark-8",
+      status: "approved",
+      page_title: "Public child",
+      meta_description: "Public child description",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    const created = await service.create({
+      url: "https://stack.example.com/public-child",
+      page_title: "Public child",
+      meta_description: "Public child description",
+      notes: "",
+      parent_id: "bookmark-root",
+      request_public: false,
+    });
+
+    expect(created.parent_id).toBe("bookmark-root");
+    expect(store.public_stack_items).toHaveLength(1);
+    expect(store.public_stack_items[0].status).toBe(PUBLIC_SHARE_STATUS.APPROVED);
+    expect(store.public_stack_items[0].source_public_listing_id).toBe("listing-2");
+  });
+
   it("auto-approves public listings submitted by admins", async () => {
     currentUser = { id: "user-admin", email: "admin@example.com" };
     store.resources.push({
@@ -520,6 +898,298 @@ describe("BookmarksService", () => {
     expect(store.bookmarks[0].id).toBe("bookmark-1");
     expect(store.public_listings).toHaveLength(1);
     expect(store.resources).toHaveLength(1);
+  });
+
+  it("resolves root deletion by deleting the entire stack", async () => {
+    store.resources.push(
+      {
+        id: "resource-2",
+        normalized_url: "https://stack.example.com/root",
+        canonical_url: "https://stack.example.com/root",
+        page_title: "Root article",
+        meta_description: "Root description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-3",
+        normalized_url: "https://stack.example.com/child",
+        canonical_url: "https://stack.example.com/child",
+        page_title: "Child article",
+        meta_description: "Child description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+    );
+    store.bookmarks.push(
+      {
+        id: "bookmark-root",
+        user_id: "user-2",
+        resource_id: "resource-2",
+        parent_id: null,
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+      },
+      {
+        id: "bookmark-child",
+        user_id: "user-2",
+        resource_id: "resource-3",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+      },
+    );
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+    store.public_stack_items.push({
+      id: "stack-item-1",
+      public_stack_id: "stack-1",
+      bookmark_id: "bookmark-child",
+      resource_id: "resource-3",
+      source_public_listing_id: null,
+      status: "approved",
+      page_title: "Child article",
+      meta_description: "Child description",
+      tags: [],
+      display_order: 0,
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    await service.resolveRootDeletion("bookmark-root", { strategy: "delete_all" });
+
+    expect(store.bookmarks.find((bookmark) => bookmark.id === "bookmark-root")).toBeFalsy();
+    expect(store.bookmarks.find((bookmark) => bookmark.id === "bookmark-child")).toBeFalsy();
+    expect(store.public_stacks).toHaveLength(0);
+    expect(store.public_stack_items).toHaveLength(0);
+  });
+
+  it("resolves root deletion by promoting a child to the new root", async () => {
+    store.resources.push(
+      {
+        id: "resource-2",
+        normalized_url: "https://stack.example.com/root",
+        canonical_url: "https://stack.example.com/root",
+        page_title: "Root article",
+        meta_description: "Root description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-3",
+        normalized_url: "https://stack.example.com/child-a",
+        canonical_url: "https://stack.example.com/child-a",
+        page_title: "Child article A",
+        meta_description: "Child A description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-4",
+        normalized_url: "https://stack.example.com/child-b",
+        canonical_url: "https://stack.example.com/child-b",
+        page_title: "Child article B",
+        meta_description: "Child B description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+    );
+    store.bookmarks.push(
+      {
+        id: "bookmark-root",
+        user_id: "user-2",
+        resource_id: "resource-2",
+        parent_id: null,
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+      },
+      {
+        id: "bookmark-child-a",
+        user_id: "user-2",
+        resource_id: "resource-3",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+      },
+      {
+        id: "bookmark-child-b",
+        user_id: "user-2",
+        resource_id: "resource-4",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:12:00Z",
+        updated_at: "2026-03-07T07:12:00Z",
+      },
+    );
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    await service.resolveRootDeletion("bookmark-root", {
+      strategy: "promote_child",
+      promoteChildId: "bookmark-child-a",
+    });
+
+    const promoted = store.bookmarks.find((bookmark) => bookmark.id === "bookmark-child-a");
+    const sibling = store.bookmarks.find((bookmark) => bookmark.id === "bookmark-child-b");
+    expect(store.bookmarks.find((bookmark) => bookmark.id === "bookmark-root")).toBeFalsy();
+    expect(promoted?.parent_id).toBeNull();
+    expect(sibling?.parent_id).toBe("bookmark-child-a");
+    expect(store.public_stacks[0].root_bookmark_id).toBe("bookmark-child-a");
+    expect(store.public_stacks[0].status).toBe(PUBLIC_SHARE_STATUS.PENDING);
+  });
+
+  it("resolves root deletion by unstacking all children", async () => {
+    store.resources.push(
+      {
+        id: "resource-2",
+        normalized_url: "https://stack.example.com/root",
+        canonical_url: "https://stack.example.com/root",
+        page_title: "Root article",
+        meta_description: "Root description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+      {
+        id: "resource-3",
+        normalized_url: "https://stack.example.com/child-a",
+        canonical_url: "https://stack.example.com/child-a",
+        page_title: "Child article A",
+        meta_description: "Child A description",
+        created_at: "2026-03-07T07:00:00Z",
+        updated_at: "2026-03-07T07:00:00Z",
+      },
+    );
+    store.bookmarks.push(
+      {
+        id: "bookmark-root",
+        user_id: "user-2",
+        resource_id: "resource-2",
+        parent_id: null,
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+      },
+      {
+        id: "bookmark-child-a",
+        user_id: "user-2",
+        resource_id: "resource-3",
+        parent_id: "bookmark-root",
+        title_override: null,
+        description_override: null,
+        notes: "",
+        tags: [],
+        is_read: false,
+        read_at: null,
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+      },
+    );
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+    store.public_stack_items.push({
+      id: "stack-item-1",
+      public_stack_id: "stack-1",
+      bookmark_id: "bookmark-child-a",
+      resource_id: "resource-3",
+      source_public_listing_id: null,
+      status: "approved",
+      page_title: "Child article A",
+      meta_description: "Child A description",
+      tags: [],
+      display_order: 0,
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    await service.resolveRootDeletion("bookmark-root", {
+      strategy: "unstack_children",
+    });
+
+    expect(store.bookmarks.find((bookmark) => bookmark.id === "bookmark-root")).toBeFalsy();
+    expect(store.bookmarks.find((bookmark) => bookmark.id === "bookmark-child-a")?.parent_id).toBeNull();
+    expect(store.public_stacks).toHaveLength(0);
+    expect(store.public_stack_items).toHaveLength(0);
   });
 
   it("requires a rejection reason when rejecting a public listing", async () => {

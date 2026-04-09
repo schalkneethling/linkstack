@@ -11,6 +11,7 @@ export class LinkStackConfirmDialog extends HTMLElement {
     message: "#dialog-confirm-message",
     confirmButton: "#confirm-dialog-confirm",
     cancelButton: "#confirm-dialog-cancel",
+    actions: ".bookmark-actions",
   };
 
   #elements = {
@@ -24,15 +25,19 @@ export class LinkStackConfirmDialog extends HTMLElement {
     confirmButton: null,
     /** @type {HTMLButtonElement | null} */
     cancelButton: null,
+    /** @type {HTMLElement | null} */
+    actions: null,
   };
 
-  /** @type {((confirmed: boolean) => void) | null} */
+  /** @type {((result: any) => void) | null} */
   #resolver = null;
   /** @type {HTMLElement | null} */
   #lastFocusedElement = null;
   #confirmHandler = null;
   #cancelHandler = null;
   #closeHandler = null;
+  #mode = "confirm";
+  #dynamicChoiceButtons = [];
 
   connectedCallback() {
     this.#initElements();
@@ -65,6 +70,7 @@ export class LinkStackConfirmDialog extends HTMLElement {
     this.#elements.cancelButton = this.querySelector(
       LinkStackConfirmDialog.#selectors.cancelButton,
     );
+    this.#elements.actions = this.querySelector(LinkStackConfirmDialog.#selectors.actions);
   }
 
   #attachEventListeners() {
@@ -90,9 +96,16 @@ export class LinkStackConfirmDialog extends HTMLElement {
 
     if (!this.#closeHandler) {
       this.#closeHandler = () => {
-        const wasConfirmed = dialog.returnValue === "confirm";
-        this.#resolver?.(wasConfirmed);
+        const result =
+          this.#mode === "choose"
+            ? dialog.returnValue.startsWith("choice:")
+              ? dialog.returnValue.replace("choice:", "")
+              : null
+            : dialog.returnValue === "confirm";
+        this.#resolver?.(result);
         this.#resolver = null;
+        this.#mode = "confirm";
+        this.#resetChoices();
 
         if (this.#lastFocusedElement instanceof HTMLElement) {
           this.#lastFocusedElement.focus();
@@ -130,6 +143,9 @@ export class LinkStackConfirmDialog extends HTMLElement {
       this.#resolver = null;
     }
 
+    this.#mode = "confirm";
+    this.#resetChoices();
+
     this.#lastFocusedElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
@@ -144,6 +160,86 @@ export class LinkStackConfirmDialog extends HTMLElement {
     return new Promise((resolve) => {
       this.#resolver = resolve;
     });
+  }
+
+  /**
+   * @param {{
+   *   title: string,
+   *   message: string,
+   *   choices: Array<{ value: string, label: string }>,
+   *   cancelLabel?: string,
+   * }} options
+   * @returns {Promise<string | null>}
+   */
+  choose({
+    title,
+    message,
+    choices,
+    cancelLabel = CONFIRM_DIALOG_MESSAGES.cancel,
+  }) {
+    const { dialog, title: titleEl, message: messageEl, confirmButton, cancelButton, actions } =
+      this.#elements;
+
+    if (
+      !dialog ||
+      !titleEl ||
+      !messageEl ||
+      !confirmButton ||
+      !cancelButton ||
+      !actions ||
+      !choices.length
+    ) {
+      return Promise.resolve(null);
+    }
+
+    if (this.#resolver) {
+      this.#resolver(null);
+      this.#resolver = null;
+    }
+
+    this.#mode = "choose";
+    this.#resetChoices();
+    this.#lastFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    confirmButton.hidden = true;
+    cancelButton.textContent = cancelLabel;
+
+    choices.forEach((choice, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "button solid";
+      button.textContent = choice.label;
+      button.addEventListener("click", () => {
+        dialog.close(`choice:${choice.value}`);
+      });
+      actions.insertBefore(button, cancelButton);
+      this.#dynamicChoiceButtons.push(button);
+
+      if (index === 0) {
+        button.focus();
+      }
+    });
+
+    dialog.showModal();
+    this.#dynamicChoiceButtons[0]?.focus();
+
+    return new Promise((resolve) => {
+      this.#resolver = resolve;
+    });
+  }
+
+  #resetChoices() {
+    const { confirmButton } = this.#elements;
+
+    this.#dynamicChoiceButtons.forEach((button) => button.remove());
+    this.#dynamicChoiceButtons = [];
+
+    if (confirmButton) {
+      confirmButton.hidden = false;
+    }
   }
 }
 

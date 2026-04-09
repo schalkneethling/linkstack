@@ -19,6 +19,8 @@ The app now uses a normalized model:
 - `resources`: canonical link identity and shared fetched metadata
 - `bookmarks`: a user's saved relationship to a resource and their private state
 - `public_listings`: moderated public catalog entries for resources
+- `public_stacks`: moderated public roots for top-level bookmark stacks
+- `public_stack_items`: moderated membership rows for child bookmarks inside public stacks
 - `user_roles`: application roles such as `admin`
 
 Do not assume the old single-table bookmark model or localStorage-based persistence is still relevant.
@@ -29,9 +31,13 @@ Do not assume the old single-table bookmark model or localStorage-based persiste
 - Signed-in users can switch between `My bookmarks` and `All bookmarks`.
 - A bookmark always exists in the owner's personal library immediately.
 - Public sharing is a separate moderation workflow.
+- Existing private stacks can be submitted as public stacks.
+- If a child resource is already public via `public_listings`, adding it to a public stack should create stack membership by reference rather than duplicating public content.
 - If a link already exists in the public catalog, users may still save it privately, but should not create a second public entry.
 - Only top-level bookmarks are eligible for public sharing.
+- Only top-level bookmarks are eligible to become `public_stacks`; child bookmarks become public through `public_stack_items`.
 - Private state such as notes and read status must never leak into the public catalog.
+- Deleting a stack root is an explicit product flow with user choice, not a silent reliance on `ON DELETE SET NULL`.
 
 ## Important Source Areas
 

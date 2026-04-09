@@ -7,9 +7,18 @@ import {
 } from "./services/bookmarks.service.js";
 import {
   BOOKMARK_ACTION_LABELS,
-  BOOKMARK_STATUS_LABELS,
   BOOKMARK_UI_MESSAGES,
 } from "./constants/ui-strings.js";
+import {
+  getPublicationBadge,
+  getStackPublicationAction,
+  getStandalonePublicationAction,
+} from "./domain/publication-state.js";
+import {
+  STACK_DELETION_EVENT,
+  STACK_DELETION_STATE,
+  transitionStackDeletionState,
+} from "./domain/stack-deletion-state.js";
 import { APP_EVENTS } from "./constants/app-events.js";
 import {
   BOOKMARK_FILTER,
@@ -531,24 +540,35 @@ export class LinkStackBookmarks extends HTMLElement {
       return;
     }
 
-    const status = bookmark.public_share_status;
-    if (status === PUBLIC_SHARE_STATUS.NOT_REQUESTED) {
+    const badge = bookmark.parent_id
+      ? getPublicationBadge({
+          scope: "stack_item",
+          state: bookmark.public_stack_item_status,
+          rejectionReason: bookmark.public_rejection_reason,
+        })
+      : bookmark.public_stack_status &&
+          bookmark.public_stack_status !== PUBLIC_SHARE_STATUS.NOT_REQUESTED
+        ? getPublicationBadge({
+            scope: "stack_root",
+            state: bookmark.public_stack_status,
+            rejectionReason: bookmark.public_rejection_reason,
+          })
+        : getPublicationBadge({
+            scope: "standalone",
+            state: bookmark.public_share_status,
+            isOwner: bookmark.is_public_listing_owner,
+            rejectionReason: bookmark.public_rejection_reason,
+          });
+
+    if (!badge) {
       return;
     }
 
-    const labels = {
-      [PUBLIC_SHARE_STATUS.PENDING]: BOOKMARK_STATUS_LABELS.pendingReview,
-      [PUBLIC_SHARE_STATUS.APPROVED]: bookmark.is_public_listing_owner
-        ? BOOKMARK_STATUS_LABELS.publiclyListed
-        : BOOKMARK_STATUS_LABELS.alreadyPublic,
-      [PUBLIC_SHARE_STATUS.REJECTED]: BOOKMARK_STATUS_LABELS.publicListingRejected,
-    };
-
-    statusTag.textContent = labels[status] || status;
+    statusTag.textContent = badge.label;
     this.#setElementHidden(statusContainer, false);
 
-    if (status === PUBLIC_SHARE_STATUS.REJECTED && bookmark.public_rejection_reason) {
-      message.textContent = bookmark.public_rejection_reason;
+    if (badge.message) {
+      message.textContent = badge.message;
       this.#setElementHidden(message, false);
     }
   }
@@ -588,12 +608,12 @@ export class LinkStackBookmarks extends HTMLElement {
       return;
     }
 
-    if (bookmark.kind === "public") {
+    if (bookmark.kind === "public" || bookmark.kind === "public_stack") {
       this.#setElementHidden(readToggle, true);
       this.#setElementHidden(contextMenuTrigger, true);
       this.#setElementHidden(contextMenu, true);
       contextMenuTrigger.setAttribute("aria-expanded", "false");
-      if (this.#isAuthenticated) {
+      if (this.#isAuthenticated && bookmark.kind === "public") {
         this.#setElementHidden(savePublicCopy, false);
         savePublicCopy.dataset.publicListingId = bookmark.public_listing_id;
       } else {
@@ -616,21 +636,22 @@ export class LinkStackBookmarks extends HTMLElement {
     deleteButton.dataset.id = bookmark.id;
     editButton.dataset.id = bookmark.id;
 
-    const showRequestPublic =
-      !bookmark.parent_id &&
-      bookmark.public_share_status !== PUBLIC_SHARE_STATUS.PENDING &&
-      !(bookmark.public_share_status === PUBLIC_SHARE_STATUS.APPROVED && !bookmark.is_public_listing_owner);
+    const publicationAction =
+      bookmark.public_stack_status &&
+      bookmark.public_stack_status !== PUBLIC_SHARE_STATUS.NOT_REQUESTED
+        ? getStackPublicationAction({
+            currentState: bookmark.public_stack_status,
+          })
+        : getStandalonePublicationAction({
+            currentState: bookmark.public_share_status,
+            isOwner: bookmark.is_public_listing_owner,
+          });
+
+    const showRequestPublic = !bookmark.parent_id && publicationAction.visible;
 
     this.#setElementHidden(requestPublicShare, !showRequestPublic);
     requestPublicShare.dataset.id = bookmark.id;
-
-    if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.REJECTED) {
-      requestPublicShare.textContent = BOOKMARK_ACTION_LABELS.resubmitPublicListing;
-    } else if (bookmark.public_share_status === PUBLIC_SHARE_STATUS.APPROVED) {
-      requestPublicShare.textContent = BOOKMARK_ACTION_LABELS.updatePublicListing;
-    } else {
-      requestPublicShare.textContent = BOOKMARK_ACTION_LABELS.requestPublicListing;
-    }
+    requestPublicShare.textContent = publicationAction.label;
   }
 
   #ensureBookmarksList() {
@@ -803,7 +824,8 @@ export class LinkStackBookmarks extends HTMLElement {
 
     this.#configureActions(fragment, bookmark);
 
-    if (children.length && fragment.querySelector(".stack-toggle")) {
+    const stackChildrenData = children.length ? children : bookmark.children || [];
+    if (stackChildrenData.length && fragment.querySelector(".stack-toggle")) {
       const stackToggle = fragment.querySelector(".stack-toggle");
       const stackChildren = fragment.querySelector(".stack-children");
       if (!stackToggle || !stackChildren) {
@@ -820,7 +842,14 @@ export class LinkStackBookmarks extends HTMLElement {
       }
       stackToggle.setAttribute("aria-controls", stackChildren.id);
 
-      for (const child of children) {
+      const requestPublicShare = fragment.querySelector("#request-public-share");
+      if (bookmark.kind === "bookmark" && requestPublicShare instanceof HTMLButtonElement) {
+        requestPublicShare.textContent = getStackPublicationAction({
+          currentState: bookmark.public_stack_status || PUBLIC_SHARE_STATUS.NOT_REQUESTED,
+        }).label;
+      }
+
+      for (const child of stackChildrenData) {
         const childEntry = await this.#renderEntry(
           this.querySelector(LinkStackBookmarks.#selectors.bookmarkChildTmpl),
           child,
@@ -834,19 +863,37 @@ export class LinkStackBookmarks extends HTMLElement {
   }
 
   async #deleteBookmark(id) {
-    const confirmed = await this.#confirmAction({
-      title: BOOKMARK_UI_MESSAGES.deleteConfirmTitle,
-      message: BOOKMARK_UI_MESSAGES.deleteConfirmMessage,
-      confirmLabel: BOOKMARK_UI_MESSAGES.deleteConfirmAction,
-      cancelLabel: BOOKMARK_UI_MESSAGES.deleteCancelAction,
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
-      await this.#bookmarksService.delete(id);
+      const bookmark = await this.#bookmarksService.getById(id);
+      const hasChildren =
+        this.querySelector(`#stack-children-${bookmark.id}`)?.childElementCount > 0;
+
+      if (hasChildren) {
+        const { strategy, promoteChildId } = await this.#chooseStackDeletionStrategy(
+          bookmark.id,
+        );
+        if (!strategy) {
+          return;
+        }
+
+        await this.#bookmarksService.resolveRootDeletion(id, {
+          strategy,
+          ...(promoteChildId ? { promoteChildId } : {}),
+        });
+      } else {
+        const confirmed = await this.#confirmAction({
+          title: BOOKMARK_UI_MESSAGES.deleteConfirmTitle,
+          message: BOOKMARK_UI_MESSAGES.deleteConfirmMessage,
+          confirmLabel: BOOKMARK_UI_MESSAGES.deleteConfirmAction,
+          cancelLabel: BOOKMARK_UI_MESSAGES.deleteCancelAction,
+        });
+
+        if (!confirmed) {
+          return;
+        }
+
+        await this.#bookmarksService.delete(id);
+      }
       this.#showToast(
         BOOKMARK_UI_MESSAGES.bookmarkDeleted,
         "success",
@@ -912,7 +959,15 @@ export class LinkStackBookmarks extends HTMLElement {
 
   async #requestPublicShare(id) {
     try {
-      await this.#bookmarksService.requestPublicShare(id);
+      const bookmark = await this.#bookmarksService.getById(id);
+      const hasChildren =
+        this.querySelector(`#stack-children-${bookmark.id}`)?.childElementCount > 0;
+
+      if (hasChildren) {
+        await this.#bookmarksService.submitStackForPublication(id);
+      } else {
+        await this.#bookmarksService.requestPublicShare(id);
+      }
       this.#showToast(
         BOOKMARK_ACTION_LABELS.bookmarkSubmittedForReview,
         "success",
@@ -1072,6 +1127,83 @@ export class LinkStackBookmarks extends HTMLElement {
       confirmLabel,
       cancelLabel,
     }) ?? false;
+  }
+
+  async #chooseStackDeletionStrategy(bookmarkId) {
+    let deletionState = transitionStackDeletionState(
+      STACK_DELETION_STATE.idle,
+      STACK_DELETION_EVENT.begin,
+    );
+    const confirmDialog =
+      /** @type {{ choose?: (options: {
+       *   title: string,
+       *   message: string,
+       *   choices: Array<{ value: string, label: string }>,
+       *   cancelLabel?: string,
+       * }) => Promise<string | null> } | null} */ (
+        /** @type {unknown} */ (
+          document.querySelector(LinkStackBookmarks.#selectors.confirmDialog)
+        )
+      );
+
+    const strategy =
+      (await confirmDialog?.choose?.({
+      title: BOOKMARK_UI_MESSAGES.deleteStackTitle,
+      message: BOOKMARK_UI_MESSAGES.deleteStackMessage,
+      choices: [
+        { value: "delete_all", label: BOOKMARK_UI_MESSAGES.deleteStackAllAction },
+        { value: "promote_child", label: BOOKMARK_UI_MESSAGES.deleteStackPromoteAction },
+        {
+          value: "unstack_children",
+          label: BOOKMARK_UI_MESSAGES.deleteStackUnstackAction,
+        },
+      ],
+      cancelLabel: BOOKMARK_UI_MESSAGES.deleteCancelAction,
+    })) ?? null;
+
+    if (!strategy) {
+      transitionStackDeletionState(deletionState, STACK_DELETION_EVENT.cancel);
+      return { strategy: null, promoteChildId: null };
+    }
+
+    deletionState = transitionStackDeletionState(
+      deletionState,
+      STACK_DELETION_EVENT.selectStrategy,
+      { strategy },
+    );
+
+    if (strategy !== "promote_child") {
+      transitionStackDeletionState(deletionState, STACK_DELETION_EVENT.apply);
+      return { strategy, promoteChildId: null };
+    }
+
+    const bookmarks = await this.#bookmarksService.getMyBookmarks(this.#sortBy);
+    const children = bookmarks.filter((bookmark) => bookmark.parent_id === bookmarkId);
+    const promoteChildId =
+      (await confirmDialog?.choose?.({
+        title: "Promote a child",
+        message: "Choose which child should become the new stack root.",
+        choices: children.map((child) => ({
+          value: child.id,
+          label: child.page_title,
+        })),
+        cancelLabel: BOOKMARK_UI_MESSAGES.deleteCancelAction,
+      })) ?? null;
+
+    if (!promoteChildId) {
+      transitionStackDeletionState(deletionState, STACK_DELETION_EVENT.cancel);
+      return {
+        strategy: null,
+        promoteChildId: null,
+      };
+    }
+
+    transitionStackDeletionState(deletionState, STACK_DELETION_EVENT.selectChild);
+
+    return {
+      strategy,
+      promoteChildId,
+    };
   }
 
   #getErrorMessage(error, fallbackMessage) {
