@@ -805,6 +805,62 @@ describe("BookmarksService", () => {
     expect(store.public_stack_items[0].source_public_listing_id).toBe("listing-2");
   });
 
+  it("auto-approves a new child added by an admin under an approved public stack", async () => {
+    currentUser = { id: "user-admin", email: "admin@example.com" };
+
+    store.resources.push({
+      id: "resource-2",
+      normalized_url: "https://stack.example.com/root",
+      canonical_url: "https://stack.example.com/root",
+      page_title: "Root article",
+      meta_description: "Root description",
+      created_at: "2026-03-07T07:00:00Z",
+      updated_at: "2026-03-07T07:00:00Z",
+    });
+    store.bookmarks.push({
+      id: "bookmark-root",
+      user_id: "user-admin",
+      resource_id: "resource-2",
+      parent_id: null,
+      title_override: null,
+      description_override: null,
+      notes: "",
+      tags: ["frontend"],
+      is_read: false,
+      read_at: null,
+      created_at: "2026-03-07T07:10:00Z",
+      updated_at: "2026-03-07T07:10:00Z",
+    });
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-root",
+      owner_user_id: "user-admin",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    await service.create({
+      url: "https://stack.example.com/admin-child",
+      page_title: "Admin child",
+      meta_description: "Admin child description",
+      notes: "",
+      parent_id: "bookmark-root",
+      request_public: false,
+    });
+
+    expect(store.public_stack_items).toHaveLength(1);
+    expect(store.public_stack_items[0].status).toBe(PUBLIC_SHARE_STATUS.APPROVED);
+    expect(store.public_stack_items[0].reviewed_by).toBe("user-admin");
+  });
+
   it("auto-approves public listings submitted by admins", async () => {
     currentUser = { id: "user-admin", email: "admin@example.com" };
     store.resources.push({

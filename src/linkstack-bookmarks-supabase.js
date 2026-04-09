@@ -962,14 +962,17 @@ export class LinkStackBookmarks extends HTMLElement {
       const bookmark = await this.#bookmarksService.getById(id);
       const hasChildren =
         this.querySelector(`#stack-children-${bookmark.id}`)?.childElementCount > 0;
+      let result;
 
       if (hasChildren) {
-        await this.#bookmarksService.submitStackForPublication(id);
+        result = await this.#bookmarksService.submitStackForPublication(id);
       } else {
-        await this.#bookmarksService.requestPublicShare(id);
+        result = await this.#bookmarksService.requestPublicShare(id);
       }
       this.#showToast(
-        BOOKMARK_ACTION_LABELS.bookmarkSubmittedForReview,
+        result?.status === PUBLIC_SHARE_STATUS.APPROVED
+          ? BOOKMARK_UI_MESSAGES.publicShareApproved
+          : BOOKMARK_ACTION_LABELS.bookmarkSubmittedForReview,
         "success",
       );
       window.dispatchEvent(new CustomEvent(APP_EVENTS.bookmarkUpdated));

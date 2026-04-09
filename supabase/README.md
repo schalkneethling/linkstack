@@ -99,6 +99,7 @@ Check the browser console - you should not see any Supabase connection errors.
 
 - The public-stack rollout is additive-first.
 - The migration in `supabase/migrations/20260409_add_public_stacks.sql` creates new tables, indexes, triggers, and policies without mutating or deleting existing bookmark/public data.
+- Existing environments that already applied the public stack rollout also need `supabase/migrations/20260409_alter_public_stack_items_display_order_bigint.sql` to widen `public_stack_items.display_order` from `INTEGER` to `BIGINT`.
 - Existing `bookmarks`, parent-child relationships, and `public_listings` rows are the canonical pre-existing data and must remain unchanged after migration.
 - Before and after running migrations, verify:
   - bookmark counts are unchanged

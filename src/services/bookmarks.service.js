@@ -1141,6 +1141,7 @@ export class BookmarksService {
     }
 
     const user = await this.#requireUser();
+    const isAdmin = await this.#isAdmin(user.id);
     const inspection = await this.inspectUrl(bookmark.url);
 
     if (inspection.personal_duplicate) {
@@ -1170,7 +1171,7 @@ export class BookmarksService {
           createdBookmark,
           parentStack,
           user.id,
-          false,
+          isAdmin,
         );
       }
     }
@@ -1200,6 +1201,7 @@ export class BookmarksService {
     }
 
     const user = await this.#requireUser();
+    const isAdmin = await this.#isAdmin(user.id);
     const duplicate = await this.findBookmarkByResourceId(resourceId, user.id);
 
     if (duplicate) {
@@ -1255,7 +1257,7 @@ export class BookmarksService {
           bookmark,
           parentStack,
           user.id,
-          false,
+          isAdmin,
         );
       }
     }

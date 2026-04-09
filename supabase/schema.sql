@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.public_stack_items (
   page_title TEXT NOT NULL,
   meta_description TEXT DEFAULT '',
   tags TEXT[] NOT NULL DEFAULT '{}',
-  display_order INTEGER NOT NULL DEFAULT 0,
+  display_order BIGINT NOT NULL DEFAULT 0,
   rejection_code TEXT,
   rejection_reason TEXT,
   reviewed_at TIMESTAMPTZ,

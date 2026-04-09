@@ -592,7 +592,9 @@ describe("linkstack-bookmarks", () => {
         public_stack_item_status: "not_requested",
       },
     ]);
-    serviceState.submitStackForPublication.mockResolvedValue(undefined);
+    serviceState.submitStackForPublication.mockResolvedValue({
+      status: "pending",
+    });
     serviceState.getById.mockResolvedValue({
       id: "bookmark-root",
       parent_id: null,
@@ -619,6 +621,76 @@ describe("linkstack-bookmarks", () => {
 
     await vi.waitFor(() => {
       expect(serviceState.submitStackForPublication).toHaveBeenCalledWith("bookmark-root");
+    });
+  });
+
+  it("shows a published toast when an admin auto-approves a public share", async () => {
+    serviceState.getMyBookmarks.mockResolvedValue([
+      {
+        id: "bookmark-root",
+        resource_id: "resource-root",
+        parent_id: null,
+        url: "https://example.com/root",
+        page_title: "Frontend stack",
+        meta_description: "Root description",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+        public_stack_status: "not_requested",
+      },
+      {
+        id: "bookmark-child",
+        resource_id: "resource-child",
+        parent_id: "bookmark-root",
+        url: "https://example.com/child",
+        page_title: "Child bookmark",
+        meta_description: "Child description",
+        tags: [],
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+        public_stack_item_status: "not_requested",
+      },
+    ]);
+    serviceState.getById.mockResolvedValue({
+      id: "bookmark-root",
+      parent_id: null,
+    });
+    serviceState.submitStackForPublication.mockResolvedValue({
+      status: "approved",
+    });
+
+    const toast = /** @type {{ show: ReturnType<typeof vi.fn> }} */ (
+      /** @type {unknown} */ (document.querySelector("linkstack-toast"))
+    );
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: true, scope: "mine" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await element.refresh();
+
+    const publishButton = /** @type {HTMLButtonElement} */ (
+      document.querySelector("#request-public-share")
+    );
+    publishButton.dataset.id = "bookmark-root";
+    publishButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(toast.show).toHaveBeenCalledWith("Published publicly.", "success");
     });
   });
 

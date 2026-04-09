@@ -24,6 +24,7 @@ export const BOOKMARK_UI_MESSAGES = Object.freeze({
   noApprovedPublicBookmarks: "No public bookmarks have been approved yet.",
   noBookmarksPrompt: "Why not add your first?",
   loadBookmarksFailed: "Failed to load bookmarks. Please try refreshing the page.",
+  publicShareApproved: "Published publicly.",
   deleteConfirmTitle: "Remove bookmark",
   deleteConfirmMessage: "Remove this bookmark from your library?",
   deleteConfirmAction: "Remove",
