@@ -207,7 +207,7 @@ export class LinkStackConfirmDialog extends HTMLElement {
     confirmButton.hidden = true;
     cancelButton.textContent = cancelLabel;
 
-    choices.forEach((choice, index) => {
+    choices.forEach((choice) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "button solid";
@@ -217,10 +217,6 @@ export class LinkStackConfirmDialog extends HTMLElement {
       });
       actions.insertBefore(button, cancelButton);
       this.#dynamicChoiceButtons.push(button);
-
-      if (index === 0) {
-        button.focus();
-      }
     });
 
     dialog.showModal();

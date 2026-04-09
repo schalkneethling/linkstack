@@ -835,6 +835,19 @@ export class BookmarksService {
     );
   }
 
+  async #updateBookmarkParent(id, parentId) {
+    const { error } = await this.#supabase
+      .from("bookmarks")
+      .update({ parent_id: parentId })
+      .eq("id", id)
+      .select("id")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+  }
+
   async #syncChildBookmarkIntoPublicStack(bookmark, publicStack, currentUserId, isAdmin) {
     const resourceMap = await this.#fetchResources([bookmark.resource_id]);
     const resource = resourceMap.get(bookmark.resource_id);
@@ -1551,12 +1564,7 @@ export class BookmarksService {
       }
 
       for (const child of children) {
-        await this.#supabase
-          .from("bookmarks")
-          .update({ parent_id: null })
-          .eq("id", child.id)
-          .select("id")
-          .single();
+        await this.#updateBookmarkParent(child.id, null);
       }
 
       await this.delete(id);
@@ -1573,27 +1581,26 @@ export class BookmarksService {
       STACK_DELETION_EVENT.selectChild,
     );
 
-    await this.#supabase
-      .from("bookmarks")
-      .update({ parent_id: null })
-      .eq("id", promotedChild.id)
-      .select("id")
-      .single();
+    await this.#updateBookmarkParent(promotedChild.id, null);
 
     for (const child of children) {
       if (child.id === promoteChildId) {
         continue;
       }
 
-      await this.#supabase
-        .from("bookmarks")
-        .update({ parent_id: promoteChildId })
-        .eq("id", child.id)
-        .select("id")
-        .single();
+      await this.#updateBookmarkParent(child.id, promoteChildId);
     }
 
     if (publicStack) {
+      const promotedItem = await this.#findPublicStackItemByBookmarkId(promoteChildId);
+      if (promotedItem) {
+        await this.#deleteRowById(
+          "public_stack_items",
+          promotedItem.id,
+          "Failed to delete the public stack item for the promoted child.",
+        );
+      }
+
       await this.#upsertPublicStack(
         {
           ...publicStack,
@@ -1699,10 +1706,25 @@ export class BookmarksService {
 
     const stackRootBookmarkIds = stacks.map((stack) => stack.root_bookmark_id);
     const stackItemBookmarkIds = stackItems.map((item) => item.bookmark_id);
+    const combinedBookmarkIds = [
+      ...new Set([...stackRootBookmarkIds, ...stackItemBookmarkIds]),
+    ];
+
+    if (!combinedBookmarkIds.length) {
+      return listings.map((listing) => ({
+        id: listing.public_listing_id,
+        review_kind: "public_listing",
+        url: listing.url,
+        page_title: listing.page_title,
+        meta_description: listing.meta_description,
+        tags: listing.tags,
+      }));
+    }
+
     const { data: pendingBookmarks, error: pendingBookmarkError } = await this.#supabase
       .from("bookmarks")
       .select(BOOKMARK_FIELDS)
-      .in("id", [...new Set([...stackRootBookmarkIds, ...stackItemBookmarkIds])]);
+      .in("id", combinedBookmarkIds);
 
     if (pendingBookmarkError) {
       throw pendingBookmarkError;

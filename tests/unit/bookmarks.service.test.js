@@ -866,6 +866,38 @@ describe("BookmarksService", () => {
     expect(reviewed.rejection_code).toBe("out_of_scope");
   });
 
+  it("returns pending public listings without querying bookmarks when there are no pending stacks", async () => {
+    store.public_listings.push({
+      id: "listing-2",
+      resource_id: "resource-1",
+      submitted_by_user_id: "user-2",
+      submitted_by_bookmark_id: "bookmark-1",
+      status: "pending",
+      page_title: "Existing article",
+      meta_description: "Existing description",
+      tags: ["web"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: null,
+      reviewed_by: null,
+      created_at: "2026-03-07T09:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    const submissions = await service.getPendingPublicSubmissions();
+
+    expect(submissions).toEqual([
+      {
+        id: "listing-2",
+        review_kind: "public_listing",
+        url: "https://example.com/article",
+        page_title: "Existing article",
+        meta_description: "Existing description",
+        tags: ["web"],
+      },
+    ]);
+  });
+
   it("deletes the public listing and resource when removing the submitted bookmark", async () => {
     currentUser = { id: "user-1", email: "owner@example.com" };
 
@@ -1082,6 +1114,24 @@ describe("BookmarksService", () => {
       created_at: "2026-03-07T08:00:00Z",
       updated_at: "2026-03-07T09:00:00Z",
     });
+    store.public_stack_items.push({
+      id: "stack-item-promoted",
+      public_stack_id: "stack-1",
+      bookmark_id: "bookmark-child-a",
+      resource_id: "resource-3",
+      source_public_listing_id: null,
+      status: "approved",
+      page_title: "Child article A",
+      meta_description: "Child A description",
+      tags: [],
+      display_order: 0,
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
 
     await service.resolveRootDeletion("bookmark-root", {
       strategy: "promote_child",
@@ -1095,6 +1145,9 @@ describe("BookmarksService", () => {
     expect(sibling?.parent_id).toBe("bookmark-child-a");
     expect(store.public_stacks[0].root_bookmark_id).toBe("bookmark-child-a");
     expect(store.public_stacks[0].status).toBe(PUBLIC_SHARE_STATUS.PENDING);
+    expect(
+      store.public_stack_items.find((item) => item.bookmark_id === "bookmark-child-a"),
+    ).toBeFalsy();
   });
 
   it("resolves root deletion by unstacking all children", async () => {
