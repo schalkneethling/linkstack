@@ -610,6 +610,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-2",
       status: "approved",
       page_title: "Frontend stack",
@@ -669,6 +670,39 @@ describe("BookmarksService", () => {
     expect(stackEntry?.children[0].page_title).toBe("Child article A");
   });
 
+  it("renders approved public stack URLs from the public stack resource without reading bookmarks", async () => {
+    store.resources.push({
+      id: "resource-2",
+      normalized_url: "https://stack.example.com/root",
+      canonical_url: "https://stack.example.com/root",
+      page_title: "Root article",
+      meta_description: "Root description",
+      created_at: "2026-03-07T07:00:00Z",
+      updated_at: "2026-03-07T07:00:00Z",
+    });
+    store.public_stacks.push({
+      id: "stack-1",
+      root_bookmark_id: "bookmark-missing",
+      resource_id: "resource-2",
+      owner_user_id: "user-2",
+      status: "approved",
+      page_title: "Frontend stack",
+      meta_description: "A curated set of frontend reads",
+      tags: ["frontend"],
+      rejection_code: null,
+      rejection_reason: null,
+      reviewed_at: "2026-03-07T09:00:00Z",
+      reviewed_by: "user-admin",
+      created_at: "2026-03-07T08:00:00Z",
+      updated_at: "2026-03-07T09:00:00Z",
+    });
+
+    const catalog = await service.getPublicCatalog();
+    const stackEntry = catalog.find((entry) => entry.kind === "public_stack");
+
+    expect(stackEntry?.url).toBe("https://stack.example.com/root");
+  });
+
   it("queues a new private child for review when added under an approved public stack", async () => {
     store.resources.push({
       id: "resource-2",
@@ -696,6 +730,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-2",
       status: "approved",
       page_title: "Frontend stack",
@@ -761,6 +796,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-2",
       status: "approved",
       page_title: "Frontend stack",
@@ -834,6 +870,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-admin",
       status: "approved",
       page_title: "Frontend stack",
@@ -1042,6 +1079,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-2",
       status: "approved",
       page_title: "Frontend stack",
@@ -1158,6 +1196,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-2",
       status: "approved",
       page_title: "Frontend stack",
@@ -1260,6 +1299,7 @@ describe("BookmarksService", () => {
     store.public_stacks.push({
       id: "stack-1",
       root_bookmark_id: "bookmark-root",
+      resource_id: "resource-2",
       owner_user_id: "user-2",
       status: "approved",
       page_title: "Frontend stack",

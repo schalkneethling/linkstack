@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.public_listings (
 CREATE TABLE IF NOT EXISTS public.public_stacks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   root_bookmark_id UUID NOT NULL UNIQUE REFERENCES public.bookmarks(id) ON DELETE CASCADE,
+  resource_id UUID NOT NULL REFERENCES public.resources(id) ON DELETE CASCADE,
   owner_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
   page_title TEXT NOT NULL,
@@ -132,6 +133,8 @@ CREATE INDEX IF NOT EXISTS idx_public_stacks_status
   ON public.public_stacks(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_public_stacks_owner
   ON public.public_stacks(owner_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_stacks_resource
+  ON public.public_stacks(resource_id);
 CREATE INDEX IF NOT EXISTS idx_public_stack_items_status
   ON public.public_stack_items(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_public_stack_items_stack
@@ -228,6 +231,18 @@ CREATE POLICY "resource owners and public catalog can read resources"
       FROM public.public_listings
       WHERE public_listings.resource_id = resources.id
         AND public_listings.status = 'approved'
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM public.public_stacks
+      WHERE public_stacks.resource_id = resources.id
+        AND public_stacks.status = 'approved'
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM public.public_stack_items
+      WHERE public_stack_items.resource_id = resources.id
+        AND public_stack_items.status = 'approved'
     )
   );
 
@@ -333,6 +348,7 @@ CREATE POLICY "owners can submit public stacks"
       WHERE bookmarks.id = root_bookmark_id
         AND bookmarks.user_id = auth.uid()
         AND bookmarks.parent_id IS NULL
+        AND bookmarks.resource_id = public_stacks.resource_id
     )
   );
 
