@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.public_stacks (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   root_bookmark_id UUID NOT NULL UNIQUE REFERENCES public.bookmarks(id) ON DELETE CASCADE,
+  resource_id UUID NOT NULL REFERENCES public.resources(id) ON DELETE CASCADE,
   owner_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
   page_title TEXT NOT NULL,
@@ -28,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.public_stack_items (
   page_title TEXT NOT NULL,
   meta_description TEXT DEFAULT '',
   tags TEXT[] NOT NULL DEFAULT '{}',
-  display_order INTEGER NOT NULL DEFAULT 0,
+  display_order BIGINT NOT NULL DEFAULT 0,
   rejection_code TEXT,
   rejection_reason TEXT,
   reviewed_at TIMESTAMPTZ,
@@ -42,6 +43,8 @@ CREATE INDEX IF NOT EXISTS idx_public_stacks_status
   ON public.public_stacks(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_public_stacks_owner
   ON public.public_stacks(owner_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_stacks_resource
+  ON public.public_stacks(resource_id);
 CREATE INDEX IF NOT EXISTS idx_public_stack_items_status
   ON public.public_stack_items(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_public_stack_items_stack
@@ -84,6 +87,7 @@ CREATE POLICY "owners can submit public stacks"
       WHERE bookmarks.id = root_bookmark_id
         AND bookmarks.user_id = auth.uid()
         AND bookmarks.parent_id IS NULL
+        AND bookmarks.resource_id = public_stacks.resource_id
     )
   );
 

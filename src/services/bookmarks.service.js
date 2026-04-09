@@ -89,6 +89,7 @@ const PUBLIC_LISTING_FIELDS = [
 const PUBLIC_STACK_FIELDS = [
   "id",
   "root_bookmark_id",
+  "resource_id",
   "owner_user_id",
   "status",
   "page_title",
@@ -475,11 +476,11 @@ export class BookmarksService {
     };
   }
 
-  #toPublicStackViewModel(stack, rootBookmark, resource, children = []) {
+  #toPublicStackViewModel(stack, resource, children = []) {
     return {
       id: `public-stack-${stack.id}`,
       public_stack_id: stack.id,
-      resource_id: rootBookmark?.resource_id || null,
+      resource_id: stack.resource_id,
       bookmark_id: stack.root_bookmark_id,
       url: resource?.canonical_url,
       normalized_url: resource?.normalized_url,
@@ -867,7 +868,9 @@ export class BookmarksService {
       meta_description:
         bookmark.description_override || resource?.meta_description || "",
       tags: bookmark.tags || [],
-      display_order: bookmark.created_at ? Date.parse(bookmark.created_at) : 0,
+      display_order: bookmark.created_at
+        ? Date.parse(bookmark.created_at)
+        : Date.now(),
       rejection_code: null,
       rejection_reason: null,
       reviewed_at:
@@ -1017,21 +1020,6 @@ export class BookmarksService {
       return standaloneEntries;
     }
 
-    const rootBookmarkIds = stacks.map((stack) => stack.root_bookmark_id);
-    const { data: rootBookmarkData, error: rootBookmarkError } = await this.#supabase
-      .from("bookmarks")
-      .select(BOOKMARK_FIELDS)
-      .in("id", rootBookmarkIds);
-
-    if (rootBookmarkError) {
-      throw rootBookmarkError;
-    }
-
-    const rootBookmarks = this.#requireValid(
-      validateBookmarkRecords(rootBookmarkData || []),
-      "Received invalid bookmarks from the database.",
-    );
-    const rootBookmarksById = new Map(rootBookmarks.map((bookmark) => [bookmark.id, bookmark]));
     const stackItems = await this.#fetchPublicStackItemsByStackIds(
       stacks.map((stack) => stack.id),
       [PUBLIC_SHARE_STATUS.APPROVED],
@@ -1040,7 +1028,7 @@ export class BookmarksService {
       stackItems.map((item) => item.resource_id),
     );
     const stackRootResources = await this.#fetchResources(
-      rootBookmarks.map((bookmark) => bookmark.resource_id),
+      stacks.map((stack) => stack.resource_id),
     );
     const itemsByStackId = stackItems.reduce((map, item) => {
       if (!map.has(item.public_stack_id)) {
@@ -1051,10 +1039,7 @@ export class BookmarksService {
     }, new Map());
 
     const stackEntries = stacks.map((stack) => {
-      const rootBookmark = rootBookmarksById.get(stack.root_bookmark_id);
-      const rootResource = rootBookmark
-        ? stackRootResources.get(rootBookmark.resource_id)
-        : null;
+      const rootResource = stackRootResources.get(stack.resource_id);
       const children = (itemsByStackId.get(stack.id) || [])
         .sort((left, right) => left.display_order - right.display_order)
         .map((item) => {
@@ -1085,7 +1070,7 @@ export class BookmarksService {
           };
         });
 
-      return this.#toPublicStackViewModel(stack, rootBookmark, rootResource, children);
+      return this.#toPublicStackViewModel(stack, rootResource, children);
     });
 
     return this.#sortFeed([...standaloneEntries, ...stackEntries], sortBy);
@@ -1141,6 +1126,7 @@ export class BookmarksService {
     }
 
     const user = await this.#requireUser();
+    const isAdmin = await this.#isAdmin(user.id);
     const inspection = await this.inspectUrl(bookmark.url);
 
     if (inspection.personal_duplicate) {
@@ -1170,7 +1156,7 @@ export class BookmarksService {
           createdBookmark,
           parentStack,
           user.id,
-          false,
+          isAdmin,
         );
       }
     }
@@ -1200,6 +1186,7 @@ export class BookmarksService {
     }
 
     const user = await this.#requireUser();
+    const isAdmin = await this.#isAdmin(user.id);
     const duplicate = await this.findBookmarkByResourceId(resourceId, user.id);
 
     if (duplicate) {
@@ -1255,7 +1242,7 @@ export class BookmarksService {
           bookmark,
           parentStack,
           user.id,
-          false,
+          isAdmin,
         );
       }
     }
@@ -1487,6 +1474,7 @@ export class BookmarksService {
     const now = new Date().toISOString();
     const stackPayload = {
       root_bookmark_id: rootBookmark.id,
+      resource_id: rootBookmark.resource_id,
       owner_user_id: user.id,
       status: nextStatus,
       page_title: rootBookmark.page_title,
@@ -1605,6 +1593,7 @@ export class BookmarksService {
         {
           ...publicStack,
           root_bookmark_id: promoteChildId,
+          resource_id: promotedChild.resource_id,
           owner_user_id: user.id,
           status: PUBLIC_SHARE_STATUS.PENDING,
           rejection_code: null,
@@ -1704,13 +1693,7 @@ export class BookmarksService {
       })(),
     ]);
 
-    const stackRootBookmarkIds = stacks.map((stack) => stack.root_bookmark_id);
-    const stackItemBookmarkIds = stackItems.map((item) => item.bookmark_id);
-    const combinedBookmarkIds = [
-      ...new Set([...stackRootBookmarkIds, ...stackItemBookmarkIds]),
-    ];
-
-    if (!combinedBookmarkIds.length) {
+    if (!stacks.length && !stackItems.length) {
       return listings.map((listing) => ({
         id: listing.public_listing_id,
         review_kind: "public_listing",
@@ -1721,22 +1704,13 @@ export class BookmarksService {
       }));
     }
 
-    const { data: pendingBookmarks, error: pendingBookmarkError } = await this.#supabase
-      .from("bookmarks")
-      .select(BOOKMARK_FIELDS)
-      .in("id", combinedBookmarkIds);
-
-    if (pendingBookmarkError) {
-      throw pendingBookmarkError;
-    }
-
-    const bookmarkRows = this.#requireValid(
-      validateBookmarkRecords(pendingBookmarks || []),
-      "Received invalid bookmarks from the database.",
-    );
-    const bookmarksById = new Map(bookmarkRows.map((bookmark) => [bookmark.id, bookmark]));
     const stackAndItemResources = await this.#fetchResources(
-      bookmarkRows.map((bookmark) => bookmark.resource_id),
+      [
+        ...new Set([
+          ...stacks.map((stack) => stack.resource_id),
+          ...stackItems.map((item) => item.resource_id),
+        ]),
+      ],
     );
 
     return [
@@ -1749,10 +1723,7 @@ export class BookmarksService {
         tags: listing.tags,
       })),
       ...stacks.map((stack) => {
-        const bookmark = bookmarksById.get(stack.root_bookmark_id);
-        const resource = bookmark
-          ? stackAndItemResources.get(bookmark.resource_id)
-          : null;
+        const resource = stackAndItemResources.get(stack.resource_id);
         return {
           id: stack.id,
           review_kind: "public_stack",
@@ -1763,10 +1734,7 @@ export class BookmarksService {
         };
       }),
       ...stackItems.map((item) => {
-        const bookmark = bookmarksById.get(item.bookmark_id);
-        const resource = bookmark
-          ? stackAndItemResources.get(bookmark.resource_id)
-          : null;
+        const resource = stackAndItemResources.get(item.resource_id);
         return {
           id: item.id,
           review_kind: "public_stack_item",

@@ -128,6 +128,7 @@ const publicListingReferenceSchema = v.object({
 const publicStackRecordSchema = v.object({
   id: v.string(),
   root_bookmark_id: v.string(),
+  resource_id: v.string(),
   owner_user_id: v.string(),
   status: v.picklist(["pending", "approved", "rejected"]),
   page_title: v.string(),
