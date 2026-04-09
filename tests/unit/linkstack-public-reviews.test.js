@@ -2,8 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const serviceState = vi.hoisted(() => ({
-  getPendingPublicListings: vi.fn(),
-  reviewPublicShare: vi.fn(),
+  getPendingPublicSubmissions: vi.fn(),
+  reviewPublicSubmission: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase.js", () => ({
@@ -12,20 +12,20 @@ vi.mock("../../src/lib/supabase.js", () => ({
 
 vi.mock("../../src/services/bookmarks.service.js", () => ({
   BookmarksService: class {
-    getPendingPublicListings(...args) {
-      return serviceState.getPendingPublicListings(...args);
+    getPendingPublicSubmissions(...args) {
+      return serviceState.getPendingPublicSubmissions(...args);
     }
 
-    reviewPublicShare(...args) {
-      return serviceState.reviewPublicShare(...args);
+    reviewPublicSubmission(...args) {
+      return serviceState.reviewPublicSubmission(...args);
     }
   },
 }));
 
 describe("linkstack-public-reviews", () => {
   beforeEach(async () => {
-    serviceState.getPendingPublicListings.mockReset();
-    serviceState.reviewPublicShare.mockReset();
+    serviceState.getPendingPublicSubmissions.mockReset();
+    serviceState.reviewPublicSubmission.mockReset();
     document.body.innerHTML = `
       <div id="admin-panel">
         <linkstack-public-reviews>
@@ -45,13 +45,22 @@ describe("linkstack-public-reviews", () => {
   });
 
   it("renders pending public reviews", async () => {
-    serviceState.getPendingPublicListings.mockResolvedValue([
+    serviceState.getPendingPublicSubmissions.mockResolvedValue([
       {
-        public_listing_id: "listing-1",
+        id: "listing-1",
+        review_kind: "public_listing",
         url: "https://example.com/article",
         page_title: "Example article",
         meta_description: "A short description",
         tags: ["web", "testing"],
+      },
+      {
+        id: "stack-1",
+        review_kind: "public_stack",
+        url: "https://example.com/stack",
+        page_title: "Frontend stack",
+        meta_description: "A short description",
+        tags: ["frontend"],
       },
     ]);
 
@@ -62,19 +71,20 @@ describe("linkstack-public-reviews", () => {
     await element.render();
 
     expect(document.querySelector("#public-review-summary")?.textContent).toContain(
-      "1 bookmark waiting for review.",
+      "2 bookmarks waiting for review.",
     );
-    expect(document.querySelectorAll(".review-card")).toHaveLength(1);
+    expect(document.querySelectorAll(".review-card")).toHaveLength(2);
     expect(document.querySelector(".review-domain")?.textContent).toBe("example.com");
     expect(document.querySelector(".bookmark-title")?.textContent).toBe("Example article");
-    expect(document.querySelectorAll(".bookmark-tags .tag")).toHaveLength(2);
+    expect(document.querySelectorAll(".bookmark-tags .tag")).toHaveLength(3);
   });
 
   it("requires a rejection reason before rejecting a bookmark", async () => {
-    serviceState.reviewPublicShare.mockResolvedValue(undefined);
-    serviceState.getPendingPublicListings.mockResolvedValue([
+    serviceState.reviewPublicSubmission.mockResolvedValue(undefined);
+    serviceState.getPendingPublicSubmissions.mockResolvedValue([
       {
-        public_listing_id: "listing-1",
+        id: "listing-1",
+        review_kind: "public_listing",
         url: "https://example.com/article",
         page_title: "Example article",
         meta_description: "A short description",
@@ -95,7 +105,7 @@ describe("linkstack-public-reviews", () => {
       .querySelector('[data-review-action="reject"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
-    expect(serviceState.reviewPublicShare).not.toHaveBeenCalled();
+    expect(serviceState.reviewPublicSubmission).not.toHaveBeenCalled();
     expect(toast.show).toHaveBeenCalledWith(
       "Choose a rejection reason before rejecting this bookmark.",
       "warning",
@@ -103,7 +113,7 @@ describe("linkstack-public-reviews", () => {
   });
 
   it("moves focus to the review summary when the panel opens", async () => {
-    serviceState.getPendingPublicListings.mockResolvedValue([]);
+    serviceState.getPendingPublicSubmissions.mockResolvedValue([]);
 
     const summary = /** @type {HTMLElement} */ (
       document.querySelector("#public-review-summary")
@@ -125,5 +135,37 @@ describe("linkstack-public-reviews", () => {
 
     expect(summary.tabIndex).toBe(-1);
     expect(focusSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("reviews stack submissions through the unified moderation method", async () => {
+    serviceState.reviewPublicSubmission.mockResolvedValue(undefined);
+    serviceState.getPendingPublicSubmissions.mockResolvedValue([
+      {
+        id: "stack-1",
+        review_kind: "public_stack",
+        url: "https://example.com/stack",
+        page_title: "Frontend stack",
+        meta_description: "A short description",
+        tags: [],
+      },
+    ]);
+
+    const element = /** @type {HTMLElement & { render: () => Promise<void> }} */ (
+      document.querySelector("linkstack-public-reviews")
+    );
+
+    await element.render();
+
+    document
+      .querySelector('[data-review-action="approve"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(serviceState.reviewPublicSubmission).toHaveBeenCalledWith("public_stack", "stack-1", {
+        decision: "approve",
+        rejectionCode: null,
+        rejectionReason: "",
+      });
+    });
   });
 });

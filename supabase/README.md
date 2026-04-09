@@ -70,17 +70,41 @@ Check the browser console - you should not see any Supabase connection errors.
 ### Check Database
 
 1. Go to Supabase dashboard → Table Editor
-2. You should see the `bookmarks` table
-3. Click on it to see the schema
+2. You should see the core tables:
+   - `resources`
+   - `bookmarks`
+   - `public_listings`
+   - `public_stacks`
+   - `public_stack_items`
+3. Click into each table to verify the schema loaded correctly
 
 ### Check RLS Policies
 
 1. Go to Supabase dashboard → Authentication → Policies
-2. You should see 4 policies for the bookmarks table:
-   - Users can view their own bookmarks
-   - Users can insert their own bookmarks
-   - Users can update their own bookmarks
-   - Users can delete their own bookmarks
+2. You should see policies for:
+   - `bookmarks`: owners manage their own private library rows
+   - `public_listings`: approved standalone public links are public, owners/admins manage submissions
+   - `public_stacks`: approved stack roots are public, owners/admins manage submissions
+   - `public_stack_items`: approved stack membership rows are public, owners/admins manage submissions
+
+## Public Stack Notes
+
+- `public_listings` remain the standalone public catalog for individual resources.
+- `public_stacks` represent moderated public stack roots tied to top-level bookmarks.
+- `public_stack_items` represent membership inside a public stack.
+- If a child resource is already approved in `public_listings`, adding it to a public stack should create a membership/reference row, not duplicate the resource or the standalone listing.
+- Public rendering must come from public tables and snapshots, never from private bookmark fields such as notes or read status.
+
+## Migration Safety
+
+- The public-stack rollout is additive-first.
+- The migration in `supabase/migrations/20260409_add_public_stacks.sql` creates new tables, indexes, triggers, and policies without mutating or deleting existing bookmark/public data.
+- Existing `bookmarks`, parent-child relationships, and `public_listings` rows are the canonical pre-existing data and must remain unchanged after migration.
+- Before and after running migrations, verify:
+  - bookmark counts are unchanged
+  - parent-child bookmark counts are unchanged
+  - `public_listings` counts and statuses are unchanged
+  - no unexpected rows were created in `public_stacks` or `public_stack_items`
 
 ## Migration from localStorage (Optional)
 

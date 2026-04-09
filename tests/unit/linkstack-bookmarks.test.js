@@ -4,10 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const serviceState = vi.hoisted(() => ({
   getPublicCatalog: vi.fn(),
   getMyBookmarks: vi.fn(),
+  getById: vi.fn(),
   delete: vi.fn(),
+  resolveRootDeletion: vi.fn(),
   toggleReadStatus: vi.fn(),
   savePublicCopy: vi.fn(),
   requestPublicShare: vi.fn(),
+  submitStackForPublication: vi.fn(),
 }));
 
 vi.mock("../../src/lib/supabase.js", () => ({
@@ -30,8 +33,16 @@ vi.mock("../../src/services/bookmarks.service.js", () => ({
       return serviceState.getMyBookmarks(...args);
     }
 
+    getById(...args) {
+      return serviceState.getById(...args);
+    }
+
     delete(...args) {
       return serviceState.delete(...args);
+    }
+
+    resolveRootDeletion(...args) {
+      return serviceState.resolveRootDeletion(...args);
     }
 
     toggleReadStatus(...args) {
@@ -44,6 +55,10 @@ vi.mock("../../src/services/bookmarks.service.js", () => ({
 
     requestPublicShare(...args) {
       return serviceState.requestPublicShare(...args);
+    }
+
+    submitStackForPublication(...args) {
+      return serviceState.submitStackForPublication(...args);
     }
   },
 }));
@@ -152,10 +167,13 @@ describe("linkstack-bookmarks", () => {
   beforeEach(async () => {
     serviceState.getPublicCatalog.mockReset();
     serviceState.getMyBookmarks.mockReset();
+    serviceState.getById.mockReset();
     serviceState.delete.mockReset();
+    serviceState.resolveRootDeletion.mockReset();
     serviceState.toggleReadStatus.mockReset();
     serviceState.savePublicCopy.mockReset();
     serviceState.requestPublicShare.mockReset();
+    serviceState.submitStackForPublication.mockReset();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
       value: {
@@ -167,10 +185,14 @@ describe("linkstack-bookmarks", () => {
     });
     createBookmarksFixture();
 
-    const confirmDialog = /** @type {HTMLElement & { confirm?: ReturnType<typeof vi.fn> }} */ (
+    const confirmDialog = /** @type {HTMLElement & {
+     *   confirm?: ReturnType<typeof vi.fn>,
+     *   choose?: ReturnType<typeof vi.fn>,
+     * }} */ (
       document.querySelector("linkstack-confirm-dialog")
     );
     confirmDialog.confirm = /** @type {typeof confirmDialog.confirm} */ (vi.fn());
+    confirmDialog.choose = vi.fn();
 
     const toast = /** @type {HTMLElement & { show?: ReturnType<typeof vi.fn> }} */ (
       document.querySelector("linkstack-toast")
@@ -314,6 +336,10 @@ describe("linkstack-bookmarks", () => {
       },
     ]);
     serviceState.delete.mockResolvedValue(undefined);
+    serviceState.getById.mockResolvedValue({
+      id: "bookmark-1",
+      parent_id: null,
+    });
 
     const confirmDialog = /** @type {{ confirm: ReturnType<typeof vi.fn> }} */ (
       /** @type {unknown} */ (document.querySelector("linkstack-confirm-dialog"))
@@ -378,6 +404,10 @@ describe("linkstack-bookmarks", () => {
         public_share_status: "not_requested",
       },
     ]);
+    serviceState.getById.mockResolvedValue({
+      id: "bookmark-1",
+      parent_id: null,
+    });
 
     const confirmDialog = /** @type {{ confirm: ReturnType<typeof vi.fn> }} */ (
       /** @type {unknown} */ (document.querySelector("linkstack-confirm-dialog"))
@@ -479,5 +509,189 @@ describe("linkstack-bookmarks", () => {
     expect(stackToggle?.querySelector(".stack-label")?.textContent).toBe(
       "Hide stack",
     );
+  });
+
+  it("renders public stacks with approved children in the public catalog", async () => {
+    serviceState.getPublicCatalog.mockResolvedValue([
+      {
+        id: "public-stack-1",
+        public_stack_id: "stack-1",
+        resource_id: "resource-root",
+        url: "https://example.com/root",
+        page_title: "Frontend stack",
+        meta_description: "A curated set of frontend reads",
+        tags: ["frontend"],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "public_stack",
+        children: [
+          {
+            id: "public-stack-item-1",
+            public_stack_item_id: "stack-item-1",
+            resource_id: "resource-child",
+            url: "https://example.com/child",
+            page_title: "Approved child",
+            meta_description: "Child description",
+            tags: [],
+            created_at: "2026-03-07T07:11:00Z",
+            updated_at: "2026-03-07T07:11:00Z",
+            kind: "public",
+            notes: "",
+          },
+        ],
+      },
+    ]);
+
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    await element.refresh();
+
+    expect(
+      /** @type {HTMLElement | null} */ (document.querySelector(".stack-toggle"))?.hidden,
+    ).toBe(false);
+    expect(document.querySelectorAll(".stack-children .bookmark-child")).toHaveLength(1);
+    expect(document.querySelector(".stack-children .bookmark-title")?.textContent).toBe(
+      "Approved child",
+    );
+  });
+
+  it("submits a private stack for publication from the root action", async () => {
+    serviceState.getMyBookmarks.mockResolvedValue([
+      {
+        id: "bookmark-root",
+        resource_id: "resource-root",
+        parent_id: null,
+        url: "https://example.com/root",
+        page_title: "Frontend stack",
+        meta_description: "Root description",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+        public_stack_status: "not_requested",
+      },
+      {
+        id: "bookmark-child",
+        resource_id: "resource-child",
+        parent_id: "bookmark-root",
+        url: "https://example.com/child",
+        page_title: "Child bookmark",
+        meta_description: "Child description",
+        tags: [],
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+        public_stack_item_status: "not_requested",
+      },
+    ]);
+    serviceState.submitStackForPublication.mockResolvedValue(undefined);
+    serviceState.getById.mockResolvedValue({
+      id: "bookmark-root",
+      parent_id: null,
+    });
+
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: true, scope: "mine" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await element.refresh();
+
+    const publishButton = /** @type {HTMLButtonElement} */ (
+      document.querySelector("#request-public-share")
+    );
+    publishButton.dataset.id = "bookmark-root";
+    publishButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(serviceState.submitStackForPublication).toHaveBeenCalledWith("bookmark-root");
+    });
+  });
+
+  it("shows a stack-resolution choice before deleting a root bookmark", async () => {
+    serviceState.getMyBookmarks.mockResolvedValue([
+      {
+        id: "bookmark-root",
+        resource_id: "resource-root",
+        parent_id: null,
+        url: "https://example.com/root",
+        page_title: "Frontend stack",
+        meta_description: "Root description",
+        tags: [],
+        created_at: "2026-03-07T07:10:00Z",
+        updated_at: "2026-03-07T07:10:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+        public_stack_status: "approved",
+      },
+      {
+        id: "bookmark-child",
+        resource_id: "resource-child",
+        parent_id: "bookmark-root",
+        url: "https://example.com/child",
+        page_title: "Child bookmark",
+        meta_description: "Child description",
+        tags: [],
+        created_at: "2026-03-07T07:11:00Z",
+        updated_at: "2026-03-07T07:11:00Z",
+        kind: "bookmark",
+        notes: "",
+        is_read: false,
+        public_share_status: "not_requested",
+        public_stack_item_status: "approved",
+      },
+    ]);
+    serviceState.resolveRootDeletion.mockResolvedValue(undefined);
+    serviceState.getById.mockResolvedValue({
+      id: "bookmark-root",
+      parent_id: null,
+    });
+
+    const confirmDialog = /** @type {{ choose: ReturnType<typeof vi.fn> }} */ (
+      /** @type {unknown} */ (document.querySelector("linkstack-confirm-dialog"))
+    );
+    confirmDialog.choose.mockResolvedValue("unstack_children");
+
+    const element = /** @type {HTMLElement & { refresh: () => Promise<void> }} */ (
+      document.querySelector("linkstack-bookmarks")
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("auth-state-changed", {
+        detail: { isAuthenticated: true, scope: "mine" },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    await element.refresh();
+
+    const deleteButton = /** @type {HTMLButtonElement} */ (
+      document.querySelector("#delete-bookmark")
+    );
+    deleteButton.dataset.id = "bookmark-root";
+    deleteButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(confirmDialog.choose).toHaveBeenCalledTimes(1);
+    });
+    expect(serviceState.resolveRootDeletion).toHaveBeenCalledWith("bookmark-root", {
+      strategy: "unstack_children",
+    });
   });
 });

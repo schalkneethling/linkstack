@@ -59,6 +59,22 @@ const reviewPublicShareSchema = v.pipe(
   ),
 );
 
+const submitPublicStackSchema = v.object({
+  bookmarkId: v.string(),
+});
+
+const resolveRootDeletionSchema = v.pipe(
+  v.object({
+    strategy: v.picklist(["delete_all", "promote_child", "unstack_children"]),
+    promoteChildId: v.optional(v.nullable(v.string())),
+  }),
+  v.check(
+    (input) =>
+      input.strategy !== "promote_child" || Boolean(input.promoteChildId?.trim()),
+    "Choose a child to promote before deleting this stack root.",
+  ),
+);
+
 const bookmarkMetadataSchema = v.object({
   pageTitle: v.string(),
   metaDescription: v.string(),
@@ -109,6 +125,41 @@ const publicListingReferenceSchema = v.object({
   resource_id: v.string(),
 });
 
+const publicStackRecordSchema = v.object({
+  id: v.string(),
+  root_bookmark_id: v.string(),
+  owner_user_id: v.string(),
+  status: v.picklist(["pending", "approved", "rejected"]),
+  page_title: v.string(),
+  meta_description: v.string(),
+  tags: v.array(v.string()),
+  rejection_code: v.nullable(v.string()),
+  rejection_reason: v.nullable(v.string()),
+  reviewed_at: v.nullable(v.string()),
+  reviewed_by: v.nullable(v.string()),
+  created_at: v.string(),
+  updated_at: v.string(),
+});
+
+const publicStackItemRecordSchema = v.object({
+  id: v.string(),
+  public_stack_id: v.string(),
+  bookmark_id: v.string(),
+  resource_id: v.string(),
+  source_public_listing_id: v.nullable(v.string()),
+  status: v.picklist(["pending", "approved", "rejected"]),
+  page_title: v.string(),
+  meta_description: v.string(),
+  tags: v.array(v.string()),
+  display_order: v.number(),
+  rejection_code: v.nullable(v.string()),
+  rejection_reason: v.nullable(v.string()),
+  reviewed_at: v.nullable(v.string()),
+  reviewed_by: v.nullable(v.string()),
+  created_at: v.string(),
+  updated_at: v.string(),
+});
+
 const bookmarkReferenceSchema = v.object({
   id: v.string(),
 });
@@ -154,6 +205,20 @@ export function validateAddExistingPublicBookmarkInput(input) {
  */
 export function validateReviewPublicShareInput(input) {
   return v.safeParse(reviewPublicShareSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateSubmitPublicStackInput(input) {
+  return v.safeParse(submitPublicStackSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validateResolveRootDeletionInput(input) {
+  return v.safeParse(resolveRootDeletionSchema, input);
 }
 
 /**
@@ -210,6 +275,34 @@ export function validatePublicListingRecords(input) {
  */
 export function validatePublicListingReference(input) {
   return v.safeParse(publicListingReferenceSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicStackRecord(input) {
+  return v.safeParse(publicStackRecordSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicStackRecords(input) {
+  return v.safeParse(v.array(publicStackRecordSchema), input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicStackItemRecord(input) {
+  return v.safeParse(publicStackItemRecordSchema, input);
+}
+
+/**
+ * @param {unknown} input
+ */
+export function validatePublicStackItemRecords(input) {
+  return v.safeParse(v.array(publicStackItemRecordSchema), input);
 }
 
 /**

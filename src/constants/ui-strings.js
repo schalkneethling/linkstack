@@ -5,8 +5,11 @@ export const BOOKMARK_ACTION_LABELS = Object.freeze({
   markAsUnread: "Mark as Unread",
   saveToMyBookmarks: "Save to My Bookmarks",
   requestPublicListing: "Request Public Listing",
+  requestPublicStack: "Publish Stack",
   updatePublicListing: "Update Public Listing",
+  updatePublicStack: "Update Public Stack",
   resubmitPublicListing: "Resubmit Public Listing",
+  resubmitPublicStack: "Resubmit Public Stack",
   bookmarkSubmittedForReview: "Bookmark submitted for public review",
 });
 
@@ -27,6 +30,11 @@ export const BOOKMARK_UI_MESSAGES = Object.freeze({
   deleteCancelAction: "Cancel",
   bookmarkDeleted: "Bookmark deleted successfully",
   deleteFailed: "Failed to delete bookmark. Please try again.",
+  deleteStackTitle: "Delete stack root",
+  deleteStackMessage: "Choose what should happen to the rest of the stack.",
+  deleteStackAllAction: "Delete entire stack",
+  deleteStackPromoteAction: "Promote a child",
+  deleteStackUnstackAction: "Remove root and keep children",
   readStatusFailed: "Failed to update read status. Please try again.",
   saveBookmarkFailed: "Failed to save bookmark.",
   submitForReviewFailed: "Failed to submit bookmark for review.",

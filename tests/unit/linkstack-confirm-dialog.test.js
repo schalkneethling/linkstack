@@ -98,4 +98,33 @@ describe("linkstack-confirm-dialog", () => {
 
     await expect(resultPromise).resolves.toBe(false);
   });
+
+  it("resolves a selected option when using the chooser flow", async () => {
+    const confirmDialog = /** @type {HTMLElement & {
+     *   choose: (options: {
+     *     title: string,
+     *     message: string,
+     *     choices: Array<{ value: string, label: string }>,
+     *   }) => Promise<string | null>
+     * }} */ (document.querySelector("linkstack-confirm-dialog"));
+    const resultPromise = confirmDialog.choose({
+      title: "Delete stack root",
+      message: "Choose what should happen to the rest of the stack.",
+      choices: [
+        { value: "delete_all", label: "Delete entire stack" },
+        { value: "unstack_children", label: "Remove root and keep children" },
+      ],
+    });
+
+    const choiceButton = /** @type {HTMLButtonElement | undefined} */ (
+      Array.from(document.querySelectorAll(".bookmark-actions button")).find(
+        (button) => button.textContent === "Delete entire stack",
+      )
+    );
+
+    expect(choiceButton?.textContent).toBe("Delete entire stack");
+    choiceButton.click();
+
+    await expect(resultPromise).resolves.toBe("delete_all");
+  });
 });

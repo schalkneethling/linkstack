@@ -15,7 +15,7 @@ import { STORAGE_KEYS } from "../../src/constants/storage-keys.js";
 
 describe("highlight theme helpers", () => {
   beforeEach(() => {
-    localStorage.clear();
+    window.localStorage?.clear?.();
     document.documentElement.style.removeProperty("--ls-accent");
     document.documentElement.style.removeProperty("--ls-accent-hover");
     document.documentElement.style.removeProperty("--ls-accent-subtle");

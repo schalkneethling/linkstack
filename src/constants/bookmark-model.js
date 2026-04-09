@@ -15,6 +15,7 @@ export const PUBLIC_SHARE_STATUS = Object.freeze({
 export const BOOKMARK_KIND = Object.freeze({
   bookmark: "bookmark",
   public: "public",
+  publicStack: "public_stack",
 });
 
 export const BOOKMARK_OWNERSHIP = Object.freeze({
