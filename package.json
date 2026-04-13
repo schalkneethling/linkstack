@@ -62,7 +62,7 @@
   "dependencies": {
     "@awesome.me/webawesome": "^3.5.0",
     "@sentry/browser": "^10.47.0",
-    "@sentry/node": "^10.46.0",
+    "@sentry/node": "^10.48.0",
     "@varlock/1password-plugin": "^0.2.3",
     "@varlock/vite-integration": "^0.2.5",
     "cheerio": "^1.2.0",
